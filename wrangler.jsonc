@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "risu-institute",
+  "compatibility_date": "2026-08-08",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "risuinstitute.org",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

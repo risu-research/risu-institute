@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f0e8">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css">
+
+<title>Appeal Semantic — RISU Institute</title>
+<meta name="description" content="Experimental semantic identity for an affordance used to request review or reconsideration of a prior decision.">
+<link rel="canonical" href="https://risuinstitute.org/rels/appeal">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Appeal Semantic — RISU Institute">
+<meta property="og:description" content="Experimental purpose identity for requesting review or reconsideration of a prior decision.">
+<meta property="og:url" content="https://risuinstitute.org/rels/appeal">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Experimental semantic · v0.1</p>
+      <h1 class="spec-title">Appeal</h1>
+      <dl class="spec-grid">
+        <dt>Identifier</dt>
+        <dd class="identifier">https://risuinstitute.org/rels/appeal</dd>
+        <dt>Status</dt>
+        <dd>Experimental</dd>
+        <dt>Published</dt>
+        <dd>9 August 2026</dd>
+        <dt>Defined by</dt>
+        <dd>RISU Institute</dd>
+        <dt>First binding</dt>
+        <dd>RFC 8288 Web Linking extension relation</dd>
+      </dl>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <h2>Definition</h2>
+    <p class="definition">Identifies an affordance used to request review or reconsideration of the prior decision identified by or unambiguously associated with its context.</p>
+
+    <h2>Purpose</h2>
+    <p><strong>Appeal identifies purpose, not procedure.</strong> It allows a publisher to assert that an affordance exists for requesting review or reconsideration of a prior decision without requiring consumers to reconstruct that purpose from provider-specific names, descriptions, or workflow details.</p>
+
+    <h2>RFC 8288 binding</h2>
+    <p>When used as an RFC 8288 link relation, the relation means:</p>
+    <div class="callout">
+      <p><strong>Refers to a resource used to request review or reconsideration of the prior decision identified by or unambiguously associated with the link context.</strong></p>
+    </div>
+    <p>The canonical extension relation URI is:</p>
+    <p class="identifier"><strong>https://risuinstitute.org/rels/appeal</strong></p>
+    <p>Example:</p>
+    <div class="code-block">Link: &lt;/appeals/123&gt;;
+      rel="https://risuinstitute.org/rels/appeal"</div>
+    <p>RFC 8288 permits extension relation types to be absolute URIs controlled by the party defining them. This identifier is intentionally lowercase and unversioned.</p>
+
+    <h2>Context requirement</h2>
+    <p>The prior decision must be identified by, or unambiguously associated with, the relation context. A broad resource that could refer to several distinct decisions is not sufficient merely because some appeal mechanism exists somewhere beneath it.</p>
+    <div class="callout">
+      <p><strong>Integrity rule:</strong> never widen context.</p>
+    </div>
+
+    <h2>Non-assertions</h2>
+    <p>The presence of <span class="identifier">appeal</span> does <strong>not</strong>, by itself, assert any of the following:</p>
+    <ul>
+      <li>that a particular actor has standing, eligibility, or authorization to use the affordance;</li>
+      <li>that a legal right or entitlement to appeal exists;</li>
+      <li>that the affordance is currently invocable or will succeed when invoked;</li>
+      <li>that the assertion is official, authoritative, trusted, or true merely because it is present;</li>
+      <li>that the target uses any universal appeal API, workflow, schema, evidence model, or execution method;</li>
+      <li>that multiple appeal relations are equivalent, ordered, exclusive, exhaustive, or interchangeable;</li>
+      <li>that absence of the relation means no review, remedy, or appeal exists.</li>
+    </ul>
+
+    <h2>Multiple routes</h2>
+    <p>A context may expose zero, one, or multiple appeal affordances. Multiple relations are a set of asserted routes; their presence alone does not imply priority, equivalence, exclusivity, or completeness.</p>
+
+    <h2>Levels of review</h2>
+    <p>Different levels of review can be represented through graph structure rather than relation subtypes. A decision produced by one review process may itself become the context for a later <span class="identifier">appeal</span> relation.</p>
+
+    <h2>Temporal and authorization boundaries</h2>
+    <p>Discovery is not invocation. A representation can truthfully advertise an appeal affordance at one moment without guaranteeing that a later request remains timely, authorized, or acceptable. Freshness and invocation-time validation belong to the carrier and procedural system.</p>
+
+    <h2>Provenance and trust</h2>
+    <p>The semantic states what relation is being asserted. It does not state who should be trusted to make that assertion. Authenticity, authority, truth, and target acceptance are separate questions.</p>
+    <div class="callout">
+      <p><strong>Boundary:</strong> meaning is not warrant.</p>
+    </div>
+
+    <h2>Projection discipline</h2>
+    <p>Systems that materialize this semantic from provider-native representations should emit it only when provider-controlled source assertions entail the meaning. Ambiguous human text, inferred eligibility, or guessed context is not enough.</p>
+    <div class="callout">
+      <p><strong>General rule:</strong> translate semantics; do not invent semantics.</p>
+    </div>
+
+    <h2>Experimental status</h2>
+    <p>This is an experimental extension relation, not an IANA-registered link relation. The current experiment has demonstrated consumer-side recognition without provider-specific purpose mapping under supported bindings. Independent native publication by an external publisher has not yet been demonstrated.</p>
+
+    <h2>Versioning</h2>
+    <p>This page describes specification version <strong>0.1</strong>. The semantic identifier itself is intentionally unversioned. Compatible editorial or clarifying revisions may update this document without changing the identifier. A materially incompatible semantic would require a different identity.</p>
+
+    <h2>References</h2>
+    <div class="reference-list">
+      <a href="https://www.rfc-editor.org/rfc/rfc8288.html">RFC 8288 — Web Linking</a>
+      <a href="https://www.iana.org/assignments/link-relations/link-relations.xhtml">IANA Link Relation Types Registry</a>
+    </div>
+
+    <h2>History</h2>
+    <p><strong>v0.1 · 9 August 2026.</strong> Experimental semantic freeze and publication under a controlled HTTPS identifier.</p>
+
+    <h2>Citation</h2>
+    <p>RISU Institute. <em>Appeal Semantic</em>, experimental specification v0.1, 2026.</p>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC.</div>
+    <div>© 2026 RISU LLC</div>
+  </div>
+</footer>
+
+</body>
+</html>

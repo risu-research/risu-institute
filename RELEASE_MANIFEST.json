@@ -1,0 +1,8 @@
+{
+  "name": "RISU Institute public site",
+  "release": "v0.1 release candidate",
+  "canonical_semantic": "https://risuinstitute.org/rels/appeal",
+  "semantic_status": "Experimental",
+  "public_directory": "public",
+  "generated": "2026-08-09"
+}

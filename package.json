@@ -1,0 +1,19 @@
+{
+  "name": "risu-institute-site",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.16.0",
+  "description": "Static public website for RISU Institute",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "check": "pnpm test && wrangler deploy --dry-run --outdir .wrangler/release-dry-run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.120.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

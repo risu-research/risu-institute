@@ -1,8 +1,11 @@
 {
   "name": "RISU Institute public site",
-  "release": "v0.1 release candidate",
+  "release": "v0.2",
+  "source_baseline_commit": "981c7394e00bf3251bb54b5fd9e664d145ba12ab",
   "canonical_semantic": "https://risuinstitute.org/rels/appeal",
   "semantic_status": "Experimental",
   "public_directory": "public",
-  "generated": "2026-08-09"
+  "evidence_path": "/work/appeal-interoperability/",
+  "iana_status": "Not registered",
+  "generated": "2026-08-10"
 }

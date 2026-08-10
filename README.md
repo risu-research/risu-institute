@@ -1,4 +1,4 @@
-# RISU Institute public site v0.1
+# RISU Institute public site v0.2
 
 Static, dependency-free public website for RISU Institute, deployed as
 Cloudflare Workers Static Assets without runtime Worker code.
@@ -8,7 +8,7 @@ Cloudflare Workers Static Assets without runtime Worker code.
 https://risuinstitute.org/rels/appeal
 
 The identifier is intentionally unversioned. The document currently describes
-experimental specification v0.1.
+experimental specification v0.2.
 
 ## Repository boundary
 
@@ -67,9 +67,16 @@ The equivalent dashboard path is **Workers & Pages → risu-institute → Settin
 Cloudflare manages the resulting DNS record and certificate; do not create
 speculative DNS records first.
 
-Recommended release tags are `site-v0.1` for the site baseline and
-`appeal-semantic-v0.1` for the semantic document. Neither tag changes the
+The sole historical baseline tag is `appeal-semantic-v0.1`. No `site-v0.1` tag
+exists locally or on the upstream repository, and none is created
+retroactively. The v0.2 release is anchored by `appeal-semantic-v0.2` only after
+the exact release commit is published and verified. No tag changes the
 canonical URI.
+
+The controlled interoperability record is published from
+`public/work/appeal-interoperability/index.html`. The review-only IANA candidate
+and designated-expert memo remain outside the public asset boundary in
+`standards/`.
 
 ## Design constraints
 

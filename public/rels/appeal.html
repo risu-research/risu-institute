@@ -34,7 +34,7 @@
 <main>
   <section class="page-hero">
     <div class="reading">
-      <p class="eyebrow">Experimental semantic · v0.1</p>
+      <p class="eyebrow">Experimental semantic · v0.2</p>
       <h1 class="spec-title">Appeal</h1>
       <dl class="spec-grid">
         <dt>Identifier</dt>
@@ -43,6 +43,8 @@
         <dd>Experimental</dd>
         <dt>Published</dt>
         <dd>9 August 2026</dd>
+        <dt>Last revised</dt>
+        <dd>10 August 2026</dd>
         <dt>Defined by</dt>
         <dd>RISU Institute</dd>
         <dt>First binding</dt>
@@ -58,6 +60,9 @@
     <h2>Purpose</h2>
     <p><strong>Appeal identifies purpose, not procedure.</strong> It allows a publisher to assert that an affordance exists for requesting review or reconsideration of a prior decision without requiring consumers to reconstruct that purpose from provider-specific names, descriptions, or workflow details.</p>
 
+    <h2>Adjacent purposes (non-normative)</h2>
+    <p>A complaint, dispute, support route, edit, retry, escalation, or cancellation does not qualify merely because it concerns the same matter. The relation applies only when the target is used to request review or reconsideration of the prior decision identified by or unambiguously associated with the context.</p>
+
     <h2>RFC 8288 binding</h2>
     <p>When used as an RFC 8288 link relation, the relation means:</p>
     <div class="callout">
@@ -69,6 +74,7 @@
     <div class="code-block">Link: &lt;/appeals/123&gt;;
       rel="https://risuinstitute.org/rels/appeal"</div>
     <p>RFC 8288 permits extension relation types to be absolute URIs controlled by the party defining them. This identifier is intentionally lowercase and unversioned.</p>
+    <p>This URI is the experimental extension relation identifier. A future registered relation token <span class="identifier">appeal</span>, if any, would be a different RFC 8288 relation identifier. RFC 8288 does not make the URI and token equivalent; any migration or dual-support policy would need to be specified separately.</p>
 
     <h2>Context requirement</h2>
     <p>The prior decision must be identified by, or unambiguously associated with, the relation context. A broad resource that could refer to several distinct decisions is not sufficient merely because some appeal mechanism exists somewhere beneath it.</p>
@@ -110,10 +116,10 @@
     </div>
 
     <h2>Experimental status</h2>
-    <p>This is an experimental extension relation, not an IANA-registered link relation. The current experiment has demonstrated consumer-side recognition without provider-specific purpose mapping under supported bindings. Independent native publication by an external publisher has not yet been demonstrated.</p>
+    <p>This is an experimental extension relation, not an IANA-registered link relation. Controlled experiments have demonstrated provider-independent consumer recognition without provider-specific purpose mapping and, in one clean-room instance, independent acquisition of the public definition followed by native RFC 8288 publication that a pre-existing frozen consumer discovered. These results do not demonstrate ecosystem adoption, organic adoption, independent organizational adoption, industry adoption, standardization, or universal interoperability. <a href="/work/appeal-interoperability/">Experimental design and evidence anchors</a> are published separately.</p>
 
     <h2>Versioning</h2>
-    <p>This page describes specification version <strong>0.1</strong>. The semantic identifier itself is intentionally unversioned. Compatible editorial or clarifying revisions may update this document without changing the identifier. A materially incompatible semantic would require a different identity.</p>
+    <p>This page describes specification version <strong>0.2</strong>. The semantic identifier itself is intentionally unversioned. Compatible editorial or clarifying revisions may update this document without changing the identifier. A materially incompatible semantic would require a different identity.</p>
 
     <h2>References</h2>
     <div class="reference-list">
@@ -122,10 +128,11 @@
     </div>
 
     <h2>History</h2>
+    <p><strong>v0.2 · 10 August 2026.</strong> Recorded the completed controlled interoperability experiments and clarified that the experimental URI and any future registered token are distinct relation identifiers.</p>
     <p><strong>v0.1 · 9 August 2026.</strong> Experimental semantic freeze and publication under a controlled HTTPS identifier.</p>
 
     <h2>Citation</h2>
-    <p>RISU Institute. <em>Appeal Semantic</em>, experimental specification v0.1, 2026.</p>
+    <p>RISU Institute. <em>Appeal Semantic</em>, experimental specification v0.2, 2026.</p>
   </article>
 </main>
 

@@ -69,6 +69,7 @@ test("exact public surfaces return the expected status and Content-Type", async 
     ["/work/", "text/html"],
     ["/about/", "text/html"],
     ["/rels/appeal", "text/html"],
+    ["/work/appeal-interoperability/", "text/html"],
     ["/robots.txt", "text/plain"],
     ["/sitemap.xml", "application/xml"],
     ["/assets/style.css", "text/css"],

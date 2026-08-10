@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f0e8">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css">
+
+<title>Appeal Interoperability Experiments — RISU Institute</title>
+<meta name="description" content="Design, results, limitations, and frozen evidence anchors for two controlled appeal relation interoperability experiments.">
+<link rel="canonical" href="https://risuinstitute.org/work/appeal-interoperability/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Appeal Interoperability Experiments — RISU Institute">
+<meta property="og:description" content="A controlled experimental record for the appeal RFC 8288 extension relation.">
+<meta property="og:url" content="https://risuinstitute.org/work/appeal-interoperability/">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Work</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Experimental record · 2026</p>
+      <h1>Appeal interoperability experiments</h1>
+      <p class="page-lede">Two controlled tests examined whether independently produced RFC 8288 components could interoperate on the narrow purpose identified by the experimental <span class="identifier">appeal</span> extension relation.</p>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <h2>Question</h2>
+    <p>Can a provider-independent consumer discover an appeal affordance from a native RFC 8288 publisher by matching the asserted relation identity, without provider-specific purpose mapping, semantic inference, a new carrier adapter, or source modification?</p>
+
+    <h2>Experimental design</h2>
+    <p>The consumer and publisher were developed and frozen under different information constraints. Interoperability was then evaluated at first encounter against live HTTP responses. The relation under test was the RFC 8288 extension relation URI <span class="identifier">https://risuinstitute.org/rels/appeal</span>.</p>
+    <p>The extension URI is not the same RFC 8288 relation identifier as a possible future registered token <span class="identifier">appeal</span>. The experiments tested only the extension URI.</p>
+
+    <h2>Test A</h2>
+    <div class="callout">
+      <p><strong>PASS — A frozen provider-independent consumer successfully discovered an appeal affordance from the live RFC 8288 response of an independently designed and frozen publisher, without provider mapping, semantic inference, a new carrier adapter, or source modification.</strong></p>
+    </div>
+
+    <h2>Remaining limitation after Test A</h2>
+    <p>The experimenter supplied the semantic meaning to the publisher prompt. Test A therefore demonstrated independent implementation and live first-encounter discovery, but not independent acquisition of the relation meaning from the public semantic resource.</p>
+
+    <h2>Test B</h2>
+    <p>Test B added a clean-room semantic-acquisition constraint. Its causal order was:</p>
+    <div class="code-block">public semantic definition
+→ independent semantic acquisition
+→ independent native RFC 8288 publisher design
+→ publisher freeze
+→ live deployment
+→ publisher provenance freeze
+→ pre-existing frozen consumer
+→ first encounter
+→ successful discovery
+→ negative controls</div>
+    <p>The publisher implementation session had access to the public semantic resource and RFC 8288, but not to the consumer implementation. The publisher was frozen before encounter with the pre-existing frozen consumer.</p>
+
+    <h2>Positive result</h2>
+    <div class="callout">
+      <p><strong>PASS — In one controlled clean-room experimental instance, an independent implementation session acquired the appeal relation meaning from the public canonical semantic resource and RFC 8288, designed and froze a native RFC 8288 publisher without access to the consumer implementation, and a pre-existing frozen provider-independent consumer subsequently discovered the live affordance without provider mapping, semantic inference, a new carrier adapter, or source modification.</strong></p>
+    </div>
+
+    <h2>Negative controls</h2>
+    <div class="code-block">same context + same target + correct semantic
+→ 1 discovery
+
+same context + same target + wrong configured semantic
+→ 0 discoveries
+
+same context + same target + wrong asserted relation identity
+→ 0 discoveries</div>
+    <p>Holding context and target constant while changing relation identity showed that discovery in this instance depended on asserted semantic identity rather than context or target alone.</p>
+
+    <h2>What was demonstrated</h2>
+    <ul>
+      <li>Provider-independent consumer recognition of the extension relation URI without provider-specific purpose mapping.</li>
+      <li>One controlled public-definition-to-native-publication interoperability instance in which semantic acquisition, publisher design, freeze, deployment, consumer encounter, and negative controls occurred in the recorded order.</li>
+    </ul>
+
+    <h2>What was not demonstrated</h2>
+    <ul>
+      <li>ecosystem, organic, independent organizational, or industry adoption;</li>
+      <li>IANA registration, standardization, or a conclusion that registration is warranted;</li>
+      <li>universal interoperability across publishers, consumers, carriers, or workflows;</li>
+      <li>actor standing, eligibility, authorization, legal entitlement, freshness, invocability, success, authority, provenance, trust, or truth;</li>
+      <li>a universal appeal API, execution method, submission schema, evidence schema, deadline model, or Decision ID.</li>
+    </ul>
+
+    <h2>Frozen evidence anchors</h2>
+    <p>These identifiers and SHA-256 digests anchor the frozen records. The complete evidence bundle is not reproduced on this public site.</p>
+    <h3>Test A</h3>
+    <ul>
+      <li>Final result SHA-256: <span class="identifier">7dbeede9450f97e93d863d0e2cb825df2fea65f79659132c4b94f8edb8d6fcae</span></li>
+    </ul>
+    <h3>Test B implementation freezes</h3>
+    <ul>
+      <li>Consumer commit: <span class="identifier">babc39d09d1d35447d306bc7540f8dbe7d1aa2e4</span></li>
+      <li>Publisher commit: <span class="identifier">1ef2febc611de6f39a696234374470e6a2e0a8c1</span></li>
+      <li>Publisher <span class="identifier">server.js</span> SHA-256: <span class="identifier">f33da8bd5f7c284e6bf6814a7ef1f8e0c9063c6b20a286517c18cb88ba3fdf13</span></li>
+      <li>Publisher ZIP SHA-256: <span class="identifier">2bda28d5dbf1356ebcdf5de5033430cc65d3b1b813fd485888fe76d8e1d2cfde</span></li>
+    </ul>
+    <h3>Test B encounter record</h3>
+    <ul>
+      <li>Pre-consumer publisher provenance SHA-256: <span class="identifier">d87f45e5b3d70800e4e068a10ec5a234a02f5c9392803d957d4deaa910a18a8a</span></li>
+      <li>Positive encounter SHA-256: <span class="identifier">5ff8d7101850f18510e251750a80f7f6011441a3bb358d65285a3600b376f06c</span></li>
+      <li>Negative-control SHA-256: <span class="identifier">f8236b0350bd883feebe2f822115e8ed926aadb22885197d737e5e45348a627a</span></li>
+      <li>Final result SHA-256: <span class="identifier">2087708b5134e4fffc959d9767920f1ea76a67277b4c2b776671cc02fc4d2bf7</span></li>
+      <li>Complete evidence bundle SHA-256: <span class="identifier">cfd95a3fd04fc1ad48934e5eec3caf18470a372b074923cf469aee058812fd75</span></li>
+    </ul>
+
+    <h2>Related specification</h2>
+    <div class="reference-list">
+      <a href="/rels/appeal">Appeal semantic specification v0.2</a>
+      <a href="https://www.rfc-editor.org/rfc/rfc8288.html">RFC 8288 — Web Linking</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC.</div>
+    <div>© 2026 RISU LLC</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -42,6 +42,7 @@ const productionPages = [
   "about/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
+  "work/problem-semantics/index.html",
 ];
 
 async function readProject(path) {
@@ -212,6 +213,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "sitemap.xml",
     "work/appeal-interoperability/index.html",
     "work/index.html",
+    "work/problem-semantics/index.html",
   ];
   const actual = (await listFiles(publicRoot)).map(publicRelative).sort();
 
@@ -284,11 +286,21 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/rels\/appeal<\/loc>/gu)].length,
     1,
   );
-  assert.doesNotMatch(sitemap, /<loc>https:\/\/risuinstitute\.org\/rels\/appeal\/<\/loc>/u);
+  assert.doesNotMatch(
+    sitemap,
+    /<loc>https:\/\/risuinstitute\.org\/rels\/appeal\/<\/loc>/u,
+  );
+
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/appeal-interoperability\/<\/loc>/gu)].length,
     1,
   );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/problem-semantics\/<\/loc>/gu)].length,
+    1,
+  );
+
   assert.equal(manifest.canonical_semantic, canonicalUri);
   assert.equal(
     manifest.source_baseline_commit,

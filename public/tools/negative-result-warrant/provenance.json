@@ -1,0 +1,105 @@
+{
+  "inspector": {
+    "id": "risu-negative-result-warrant-inspector",
+    "version": "0.2.0",
+    "status": "experimental-public-instrument"
+  },
+  "implementationRepository": "https://github.com/risu-research/risu-institute",
+  "implementationBaseCommit": "4d514f07dd73bccd54e7fbba8c28a0899ef0e92f",
+  "browserImplementationPath": "public/tools/negative-result-warrant/core.js",
+  "canonicalResearch": {
+    "repository": "https://github.com/risu-research/negative-result-warrant",
+    "frozenCommit": "d3f9840d1e0794c675bd6e948cdbb0dcd315cd65",
+    "consumerPortIsCanonical": false,
+    "canonicalStructuresProduced": [
+      "NegativeResultWarrant@0.2.1",
+      "BoundNegativeEvidence@0.2.2",
+      "AlgoliaRealSourceNegativeEvidence@0.3.0"
+    ],
+    "profile": {
+      "id": "algolia-search",
+      "warrantVersion": "0.2.1",
+      "boundEvidenceVersion": "0.2.2",
+      "httpNormalizerVersion": "0.3.0"
+    },
+    "sourceFiles": [
+      "PROFILE.md",
+      "reference/phase3/src/action.ts",
+      "reference/phase3/src/capture.ts",
+      "reference/phase3/src/normalizer.ts",
+      "reference/phase3/src/real-source-evidence.ts",
+      "reference/phase3/src/types.ts",
+      "reference/phase3/frozen/phase2.1/src/composition.ts",
+      "reference/phase3/frozen/phase2.1/src/envelope.ts",
+      "reference/phase3/frozen/phase2.1/src/evaluator.ts",
+      "reference/phase3/frozen/phase2.1/src/gate.ts",
+      "reference/phase3/frozen/phase2.1/src/profiles.ts",
+      "reference/phase3/frozen/phase2.1/src/proposition.ts",
+      "reference/phase3/frozen/phase2.1/src/receiver.ts",
+      "reference/phase3/frozen/phase2.1/src/types.ts"
+    ]
+  },
+  "portableEvidence": {
+    "kind": "RISU_NRW_INSPECTOR_PORTABLE_EVIDENCE",
+    "version": "0.1.0",
+    "canonicalFormat": false,
+    "exactKeyValidation": true,
+    "canonicalComponent": "canonical.realSourceEvidence",
+    "inspectorSpecificComponents": [
+      "transport.capture",
+      "inspector"
+    ],
+    "transportPurpose": "Carries exact supplied request and response body text so raw and normalized bindings can be reproduced after JSON parsing.",
+    "receiverContext": [
+      "applicationId",
+      "credentialFingerprint",
+      "credentialByteLength"
+    ],
+    "originAuthentication": "not-established",
+    "validationAuthoritySerialized": false
+  },
+  "recordedRun": {
+    "id": "20260814T013017406Z-fd070306",
+    "activeRunSource": "reference/phase3/ACTIVE-RUN.txt",
+    "copiedFixtureModule": {
+      "path": "public/tools/negative-result-warrant/recorded/observations.js",
+      "sha256": "e4554be26684df1bb6af0f566cbf2e34fd78a448b9393dad2d5a8e527fda11b8"
+    },
+    "canonicalRealSourceGoldenArtifact": {
+      "originalPath": "reference/phase3/evidence/real/algolia/20260814T013017406Z-fd070306/real-source-negative-evidence.json",
+      "originalSha256": "9300e743db877c903da98959956a0be4952c3cf84f98a444b643116d3e508a2a",
+      "browserStableJsonSha256": "e271c51a7cb4c29e82b15f93f1dd5cf306a215785969c7d7934bea8f10b96241",
+      "crossCheck": "Browser-produced Q-prime outer evidence is deep-equal to the frozen canonical JSON object."
+    },
+    "payloads": [
+      {
+        "id": "ordinary-request",
+        "originalPath": "reference/phase3/evidence/real/algolia/20260814T013017406Z-fd070306/ordinary-request-body.raw",
+        "originalSha256": "c10d31fde423599306a71fc4949ecbc13a718ee474faffc275d6ad360de13ef0",
+        "copiedRepresentation": "recorded/observations.js#ordinary.request.bodyText",
+        "copiedPayloadSha256": "c10d31fde423599306a71fc4949ecbc13a718ee474faffc275d6ad360de13ef0"
+      },
+      {
+        "id": "ordinary-response",
+        "originalPath": "reference/phase3/evidence/real/algolia/20260814T013017406Z-fd070306/ordinary-response-body.raw",
+        "originalSha256": "95c872bb91d41b3ec364beed0a0ff754697cf6ed2d9fbbfe1651ef368226e232",
+        "copiedRepresentation": "recorded/observations.js#ordinary.response.bodyText",
+        "copiedPayloadSha256": "95c872bb91d41b3ec364beed0a0ff754697cf6ed2d9fbbfe1651ef368226e232"
+      },
+      {
+        "id": "verification-request",
+        "originalPath": "reference/phase3/evidence/real/algolia/20260814T013017406Z-fd070306/verification-request-body.raw",
+        "originalSha256": "c9f8db7da22841e20ec68d938488733adc743350d86cb248e30345b6b0e59ccc",
+        "copiedRepresentation": "recorded/observations.js#verification.request.bodyText",
+        "copiedPayloadSha256": "c9f8db7da22841e20ec68d938488733adc743350d86cb248e30345b6b0e59ccc"
+      },
+      {
+        "id": "verification-response",
+        "originalPath": "reference/phase3/evidence/real/algolia/20260814T013017406Z-fd070306/verification-response-body.raw",
+        "originalSha256": "679f5efc1eee0dbd8c4ba191d3fe40cf47e7ae41fd355ce4ff436216ab8d0dd1",
+        "copiedRepresentation": "recorded/observations.js#verification.response.bodyText",
+        "copiedPayloadSha256": "679f5efc1eee0dbd8c4ba191d3fe40cf47e7ae41fd355ce4ff436216ab8d0dd1"
+      }
+    ]
+  }
+}

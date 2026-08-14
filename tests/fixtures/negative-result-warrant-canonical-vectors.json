@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "d3f9840d1e0794c675bd6e948cdbb0dcd315cd65",
+  "generatedBy": "canonical executable sources at the frozen commit",
+  "ordinary": {
+    "normalization": "ACCEPT",
+    "verdict": "UNKNOWN",
+    "reasonCodes": [
+      "RANKING_INFO_SETTING_MISSING_OR_MALFORMED",
+      "EFFECTIVE_INDEX_WITNESS_MISSING",
+      "EFFECTIVE_INDEX_UNRESOLVED"
+    ]
+  },
+  "verification": {
+    "normalization": "ACCEPT",
+    "verdict": "WARRANTED_ZERO",
+    "requestBinding": "526a0793508f4905429088c9b0a4b20636974f11418ec9e25ec359c1c3d31122",
+    "responseBinding": "c8ea6e1c9c232a4b92822fc089751f0cf51172767f840e19934e8d96f92eb077",
+    "matchPredicateIdentity": "sha256:1765789af78e64de8a62255220bbf0bb94b74a0a8a73fdc54ac07fde457a7ed0"
+  },
+  "realSourceEvidence": {
+    "kind": "ALGOLIA_REAL_SOURCE_NEGATIVE_EVIDENCE",
+    "version": "0.3.0",
+    "credentialByteLength": 32,
+    "stableJsonSha256": "e271c51a7cb4c29e82b15f93f1dd5cf306a215785969c7d7934bea8f10b96241"
+  },
+  "missingEffectiveIndexWitness": {
+    "normalization": "ACCEPT",
+    "verdict": "UNKNOWN",
+    "reasonCodes": [
+      "EFFECTIVE_INDEX_WITNESS_MISSING",
+      "EFFECTIVE_INDEX_UNRESOLVED"
+    ]
+  },
+  "alteredApplicationId": "REJECT",
+  "alteredIndex": "REJECT",
+  "alteredAuthorityBinding": "REJECT",
+  "alteredRequestWhitespace": {
+    "normalization": "ACCEPT",
+    "verdict": "WARRANTED_ZERO",
+    "rawBindingChanged": true,
+    "normalizedBindingSame": true
+  },
+  "alteredResponseBytes": {
+    "normalization": "ACCEPT",
+    "rawBindingChanged": true,
+    "normalizedBindingChanged": true
+  },
+  "malformedEvidenceEnvelope": "REJECT",
+  "propositionMismatchAtReceiver": "REJECT",
+  "overbroadIntendedPremise": "BLOCK",
+  "exactIntendedPremise": "PASS"
+}

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f0e8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/tools/negative-result-warrant/inspector.css">
+  <title>Negative Result Warrant Inspector — RISU Institute</title>
+  <meta name="description" content="Inspect a supplied Algolia zero-result observation under the experimental Negative Result Warrant profile, locally in your browser.">
+  <link rel="canonical" href="https://risuinstitute.org/tools/negative-result-warrant/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Negative Result Warrant Inspector">
+  <meta property="og:description" content="Can this zero result support the exact bounded premise you intend to use?">
+  <meta property="og:url" content="https://risuinstitute.org/tools/negative-result-warrant/">
+  <meta property="og:image" content="https://risuinstitute.org/tools/negative-result-warrant/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body class="instrument-page">
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/">Work</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/risu-research/negative-result-warrant">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="instrument-hero">
+    <div class="tool-wrap">
+      <p class="eyebrow">Experimental public instrument</p>
+      <h1>Negative Result<br>Warrant Inspector</h1>
+      <p class="instrument-question">Can this zero result support the exact bounded premise you intend to use?</p>
+      <p class="instrument-intro">Evaluate a supplied Algolia HTTP observation under the frozen experimental profile. Export portable evidence when a warrant is issued, cross a real JSON boundary, revalidate it as a receiver, and test one exact downstream premise—without sending the capture anywhere.</p>
+      <div class="locality-note" role="note">
+        <span class="locality-mark" aria-hidden="true"></span>
+        <div>
+          <strong>Runs locally in your browser.</strong>
+          <span>Your evidence is not uploaded, stored, or used to make a live Algolia call.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="instrument-shell" aria-labelledby="workspace-title">
+    <div class="tool-wrap">
+      <h2 id="workspace-title" class="visually-hidden">Inspection workspace</h2>
+
+      <div class="mode-switch" role="tablist" aria-label="Inspector mode">
+        <button type="button" id="user-mode" class="mode-button is-active" role="tab" aria-selected="true" aria-controls="capture-panel">
+          <span class="mode-number">01</span>
+          <span>Inspect your evidence</span>
+        </button>
+        <button type="button" id="recorded-mode" class="mode-button" role="tab" aria-selected="false" aria-controls="capture-panel">
+          <span class="mode-number">02</span>
+          <span>Load recorded experiment</span>
+        </button>
+      </div>
+
+      <div id="recorded-controls" class="recorded-controls" hidden>
+        <div>
+          <p class="panel-kicker">Frozen Project 4 evidence</p>
+          <p id="recorded-explanation">Q and Q′ are separate real HTTP observations of the same bounded query—not one observation being upgraded.</p>
+        </div>
+        <div class="observation-switch" role="group" aria-label="Recorded observation">
+          <button type="button" id="load-q" class="observation-button is-active" aria-pressed="true">
+            <span>Q</span> Ordinary
+          </button>
+          <button type="button" id="load-q-prime" class="observation-button" aria-pressed="false">
+            <span>Q′</span> Verification
+          </button>
+        </div>
+      </div>
+
+      <div class="workspace-grid">
+        <section class="capture-panel" id="capture-panel" aria-labelledby="capture-title">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Input / observation</p>
+              <h2 id="capture-title">Supplied capture</h2>
+            </div>
+            <span id="capture-mode-chip" class="micro-chip">User evidence</span>
+          </div>
+
+          <form id="capture-form" novalidate autocomplete="off">
+            <fieldset class="form-section">
+              <legend><span>Context</span><small>Expected source and authority view</small></legend>
+              <div class="field-grid">
+                <label class="field">
+                  <span>Algolia application ID</span>
+                  <input id="application-id" name="applicationId" type="text" required autocapitalize="none" spellcheck="false" placeholder="my-application">
+                </label>
+                <label class="field">
+                  <span>Index</span>
+                  <input id="index" name="index" type="text" required autocapitalize="none" spellcheck="false" placeholder="products">
+                </label>
+                <label class="field field-wide">
+                  <span>Expected credential fingerprint <small>SHA-256, lowercase hexadecimal</small></span>
+                  <input id="credential-fingerprint" name="credentialFingerprint" type="text" required inputmode="text" minlength="64" maxlength="64" autocapitalize="none" spellcheck="false" placeholder="64-character SHA-256 fingerprint">
+                  <small class="field-help">Use the fingerprint of the exact search credential, not the credential itself.</small>
+                </label>
+                <label class="field field-wide">
+                  <span>Observation ID</span>
+                  <input id="observation-id" name="observationId" type="text" required autocapitalize="none" spellcheck="false" placeholder="capture-2026-08-14T12:00:00Z">
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+              <legend><span>Exact request</span><small>Raw body text remains byte-distinct</small></legend>
+              <div class="field-grid field-grid-transport">
+                <label class="field field-wide">
+                  <span>Request URL</span>
+                  <input id="request-url" name="requestUrl" type="url" required autocapitalize="none" spellcheck="false" placeholder="https://my-application-dsn.algolia.net/1/indexes/products/query">
+                </label>
+                <label class="field">
+                  <span>HTTP method</span>
+                  <input id="request-method" name="requestMethod" type="text" value="POST" required autocapitalize="characters" spellcheck="false">
+                </label>
+                <label class="field">
+                  <span>x-algolia-application-id</span>
+                  <input id="application-header" name="applicationHeader" type="text" required autocapitalize="none" spellcheck="false" placeholder="my-application">
+                </label>
+                <label class="field field-wide">
+                  <span>Captured credential fingerprint <small>request evidence</small></span>
+                  <input id="request-credential-fingerprint" name="requestCredentialFingerprint" type="text" required minlength="64" maxlength="64" autocapitalize="none" spellcheck="false" placeholder="Fingerprint recorded for the exact credential bytes">
+                  <small class="field-help">Kept separate from the expected authority context above; the canonical normalizer requires them to match.</small>
+                </label>
+                <label class="field">
+                  <span>Credential UTF-8 byte length <small>request evidence</small></span>
+                  <input id="request-credential-byte-length" name="requestCredentialByteLength" type="number" required min="0" step="1" inputmode="numeric" placeholder="32">
+                  <small class="field-help">A fingerprint cannot reveal this canonical binding field. Enter the exact byte length; never paste the credential.</small>
+                </label>
+                <label class="field field-wide">
+                  <span>Request body <small>exact UTF-8 text</small></span>
+                  <textarea id="request-body" name="requestBody" rows="8" required wrap="off" spellcheck="false" placeholder='{"query":"bounded-query","enableABTest":false,"getRankingInfo":true}'></textarea>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+              <legend><span>Exact response</span><small>Complete provider-reported JSON</small></legend>
+              <div class="field-grid field-grid-transport">
+                <label class="field">
+                  <span>HTTP status</span>
+                  <input id="response-status" name="responseStatus" type="number" min="100" max="599" required inputmode="numeric" placeholder="200">
+                </label>
+                <label class="field">
+                  <span>Content-Type</span>
+                  <input id="response-content-type" name="responseContentType" type="text" required autocapitalize="none" spellcheck="false" placeholder="application/json">
+                </label>
+                <label class="field field-wide">
+                  <span>Final URL <small>preserved capture metadata</small></span>
+                  <input id="response-final-url" name="responseFinalUrl" type="url" autocapitalize="none" spellcheck="false" placeholder="https://my-application-dsn.algolia.net/1/indexes/products/query">
+                </label>
+                <label class="field field-wide">
+                  <span>Response body <small>exact UTF-8 text</small></span>
+                  <textarea id="response-body" name="responseBody" rows="13" required wrap="off" spellcheck="false" placeholder='{"hits":[],"nbHits":0,"exhaustive":{"nbHits":true},"indexUsed":"products"}'></textarea>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-button" id="evaluate-button">Evaluate supplied capture</button>
+              <button type="button" class="text-button" id="reset-button">Reset and clear evidence</button>
+            </div>
+            <p class="memory-note">No credential value is requested. Only its fingerprint and byte length are used. Reset clears entered, imported, and computed evidence from this page.</p>
+          </form>
+        </section>
+
+        <section class="verdict-panel" aria-labelledby="verdict-title">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Local evaluator</p>
+              <h2 id="verdict-title">Verdict</h2>
+            </div>
+            <span id="verdict-chip" class="verdict-chip is-empty">Not evaluated</span>
+          </div>
+
+          <div id="verdict-live" class="verdict-summary" role="status" aria-live="polite">
+            <p class="verdict-display">Awaiting evidence</p>
+            <p>Supply an application-level Algolia capture, or load the frozen recorded experiment.</p>
+          </div>
+
+          <div class="trust-note">
+            <span>Trust boundary</span>
+            <p>Structural validation and SHA-256 binding establish consistency relative to supplied bytes. They do not authenticate Algolia as the origin.</p>
+          </div>
+
+          <div class="diagnostic-head">
+            <h3>Evidence ladder</h3>
+            <span id="diagnostic-count">0 checks</span>
+          </div>
+          <div id="diagnostics" class="diagnostics" aria-label="Evaluation diagnostics">
+            <p class="empty-state">Checks will appear here in the same fail-closed path used for the verdict.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="result-section" aria-labelledby="proposition-title">
+    <div class="tool-wrap result-grid">
+      <div class="result-copy">
+        <p class="panel-kicker">Exact claim boundary</p>
+        <h2 id="proposition-title">Supported proposition</h2>
+        <p id="supported-proposition" class="proposition-sentence">No bounded negative proposition has been issued.</p>
+
+        <h3>Not established</h3>
+        <ul class="boundary-list">
+          <li>World-level nonexistence or absence outside the exact bounded scope</li>
+          <li>Provider authenticity, source truth, or an Algolia-issued certificate</li>
+          <li>Persistence or freshness after the supplied observation</li>
+          <li>Authorization, safety, or legal entitlement for a downstream action</li>
+        </ul>
+      </div>
+
+      <div class="machine-output">
+        <div class="machine-head">
+          <div>
+            <p class="panel-kicker">Machine-readable</p>
+            <h2>Portable evidence</h2>
+          </div>
+          <span class="micro-chip">Envelope 0.1.0</span>
+        </div>
+        <p class="machine-note">Inspector-specific transport envelope containing canonical Phase 3 real-source evidence and the exact supplied body text needed to recompute its bindings. It contains no API credential; review body content for other sensitive data before sharing.</p>
+        <pre id="portable-json" tabindex="0" aria-label="Portable evidence package JSON">No portable evidence issued.</pre>
+        <div class="button-row">
+          <button type="button" id="copy-portable" class="secondary-button" disabled>Copy portable evidence</button>
+          <button type="button" id="download-portable" class="secondary-button" disabled>Download portable evidence</button>
+          <button type="button" id="copy-warrant" class="text-button" disabled>Copy canonical warrant</button>
+          <button type="button" id="download-warrant" class="text-button" disabled>Download canonical warrant</button>
+          <button type="button" id="download-report" class="text-button" disabled>Download inspection report</button>
+        </div>
+        <details class="canonical-component">
+          <summary>Inspect canonical warrant component</summary>
+          <pre id="warrant-json" tabindex="0" aria-label="Canonical warrant JSON">No warrant issued.</pre>
+        </details>
+        <p id="artifact-status" class="action-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="receiver-section" aria-labelledby="receiver-title">
+    <div class="tool-wrap receiver-layout">
+      <div>
+        <p class="panel-kicker">Serialization boundary</p>
+        <h2 id="receiver-title">Verify portable evidence</h2>
+        <p class="section-intro">Paste an exported package and supply the receiver’s expected source context. JSON carries evidence bytes—not validation authority.</p>
+        <ol class="evidence-flow" aria-label="Portable evidence revalidation flow">
+          <li>Exported</li>
+          <li>JSON parsed</li>
+          <li>Privilege absent</li>
+          <li>Receiver decoded</li>
+          <li>Bindings rechecked</li>
+          <li>Gate eligible</li>
+        </ol>
+      </div>
+      <form id="import-form" class="import-form" autocomplete="off">
+        <label class="field field-wide">
+          <span>Portable evidence JSON</span>
+          <textarea id="import-json" rows="12" required wrap="off" spellcheck="false" placeholder="Paste a RISU NRW Inspector portable evidence package"></textarea>
+        </label>
+        <div class="field-grid import-context">
+          <label class="field">
+            <span>Expected application ID</span>
+            <input id="import-application" type="text" required autocapitalize="none" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Expected credential byte length</span>
+            <input id="import-byte-length" type="number" required min="0" step="1" inputmode="numeric">
+          </label>
+          <label class="field field-wide">
+            <span>Expected credential fingerprint</span>
+            <input id="import-fingerprint" type="text" required minlength="64" maxlength="64" autocapitalize="none" spellcheck="false">
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="revalidate-package" class="primary-button">Parse and revalidate</button>
+          <button type="button" id="clear-import" class="text-button">Clear imported evidence</button>
+        </div>
+        <p class="memory-note">The expected context is receiver-supplied and is not taken as authority from the package.</p>
+      </form>
+      <div id="package-result" class="package-result is-empty" role="status" aria-live="polite">
+        <span class="result-label">Package validation</span>
+        <strong>NOT RUN</strong>
+        <span>Parse and receiver reconstruction have not run.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="premise-section" aria-labelledby="premise-title">
+    <div class="tool-wrap premise-layout">
+      <div>
+        <p class="panel-kicker">Premise gate</p>
+        <h2 id="premise-title">Check an intended premise</h2>
+        <p class="section-intro">This separate gate unlocks only for newly reconstructed imported evidence. It performs exact structured equality—no English interpretation or logical subsumption.</p>
+      </div>
+      <form id="premise-form" class="premise-form" autocomplete="off">
+        <div class="field-grid">
+          <label class="field">
+            <span>Application ID <small>outer source context</small></span>
+            <input id="premise-application" type="text" required disabled autocapitalize="none" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Profile</span>
+            <input id="premise-profile" type="text" value="algolia-search@0.2.1" readonly disabled>
+          </label>
+          <label class="field field-wide">
+            <span>Source scope identity</span>
+            <input id="premise-scope" type="text" required disabled autocapitalize="none" spellcheck="false">
+          </label>
+          <label class="field field-wide">
+            <span>Match predicate identity</span>
+            <input id="premise-predicate" type="text" required disabled autocapitalize="none" spellcheck="false">
+          </label>
+          <label class="field field-wide">
+            <span>Authority context ID</span>
+            <input id="premise-authority" type="text" required disabled autocapitalize="none" spellcheck="false">
+          </label>
+        </div>
+        <button type="submit" id="verify-premise" class="primary-button" disabled>Verify exact premise</button>
+      </form>
+      <div id="premise-result" class="premise-result is-empty" role="status" aria-live="polite">
+        <strong>PREMISE GATE NOT RUN</strong>
+        <span>Import and revalidate a portable evidence package first.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="method-section" aria-labelledby="method-title">
+    <div class="tool-wrap method-grid">
+      <div>
+        <p class="panel-kicker">Method</p>
+        <h2 id="method-title">A consumer port with frozen reference points.</h2>
+      </div>
+      <div class="method-copy">
+        <p>The local core ports the canonical Algolia normalizer, obligation evaluator, proposition derivation, composition, bound-evidence decoder, canonical real-source decoder, and exact premise gate. Browser Web Crypto replaces Node’s crypto implementation without changing digest inputs.</p>
+        <p>The canonical warrant, bound evidence, and Algolia real-source evidence remain exact canonical structures. The versioned portable envelope is Inspector-specific and carries the supplied body text required to reproduce bindings after JSON import.</p>
+        <p><strong>Receiver validation is not serialized authority.</strong> Imported evidence must be reconstructed and validated again. User-supplied capture integrity is not provider authentication.</p>
+        <div class="reference-links">
+          <a href="https://github.com/risu-research/negative-result-warrant/blob/d3f9840d1e0794c675bd6e948cdbb0dcd315cd65/PROFILE.md">Canonical profile</a>
+          <a href="https://github.com/risu-research/negative-result-warrant/blob/d3f9840d1e0794c675bd6e948cdbb0dcd315cd65/docs/LIMITATIONS.md">Limitations</a>
+          <a href="/tools/negative-result-warrant/provenance.json">Machine-readable provenance</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <noscript>
+    <div class="tool-wrap noscript-note">This instrument requires first-party JavaScript to evaluate evidence locally. No evidence is transmitted.</div>
+  </noscript>
+</main>
+
+<footer class="site-footer">
+  <div class="tool-wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC.</div>
+    <div>Canonical source · <a href="https://github.com/risu-research/negative-result-warrant/tree/d3f9840d1e0794c675bd6e948cdbb0dcd315cd65"><code>d3f9840</code></a></div>
+  </div>
+</footer>
+
+<script type="module" src="/tools/negative-result-warrant/inspector.js"></script>
+</body>
+</html>

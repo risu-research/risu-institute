@@ -1,7 +1,9 @@
 # RISU Institute public site v0.2
 
-Static, dependency-free public website for RISU Institute, deployed as
-Cloudflare Workers Static Assets without runtime Worker code.
+Dependency-light public website for RISU Institute, deployed as Cloudflare
+Workers Static Assets without runtime Worker code. Core institutional pages are
+static. Isolated public research instruments may use first-party browser
+JavaScript when interaction is necessary to exercise the published artifact.
 
 ## Canonical semantic identifier
 
@@ -14,13 +16,41 @@ experimental specification v0.2.
 
 Only `public/` is configured as the deployable asset directory. Project
 documentation, tests, package metadata, and release files remain outside that
-boundary. Cloudflare parses `public/_headers` and `public/_redirects` as static
-asset controls and does not serve those two files as public assets.
+boundary. Cloudflare parses `public/_headers`, `public/_redirects`, and
+`public/.assetsignore` as static-asset controls and does not serve those files.
+The asset ignore file excludes macOS `.DS_Store` metadata from deployment.
 
 `public/rels/appeal.html` is intentionally a file rather than a directory index.
 With `html_handling` set to `auto-trailing-slash`, Cloudflare exposes it at the
 slashless canonical path `/rels/appeal`. The explicit redirect sends
 `/rels/appeal/` to `/rels/appeal` with status 301.
+
+## Negative Result Warrant Inspector
+
+`/tools/negative-result-warrant/` is a browser-local experimental instrument
+against the canonical Negative Result Warrant sources frozen at commit
+`d3f9840d1e0794c675bd6e948cdbb0dcd315cd65`. Its artifact hierarchy is:
+
+```text
+canonical NegativeResultWarrant
+  → canonical BoundNegativeEvidence
+  → canonical AlgoliaRealSourceNegativeEvidence
+  → Inspector-specific portable envelope 0.1.0
+  → JSON serialization
+  → receiver reconstruction and binding checks
+  → exact premise gate
+```
+
+The portable envelope carries exact supplied request and response body text so
+the receiver can reproduce both raw-body and normalized-profile bindings. It
+never carries an API credential, but exported body content should still be
+reviewed for other sensitive data. The receiver supplies the expected
+application ID, credential fingerprint, and credential UTF-8 byte length
+independently.
+
+Receiver validation is not serialized authority. Imported evidence must be
+reconstructed and validated again. User-supplied capture integrity is not
+provider authentication.
 
 ## Local verification
 
@@ -80,7 +110,10 @@ and designated-expert memo remain outside the public asset boundary in
 
 ## Design constraints
 
-- No JavaScript or framework dependency in the public site.
+- Core institutional pages remain static and dependency-light.
+- Isolated research instruments may use first-party browser JavaScript, remain
+  separate from authoritative semantic-definition surfaces, and use no
+  third-party runtime assets.
 - No analytics, cookies, or third-party assets.
 - No empty programs, fake team, fake impact metrics, or implied external
   adoption.

@@ -43,6 +43,7 @@ const productionPages = [
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
   "work/problem-semantics/index.html",
+  "tools/negative-result-warrant/index.html",
 ];
 
 async function readProject(path) {
@@ -201,6 +202,7 @@ test("the IANA candidate retains the exact frozen RFC 8288 binding", async () =>
 
 test("the public directory is an explicit, reviewable allowlist", async () => {
   const expected = [
+    ".assetsignore",
     "404.html",
     "_headers",
     "_redirects",
@@ -211,14 +213,46 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "rels/appeal.html",
     "robots.txt",
     "sitemap.xml",
+    "tools/negative-result-warrant/core.js",
+    "tools/negative-result-warrant/index.html",
+    "tools/negative-result-warrant/inspector.css",
+    "tools/negative-result-warrant/inspector.js",
+    "tools/negative-result-warrant/og.png",
+    "tools/negative-result-warrant/provenance.json",
+    "tools/negative-result-warrant/recorded/observations.js",
     "work/appeal-interoperability/index.html",
     "work/index.html",
     "work/problem-semantics/index.html",
   ];
-  const actual = (await listFiles(publicRoot)).map(publicRelative).sort();
+  const discovered = (await listFiles(publicRoot)).map(publicRelative).sort();
+  const actual = discovered.filter((path) => path !== ".DS_Store");
 
   assert.deepEqual(actual, expected);
+  assert.ok(discovered.filter((path) => path.startsWith(".")).every((path) => [".assetsignore", ".DS_Store"].includes(path)));
   assert.ok(actual.every((path) => !/(?:readme|prompt|checklist|notes|fixture|test|package)/iu.test(path)));
+});
+
+test("the Inspector runtime cannot initiate network or persistent browser state", async () => {
+  const runtime = [
+    await readProject("public/tools/negative-result-warrant/core.js"),
+    await readProject("public/tools/negative-result-warrant/inspector.js"),
+    await readProject("public/tools/negative-result-warrant/recorded/observations.js"),
+  ].join("\n");
+  for (const forbidden of [
+    /\bfetch\s*\(/u,
+    /\bXMLHttpRequest\b/u,
+    /\bWebSocket\b/u,
+    /\bEventSource\b/u,
+    /\bsendBeacon\b/u,
+    /\blocalStorage\b/u,
+    /\bsessionStorage\b/u,
+    /\bindexedDB\b/u,
+    /\bserviceWorker\b/u,
+  ]) assert.doesNotMatch(runtime, forbidden);
+
+  const html = await readProject("public/tools/negative-result-warrant/index.html");
+  assert.doesNotMatch(html, /<script\b[^>]*\bsrc="https?:\/\//iu);
+  assert.doesNotMatch(html, /<link\b[^>]*\bhref="https?:\/\/[^"]+"[^>]*\brel="stylesheet"/iu);
 });
 
 test("every internal page, stylesheet, and favicon link resolves inside public", async () => {
@@ -298,6 +332,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/problem-semantics\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/negative-result-warrant\/<\/loc>/gu)].length,
     1,
   );
 

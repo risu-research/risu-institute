@@ -71,6 +71,13 @@ test("exact public surfaces return the expected status and Content-Type", async 
     ["/rels/appeal", "text/html"],
     ["/work/appeal-interoperability/", "text/html"],
     ["/work/problem-semantics/", "text/html"],
+    ["/tools/negative-result-warrant/", "text/html"],
+    ["/tools/negative-result-warrant/core.js", "text/javascript"],
+    ["/tools/negative-result-warrant/inspector.js", "text/javascript"],
+    ["/tools/negative-result-warrant/inspector.css", "text/css"],
+    ["/tools/negative-result-warrant/og.png", "image/png"],
+    ["/tools/negative-result-warrant/provenance.json", "application/json"],
+    ["/tools/negative-result-warrant/recorded/observations.js", "text/javascript"],
     ["/robots.txt", "text/plain"],
     ["/sitemap.xml", "application/xml"],
     ["/assets/style.css", "text/css"],
@@ -106,6 +113,8 @@ test("developer-only and static-control files are not publicly served", async ()
     "/RELEASE_MANIFEST.json",
     "/package.json",
     "/tests/release-integrity.test.mjs",
+    "/.DS_Store",
+    "/.assetsignore",
     "/_headers",
     "/_redirects",
   ];
@@ -122,4 +131,17 @@ test("the reviewed static response headers are applied", async () => {
   assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
   assert.equal(response.headers.get("permissions-policy"), "camera=(), microphone=(), geolocation=()");
   assert.equal(response.headers.get("x-frame-options"), "DENY");
+});
+
+test("the inspector route is isolated by a no-connect Content Security Policy", async () => {
+  const response = await fetch(`${origin}/tools/negative-result-warrant/`);
+  const policy = response.headers.get("content-security-policy") ?? "";
+  assert.match(policy, /default-src 'none'/u);
+  assert.match(policy, /script-src 'self'/u);
+  assert.match(policy, /style-src 'self'/u);
+  assert.match(policy, /connect-src 'none'/u);
+  assert.match(policy, /form-action 'none'/u);
+  assert.match(response.headers.get("referrer-policy") ?? "", /(?:^|,\s*)no-referrer$/u);
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.equal(response.headers.get("cache-control"), "no-store");
 });

@@ -9,12 +9,12 @@
 <link rel="stylesheet" href="/assets/style.css">
 
 <title>RISU Institute</title>
-<meta name="description" content="RISU Institute develops and tests small, executable primitives for preserving meaning, evidence, and recourse across APIs and AI systems.">
+<meta name="description" content="RISU Institute develops bounded, executable research artifacts for semantic, evidentiary, and operational integrity across APIs and AI systems.">
 <link rel="canonical" href="https://risuinstitute.org/">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="RISU Institute">
-<meta property="og:description" content="Small, executable research artifacts for preserving meaning, evidence, and recourse across automated systems.">
+<meta property="og:description" content="Bounded, executable research artifacts for semantic, evidentiary, and operational integrity across automated systems.">
 <meta property="og:url" content="https://risuinstitute.org/">
 <meta name="twitter:card" content="summary">
 
@@ -54,7 +54,7 @@
 
       <div class="hero-copy">
         <p>
-          RISU Institute develops and tests small, executable primitives for preserving meaning, evidence, and recourse as APIs and AI systems translate, compose, and act on machine-readable claims.
+          RISU Institute develops bounded, executable research artifacts for preserving semantic, evidentiary, and operational integrity as APIs and AI systems translate, compose, act, and retire.
         </p>
 
         <p class="hero-note">
@@ -75,16 +75,16 @@
       <article class="work-card">
         <div class="work-main">
 
-          <p class="work-label">Research program · 2026</p>
+          <p class="work-label">Six bounded failure modes · 2026</p>
 
-          <h3 class="work-title">Missing. Invented. Lost. Unwarranted. Laundered.</h3>
+          <h3 class="work-title">Missing. Invented. Lost. Unwarranted. Laundered. Unresolved.</h3>
 
           <p class="work-question">
-            What must remain explicit when software exposes, translates, composes, or acts on machine-readable meaning?
+            What must remain explicit when software exposes, translates, relies on, or retires machine-readable state?
           </p>
 
           <p class="work-summary">
-            Current RISU work isolates five bounded failure modes: a useful shared semantic identity may be missing; translation may invent meaning unsupported by its source; translation may silently discard meaning already present; a downstream operation may rely on a negative premise without sufficient bound evidence; or an evidentiary state may cross system boundaries and acquire a stronger status without reconstructed support. Each artifact retains its own evidence, scope, and claim limits.
+            RISU isolates small failure modes where automated systems lose control of meaning or consequence: a shared semantic may be absent; translation may invent or discard meaning; a negative premise may outrun its evidence; evidentiary status may strengthen in transit; or a retired agent may leave live operational consequences behind.
           </p>
 
           <a class="arrow-link" href="/work/">
@@ -122,6 +122,11 @@
               <dd>Cross-boundary evidence strengthening</dd>
             </div>
 
+            <div>
+              <dt>Unresolved</dt>
+              <dd>Surviving consequences after agent retirement</dd>
+            </div>
+
           </dl>
 
         </aside>
@@ -135,99 +140,61 @@
 
       <div class="section-head">
         <p class="section-kicker">Latest artifact</p>
-        <h2 class="section-title">Evidence should not strengthen in transit.</h2>
+        <h2 class="section-title">Retirement is not closure.</h2>
       </div>
 
       <article class="work-card">
         <div class="work-main">
-          <p class="work-label">LAUNDERED · Experimental conformance system · 2026</p>
-          <h3 class="work-title">ClosureProbe</h3>
+          <p class="work-label">UNRESOLVED · Deterministic verifier · 2026</p>
+          <h3 class="work-title">Bounded Agent Closure</h3>
 
           <p class="work-question">
-            When a system turns “we did not find it” into “it does not exist,” where did that stronger claim first appear?
+            After an autonomous agent is disabled, what proves that the consequences attributable to it are actually over?
           </p>
 
           <p class="work-summary">
-            ClosureProbe receiver-reconstructs supplied negative evidence and traces its anchored state across observable source, adapter, protocol, client, model-facing, and claim boundaries. It localizes the earliest boundary where that evidentiary basis is lost, substituted, or strengthened without reconstructed support. rc3 freezes five producer-specific profiles plus one controlled generic contract and a 50-case adversarial/control corpus; third-party client measurements are the next empirical phase and are not yet claimed.
+            Bounded Agent Closure separates administrative retirement from operational closure. Its verifier follows evidence-backed residual consequences transitively across authority, execution, commitments, and operational state, checks postconditions and source stability, and requires convergent terminal observations before issuing a bounded <code>CLOSED</code> certificate.
           </p>
 
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe/releases/tag/v0.1.0-rc3">
-            Inspect the rc3 release <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe">
+          <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure">
             Canonical repository <span aria-hidden="true">→</span>
           </a><br>
 
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/POSITIONING.md">
-            Research positioning <span aria-hidden="true">→</span>
+          <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md">
+            Normative specification <span aria-hidden="true">→</span>
           </a>
         </div>
 
-        <aside class="work-meta" aria-label="ClosureProbe status">
+        <aside class="work-meta" aria-label="Bounded Agent Closure status">
           <dl class="meta-list">
             <div>
               <dt>Status</dt>
-              <dd>Experimental v0.1.0-rc3 pre-release</dd>
+              <dd>v0.3.1 maintenance line</dd>
             </div>
             <div>
-              <dt>Profiles</dt>
-              <dd>5 producer-specific + 1 controlled generic</dd>
+              <dt>Profile</dt>
+              <dd>RISU_AGENT_CLOSURE_V0</dd>
             </div>
             <div>
-              <dt>Frozen corpus</dt>
-              <dd>50 adversarial and control cases</dd>
+              <dt>Domains</dt>
+              <dd>Authority · Execution · Commitment · Operational state</dd>
             </div>
             <div>
-              <dt>Controlled MCP path</dt>
-              <dd>Official SDK 2.0.0 · stdio</dd>
+              <dt>Canonical corpus</dt>
+              <dd>8 cases</dd>
             </div>
             <div>
-              <dt>External client measurements</dt>
-              <dd>Not yet published</dd>
+              <dt>Verification</dt>
+              <dd>75/75 tests</dd>
+            </div>
+            <div>
+              <dt>Runtime</dt>
+              <dd>Deterministic · no LLM · no runtime network</dd>
             </div>
           </dl>
         </aside>
       </article>
 
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="wrap">
-
-      <div class="section-head">
-        <p class="section-kicker">Method</p>
-        <h2 class="section-title">Make the claim smaller until the evidence can carry it.</h2>
-      </div>
-
-      <div class="principles">
-
-        <div class="principle">
-          <span class="principle-number">01</span>
-          <h3>Start narrow</h3>
-          <p>Prefer the smallest reusable semantic or mechanism over a new platform.</p>
-        </div>
-
-        <div class="principle">
-          <span class="principle-number">02</span>
-          <h3>Freeze the claim boundary</h3>
-          <p>Define what may be asserted, what must survive, and what must not be inferred before evaluating implementations.</p>
-        </div>
-
-        <div class="principle">
-          <span class="principle-number">03</span>
-          <h3>Test executable claims</h3>
-          <p>Use adversarial fixtures, frozen inputs, real-source contrasts, and reproducible controls where code can falsify the claim.</p>
-        </div>
-
-        <div class="principle">
-          <span class="principle-number">04</span>
-          <h3>Publish what survives</h3>
-          <p>Separate observation from inference, preserve negative results, and do not turn an experiment into a standard before the evidence earns that claim.</p>
-        </div>
-
-      </div>
     </div>
   </section>
 

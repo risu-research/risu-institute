@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import test from "node:test";
@@ -35,6 +36,20 @@ const evidenceAnchors = [
   "2087708b5134e4fffc959d9767920f1ea76a67277b4c2b776671cc02fc4d2bf7",
   "cfd95a3fd04fc1ad48934e5eec3caf18470a372b074923cf469aee058812fd75",
 ];
+const frozenInspectorSha256 = {
+  "app.js": "5430a6f21bbe71370cd977a91d53960f5c1e8a098c25e93eccf26716e64386df",
+  "cases/c1-direct-zombie.json": "0a20d0ee69cf9c95bf5a9ec441648916bf69780bbaf1fc4189e38a5fae1ad1e1",
+  "cases/c2-transitive-zombie.json": "b5efcc907373f0714ff4ee7cc03bffefc7b03e9315594d4e1c2a1dc17d7b2148",
+  "cases/c3-pending-commitment.json": "b64c09940a66cd01109e59713a50869c6176af4a3e770caf6963cd15cd4c8d35",
+  "cases/c4-retained-evidence.json": "4f56482cd100ebd23eeffffb82a3cf0190881e14e1ee7b61c3789249bc9c576c",
+  "cases/c5-successor-transfer.json": "7df17c6124e8aa061bad160f20f6c0dd4f218e399132034b2dd3edcae4c4abd6",
+  "cases/c6-missing-coverage.json": "2e16b8a48635f1a864360b4dfe4d5d822f59033e5454573c91e88523385733d8",
+  "cases/c7-false-success.json": "491fd99ab2fbce22ef61bd7a66b0daa1bf2458d574fc09d63d4f6f69e0d24d8a",
+  "cases/c8-fixed-point-winddown.json": "092bf4100e68ca7533334ce4fb6eeb8e7dd5cdc5c629a0df77a9fee15e68b299",
+  "cases/index.json": "339784123923d8a4f5d5f25ed60989a6354723c9c786f4af02d94aa3a013d68d",
+  "index.html": "bbd6eca2bdc925572d388c55c1f618332158a44aeb12f71b0a397c0f876d7ced",
+  "style.css": "198a4ff1b7476d7c2e51838eafa6c44fd1fc7ca620fee568a897092659b7dd0c",
+};
 
 const productionPages = [
   "index.html",
@@ -202,7 +217,6 @@ test("the IANA candidate retains the exact frozen RFC 8288 binding", async () =>
 
 test("the public directory is an explicit, reviewable allowlist", async () => {
   const expected = [
-    ".assetsignore",
     "404.html",
     "_headers",
     "_redirects",
@@ -213,6 +227,19 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "rels/appeal.html",
     "robots.txt",
     "sitemap.xml",
+    "tools/agent-closure/app.js",
+    "tools/agent-closure/cases/c1-direct-zombie.json",
+    "tools/agent-closure/cases/c2-transitive-zombie.json",
+    "tools/agent-closure/cases/c3-pending-commitment.json",
+    "tools/agent-closure/cases/c4-retained-evidence.json",
+    "tools/agent-closure/cases/c5-successor-transfer.json",
+    "tools/agent-closure/cases/c6-missing-coverage.json",
+    "tools/agent-closure/cases/c7-false-success.json",
+    "tools/agent-closure/cases/c8-fixed-point-winddown.json",
+    "tools/agent-closure/cases/index.json",
+    "tools/agent-closure/index.html",
+    "tools/agent-closure/provenance.json",
+    "tools/agent-closure/style.css",
     "tools/negative-result-warrant/core.js",
     "tools/negative-result-warrant/index.html",
     "tools/negative-result-warrant/inspector.css",
@@ -230,6 +257,81 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
   assert.deepEqual(actual, expected);
   assert.ok(discovered.filter((path) => path.startsWith(".")).every((path) => [".assetsignore", ".DS_Store"].includes(path)));
   assert.ok(actual.every((path) => !/(?:readme|prompt|checklist|notes|fixture|test|package)/iu.test(path)));
+});
+
+test("the Agent Closure Inspector retains the exact frozen publication bytes", async () => {
+  for (const [path, expectedDigest] of Object.entries(frozenInspectorSha256)) {
+    const bytes = await readFile(join(publicRoot, "tools/agent-closure", path));
+    const actualDigest = createHash("sha256").update(bytes).digest("hex");
+    assert.equal(actualDigest, expectedDigest, path);
+  }
+});
+
+test("the Agent Closure Inspector is canonical-only and retains frozen provenance", async () => {
+  const html = await readProject("public/tools/agent-closure/index.html");
+  const runtime = await readProject("public/tools/agent-closure/app.js");
+  const cases = JSON.parse(await readProject("public/tools/agent-closure/cases/index.json"));
+  const provenance = JSON.parse(await readProject("public/tools/agent-closure/provenance.json"));
+
+  assert.ok(html.includes("Static mode · Canonical evidence only"));
+  assert.ok(html.includes("Eight generated evaluations from the frozen Phase-1 verifier."));
+  assert.equal(cases.length, 8);
+  assert.deepEqual(cases.map(({ file }) => file), [
+    "c1-direct-zombie.json",
+    "c2-transitive-zombie.json",
+    "c3-pending-commitment.json",
+    "c4-retained-evidence.json",
+    "c5-successor-transfer.json",
+    "c6-missing-coverage.json",
+    "c7-false-success.json",
+    "c8-fixed-point-winddown.json",
+  ]);
+  assert.match(
+    runtime,
+    /window\.location\.protocol === "http:" && window\.location\.hostname === "127\.0\.0\.1"/u,
+  );
+  assert.match(runtime, /dom\["open-file"\]\.disabled = !localEvaluationAvailable;/u);
+  assert.match(runtime, /if \(localEvaluationAvailable\) dom\["file-input"\]\.click\(\);/u);
+  assert.deepEqual(provenance, {
+    artifact: "RISU Agent Closure Inspector",
+    public_mode: "static-canonical-only",
+    source_repository: "https://github.com/risu-research/bounded-agent-closure",
+    source_tag: "inspector-v0.1-freeze",
+    inspector_commit: "07325dd1304cc3fe1acd86ce50596161581a1cdb",
+    engine_tag: "phase1-freeze-v0.3",
+    engine_commit: "a46456f028cd3dd1d386111b1faab890a26ae5e9",
+    profile: "RISU_AGENT_CLOSURE_V0",
+    canonical_cases: 8,
+    hosted_path: "https://risuinstitute.org/tools/agent-closure/",
+    scope: "Canonical generated evaluations only. Arbitrary private evidence evaluation is available only from the local Inspector.",
+  });
+});
+
+test("the Bounded Agent Closure cards expose the intended links in order", async () => {
+  const home = await readProject("public/index.html");
+  const work = await readProject("public/work/index.html");
+  const inspectorHref = 'href="/tools/agent-closure/"';
+  const repositoryHref = 'href="https://github.com/risu-research/bounded-agent-closure"';
+  const specificationHref = 'href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md"';
+
+  assert.equal(home.split(inspectorHref).length - 1, 1);
+  assert.equal(home.split(repositoryHref).length - 1, 1);
+  assert.equal(home.split(specificationHref).length - 1, 0);
+  assert.ok(home.indexOf(inspectorHref) < home.indexOf(repositoryHref));
+
+  assert.equal(work.split(inspectorHref).length - 1, 1);
+  assert.equal(work.split(repositoryHref).length - 1, 1);
+  assert.equal(work.split(specificationHref).length - 1, 1);
+  assert.ok(work.indexOf(inspectorHref) < work.indexOf(repositoryHref));
+  assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
+});
+
+test("the Agent Closure Inspector URL appears in the sitemap exactly once", async () => {
+  const sitemap = await readProject("public/sitemap.xml");
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure\/<\/loc>/gu)].length,
+    1,
+  );
 });
 
 test("the Inspector runtime cannot initiate network or persistent browser state", async () => {

@@ -1,0 +1,13 @@
+{
+  "artifact": "RISU Agent Closure Inspector",
+  "public_mode": "static-canonical-only",
+  "source_repository": "https://github.com/risu-research/bounded-agent-closure",
+  "source_tag": "inspector-v0.1-freeze",
+  "inspector_commit": "07325dd1304cc3fe1acd86ce50596161581a1cdb",
+  "engine_tag": "phase1-freeze-v0.3",
+  "engine_commit": "a46456f028cd3dd1d386111b1faab890a26ae5e9",
+  "profile": "RISU_AGENT_CLOSURE_V0",
+  "canonical_cases": 8,
+  "hosted_path": "https://risuinstitute.org/tools/agent-closure/",
+  "scope": "Canonical generated evaluations only. Arbitrary private evidence evaluation is available only from the local Inspector."
+}

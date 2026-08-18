@@ -71,6 +71,19 @@ test("exact public surfaces return the expected status and Content-Type", async 
     ["/rels/appeal", "text/html"],
     ["/work/appeal-interoperability/", "text/html"],
     ["/work/problem-semantics/", "text/html"],
+    ["/tools/agent-closure/", "text/html"],
+    ["/tools/agent-closure/app.js", "text/javascript"],
+    ["/tools/agent-closure/style.css", "text/css"],
+    ["/tools/agent-closure/cases/index.json", "application/json"],
+    ["/tools/agent-closure/cases/c1-direct-zombie.json", "application/json"],
+    ["/tools/agent-closure/cases/c2-transitive-zombie.json", "application/json"],
+    ["/tools/agent-closure/cases/c3-pending-commitment.json", "application/json"],
+    ["/tools/agent-closure/cases/c4-retained-evidence.json", "application/json"],
+    ["/tools/agent-closure/cases/c5-successor-transfer.json", "application/json"],
+    ["/tools/agent-closure/cases/c6-missing-coverage.json", "application/json"],
+    ["/tools/agent-closure/cases/c7-false-success.json", "application/json"],
+    ["/tools/agent-closure/cases/c8-fixed-point-winddown.json", "application/json"],
+    ["/tools/agent-closure/provenance.json", "application/json"],
     ["/tools/negative-result-warrant/", "text/html"],
     ["/tools/negative-result-warrant/core.js", "text/javascript"],
     ["/tools/negative-result-warrant/inspector.js", "text/javascript"],
@@ -144,4 +157,41 @@ test("the inspector route is isolated by a no-connect Content Security Policy", 
   assert.match(response.headers.get("referrer-policy") ?? "", /(?:^|,\s*)no-referrer$/u);
   assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
   assert.equal(response.headers.get("cache-control"), "no-store");
+});
+
+test("the Agent Closure Inspector route has the canonical-only security boundary", async () => {
+  const response = await fetch(`${origin}/tools/agent-closure/`);
+  const policy = response.headers.get("content-security-policy") ?? "";
+
+  for (const directive of [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'none'",
+    "font-src 'none'",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "manifest-src 'none'",
+  ]) assert.ok(policy.includes(directive), directive);
+
+  assert.match(response.headers.get("referrer-policy") ?? "", /(?:^|,\s*)no-referrer$/u);
+  assert.deepEqual(
+    new Set((response.headers.get("permissions-policy") ?? "").split(", ")),
+    new Set(["camera=()", "microphone=()", "geolocation=()", "payment=()", "usb=()"]),
+  );
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+});
+
+test("the hosted surface exposes no arbitrary evidence evaluation endpoint", async () => {
+  const response = await fetch(`${origin}/api/evaluate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  assert.ok([404, 405].includes(response.status), response.status);
 });

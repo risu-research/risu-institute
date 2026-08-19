@@ -67,6 +67,10 @@ test("exact public surfaces return the expected status and Content-Type", async 
   const surfaces = [
     ["/", "text/html"],
     ["/work/", "text/html"],
+    ["/research/", "text/html"],
+    ["/research/technical-notes/", "text/html"],
+    ["/research/technical-notes/2026-01/", "text/html"],
+    ["/research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf", "application/pdf"],
     ["/about/", "text/html"],
     ["/rels/appeal", "text/html"],
     ["/work/appeal-interoperability/", "text/html"],

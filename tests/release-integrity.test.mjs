@@ -50,10 +50,22 @@ const frozenInspectorSha256 = {
   "index.html": "bbd6eca2bdc925572d388c55c1f618332158a44aeb12f71b0a397c0f876d7ced",
   "style.css": "198a4ff1b7476d7c2e51838eafa6c44fd1fc7ca620fee568a897092659b7dd0c",
 };
+const technicalNoteTitle =
+  "From Revocation to Closure: Verifying Attributable Consequences in AI Agent Decommissioning";
+const technicalNoteAbstract =
+  "Operational consequences may persist after an autonomous agent’s authority to initiate new work has been blocked. Delegated execution can remain active and commitments unsettled, while some effects may legitimately survive through transfer or retention. Authorization, task lifecycle, distributed termination, and finalization mechanisms address different parts of this lifecycle; none of those predicates alone establishes whether the retiring principal’s attributable consequences have reached allowed terminal dispositions. This note defines Bounded Agent Closure (BAC), a deterministic evidence verifier over a principal-relative consequence graph. BAC requires explicit source coverage and attribution, disposition-specific terminality, source-stability evidence, fresh observation of every reachable consequence, and final-pair semantic convergence under declared stability contracts. The frozen v0.3 implementation evaluates evidence across four domains, includes eight canonical boundary cases, and issues CLOSED only within the declared profile and source contracts. BAC defines a post-quiescence verification boundary for scoped, machine-auditable decommissioning claims.";
+const technicalNoteDoi = "10.5281/zenodo.22005109";
+const softwareDoi = "10.5281/zenodo.22005419";
+const technicalNotePdf =
+  "research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf";
+const technicalNotePdfUrl = `https://risuinstitute.org/${technicalNotePdf}`;
 
 const productionPages = [
   "index.html",
   "work/index.html",
+  "research/index.html",
+  "research/technical-notes/index.html",
+  "research/technical-notes/2026-01/index.html",
   "about/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
@@ -225,6 +237,10 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "assets/style.css",
     "index.html",
     "rels/appeal.html",
+    "research/index.html",
+    "research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf",
+    "research/technical-notes/2026-01/index.html",
+    "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
     "tools/agent-closure/app.js",
@@ -256,7 +272,10 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
 
   assert.deepEqual(actual, expected);
   assert.ok(discovered.filter((path) => path.startsWith(".")).every((path) => [".assetsignore", ".DS_Store"].includes(path)));
-  assert.ok(actual.every((path) => !/(?:readme|prompt|checklist|notes|fixture|test|package)/iu.test(path)));
+  assert.ok(actual.every((path) =>
+    path.startsWith("research/technical-notes/") ||
+    !/(?:readme|prompt|checklist|notes|fixture|test|package)/iu.test(path)
+  ));
 });
 
 test("the Agent Closure Inspector retains the exact frozen publication bytes", async () => {
@@ -265,6 +284,84 @@ test("the Agent Closure Inspector retains the exact frozen publication bytes", a
     const actualDigest = createHash("sha256").update(bytes).digest("hex");
     assert.equal(actualDigest, expectedDigest, path);
   }
+});
+
+test("RISU Technical Note 2026-01 exposes exact scholarly metadata and visible identity", async () => {
+  const note = await readProject("public/research/technical-notes/2026-01/index.html");
+  const expectedMeta = {
+    citation_title: technicalNoteTitle,
+    citation_author: "Moon Lee",
+    citation_publication_date: "2026/08/18",
+    citation_technical_report_institution: "RISU Institute",
+    citation_technical_report_number: "RISU Technical Note 2026-01",
+    citation_doi: technicalNoteDoi,
+    citation_pdf_url: technicalNotePdfUrl,
+  };
+
+  assert.equal(
+    oneMatch(note, /<link rel="canonical" href="([^"]+)">/gu, "Technical Note canonical"),
+    "https://risuinstitute.org/research/technical-notes/2026-01/",
+  );
+  assert.equal(
+    oneMatch(note, /<h1[^>]*>([^<]+)<\/h1>/gu, "Technical Note visible title"),
+    technicalNoteTitle,
+  );
+  for (const [name, expected] of Object.entries(expectedMeta)) {
+    assert.equal(
+      oneMatch(note, new RegExp(`<meta name="${name}" content="([^"]*)">`, "gu"), name),
+      expected,
+    );
+  }
+  assert.equal(
+    oneMatch(
+      note,
+      /<meta name="citation_fulltext_world_readable" content="([^"]*)">/gu,
+      "citation_fulltext_world_readable",
+    ),
+    "",
+  );
+  for (const [property, expected] of Object.entries({
+    "og:type": "article",
+    "og:title": technicalNoteTitle,
+    "og:description": "RISU Technical Note 2026-01 defines Bounded Agent Closure, a deterministic evidence verifier for scoped operational closure after autonomous-agent retirement.",
+    "og:url": "https://risuinstitute.org/research/technical-notes/2026-01/",
+  })) {
+    assert.equal(
+      oneMatch(note, new RegExp(`<meta property="${property}" content="([^"]+)">`, "gu"), property),
+      expected,
+    );
+  }
+
+  assert.ok(note.includes(`<p>${technicalNoteAbstract}</p>`));
+  for (const indexPage of [
+    "public/research/index.html",
+    "public/research/technical-notes/index.html",
+  ]) assert.ok(!(await readProject(indexPage)).includes(technicalNoteAbstract));
+  assert.ok(note.includes(technicalNoteDoi));
+  assert.ok(note.includes(softwareDoi));
+  assert.ok(note.includes(`href="/${technicalNotePdf}"`));
+  assert.ok(note.includes("RISU Technical Note 2026-01"));
+  assert.ok(note.includes("Moon Lee"));
+  assert.doesNotMatch(note, /citation_(?:journal|volume|issue|firstpage|lastpage|issn)/iu);
+  assert.doesNotMatch(note, /(?:peer[- ]reviewed|has undergone peer review|external peer review)/iu);
+  assert.doesNotMatch(note, /(?:external|independent|industry) adoption (?:has been|is) (?:achieved|demonstrated|established)/iu);
+
+  const jsonLd = oneMatch(
+    note,
+    /<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/gu,
+    "Technical Note JSON-LD",
+  );
+  const structured = JSON.parse(jsonLd);
+  assert.equal(structured["@type"], "ScholarlyArticle");
+  assert.equal(structured.headline, technicalNoteTitle);
+  assert.equal(structured.isAccessibleForFree, true);
+  assert.equal(structured.encoding.contentUrl, technicalNotePdfUrl);
+});
+
+test("the institutional Technical Note PDF retains the exact published bytes", async () => {
+  const bytes = await readFile(join(publicRoot, technicalNotePdf));
+  assert.equal(createHash("md5").update(bytes).digest("hex"), "66d263143b0e47c4b942762390235120");
+  assert.ok(bytes.length < 5 * 1024 * 1024);
 });
 
 test("the Agent Closure Inspector is canonical-only and retains frozen provenance", async () => {
@@ -310,20 +407,42 @@ test("the Agent Closure Inspector is canonical-only and retains frozen provenanc
 test("the Bounded Agent Closure cards expose the intended links in order", async () => {
   const home = await readProject("public/index.html");
   const work = await readProject("public/work/index.html");
+  const noteHref = 'href="/research/technical-notes/2026-01/"';
   const inspectorHref = 'href="/tools/agent-closure/"';
+  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22005419"';
   const repositoryHref = 'href="https://github.com/risu-research/bounded-agent-closure"';
   const specificationHref = 'href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md"';
 
+  assert.equal(home.split(noteHref).length - 1, 1);
   assert.equal(home.split(inspectorHref).length - 1, 1);
+  assert.equal(home.split(softwareHref).length - 1, 1);
   assert.equal(home.split(repositoryHref).length - 1, 1);
   assert.equal(home.split(specificationHref).length - 1, 0);
-  assert.ok(home.indexOf(inspectorHref) < home.indexOf(repositoryHref));
+  assert.ok(home.indexOf(noteHref) < home.indexOf(inspectorHref));
+  assert.ok(home.indexOf(inspectorHref) < home.indexOf(softwareHref));
+  assert.ok(home.indexOf(softwareHref) < home.indexOf(repositoryHref));
 
+  assert.equal(work.split(noteHref).length - 1, 1);
   assert.equal(work.split(inspectorHref).length - 1, 1);
+  assert.equal(work.split(softwareHref).length - 1, 1);
   assert.equal(work.split(repositoryHref).length - 1, 1);
   assert.equal(work.split(specificationHref).length - 1, 1);
-  assert.ok(work.indexOf(inspectorHref) < work.indexOf(repositoryHref));
+  assert.ok(work.indexOf(noteHref) < work.indexOf(inspectorHref));
+  assert.ok(work.indexOf(inspectorHref) < work.indexOf(softwareHref));
+  assert.ok(work.indexOf(softwareHref) < work.indexOf(repositoryHref));
   assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
+});
+
+test("the Research URLs appear in the sitemap exactly once", async () => {
+  const sitemap = await readProject("public/sitemap.xml");
+  for (const url of [
+    "https://risuinstitute.org/research/",
+    "https://risuinstitute.org/research/technical-notes/",
+    "https://risuinstitute.org/research/technical-notes/2026-01/",
+  ]) {
+    assert.equal(sitemap.split(`<loc>${url}</loc>`).length - 1, 1, url);
+  }
+  assert.doesNotMatch(sitemap, /RISU_Technical_Note_2026-01_From_Revocation_to_Closure\.pdf/u);
 });
 
 test("the Agent Closure Inspector URL appears in the sitemap exactly once", async () => {

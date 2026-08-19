@@ -2,6 +2,9 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://risuinstitute.org/</loc></url>
   <url><loc>https://risuinstitute.org/work/</loc></url>
+  <url><loc>https://risuinstitute.org/research/</loc></url>
+  <url><loc>https://risuinstitute.org/research/technical-notes/</loc></url>
+  <url><loc>https://risuinstitute.org/research/technical-notes/2026-01/</loc></url>
   <url><loc>https://risuinstitute.org/about/</loc></url>
   <url><loc>https://risuinstitute.org/rels/appeal</loc></url>
   <url><loc>https://risuinstitute.org/work/appeal-interoperability/</loc></url>

@@ -65,8 +65,11 @@ const productionPages = [
   "work/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
+  "research/technical-notes/2026-02/index.html",
   "research/technical-notes/2026-01/index.html",
   "about/index.html",
+  "tools/index.html",
+  "tools/reliance-inspector/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
   "work/problem-semantics/index.html",
@@ -240,6 +243,8 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "research/index.html",
     "research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf",
     "research/technical-notes/2026-01/index.html",
+    "research/technical-notes/2026-02/RISU_Technical_Note_2026-02_Reliance_Before_Closure.pdf",
+    "research/technical-notes/2026-02/index.html",
     "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
@@ -256,6 +261,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/agent-closure/index.html",
     "tools/agent-closure/provenance.json",
     "tools/agent-closure/style.css",
+    "tools/index.html",
     "tools/negative-result-warrant/core.js",
     "tools/negative-result-warrant/index.html",
     "tools/negative-result-warrant/inspector.css",
@@ -263,6 +269,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/negative-result-warrant/og.png",
     "tools/negative-result-warrant/provenance.json",
     "tools/negative-result-warrant/recorded/observations.js",
+    "tools/reliance-inspector/index.html",
     "work/appeal-interoperability/index.html",
     "work/index.html",
     "work/problem-semantics/index.html",
@@ -404,8 +411,7 @@ test("the Agent Closure Inspector is canonical-only and retains frozen provenanc
   });
 });
 
-test("the Bounded Agent Closure cards expose the intended links in order", async () => {
-  const home = await readProject("public/index.html");
+test("the Bounded Agent Closure research card retains its intended links in order", async () => {
   const work = await readProject("public/work/index.html");
   const noteHref = 'href="/research/technical-notes/2026-01/"';
   const inspectorHref = 'href="/tools/agent-closure/"';
@@ -413,24 +419,28 @@ test("the Bounded Agent Closure cards expose the intended links in order", async
   const repositoryHref = 'href="https://github.com/risu-research/bounded-agent-closure"';
   const specificationHref = 'href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md"';
 
-  assert.equal(home.split(noteHref).length - 1, 1);
-  assert.equal(home.split(inspectorHref).length - 1, 1);
-  assert.equal(home.split(softwareHref).length - 1, 1);
-  assert.equal(home.split(repositoryHref).length - 1, 1);
-  assert.equal(home.split(specificationHref).length - 1, 0);
-  assert.ok(home.indexOf(noteHref) < home.indexOf(inspectorHref));
-  assert.ok(home.indexOf(inspectorHref) < home.indexOf(softwareHref));
-  assert.ok(home.indexOf(softwareHref) < home.indexOf(repositoryHref));
-
-  assert.equal(work.split(noteHref).length - 1, 1);
-  assert.equal(work.split(inspectorHref).length - 1, 1);
-  assert.equal(work.split(softwareHref).length - 1, 1);
-  assert.equal(work.split(repositoryHref).length - 1, 1);
-  assert.equal(work.split(specificationHref).length - 1, 1);
+  for (const href of [noteHref, inspectorHref, softwareHref, repositoryHref, specificationHref]) {
+    assert.equal(work.split(href).length - 1, 1, href);
+  }
   assert.ok(work.indexOf(noteHref) < work.indexOf(inspectorHref));
   assert.ok(work.indexOf(inspectorHref) < work.indexOf(softwareHref));
   assert.ok(work.indexOf(softwareHref) < work.indexOf(repositoryHref));
   assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
+});
+
+test("the homepage features Reliance Before Closure and its published records", async () => {
+  const home = await readProject("public/index.html");
+  const noteHref = 'href="/research/technical-notes/2026-02/"';
+  const inspectorHref = 'href="/tools/reliance-inspector/"';
+  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22037607"';
+  const repositoryHref = 'href="https://github.com/risu-research/reliance-before-closure"';
+
+  for (const href of [noteHref, inspectorHref, softwareHref, repositoryHref]) {
+    assert.equal(home.split(href).length - 1, 1, href);
+  }
+  assert.ok(home.indexOf(noteHref) < home.indexOf(inspectorHref));
+  assert.ok(home.indexOf(inspectorHref) < home.indexOf(softwareHref));
+  assert.ok(home.indexOf(softwareHref) < home.indexOf(repositoryHref));
 });
 
 test("the Research URLs appear in the sitemap exactly once", async () => {

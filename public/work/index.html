@@ -1,383 +1,366 @@
 <!doctype html>
 <html lang="en">
 <head>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f3f0e8">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/style.css">
-
-<title>Work — RISU Institute</title>
-<meta name="description" content="Bounded, executable research artifacts from RISU Institute on semantic, evidentiary, and operational integrity across APIs and AI systems.">
+<title>Research — RISU Institute</title>
+<meta name="description" content="RISU Institute research on semantic identity, evidence qualification, reliance, finality, and closure in automated systems.">
 <link rel="canonical" href="https://risuinstitute.org/work/">
 </head>
 <body>
-
-<header class="site-header">
-  <div class="wrap header-inner">
-    <a class="brand" href="/" aria-label="RISU Institute home">
-      <span class="brand-risu">RISU</span>
-      <span class="brand-institute">Institute</span>
-    </a>
-    <nav class="nav" aria-label="Primary">
-      <a href="/work/" aria-current="page">Work</a>
-      <a href="/research/">Research</a>
+<header class="site-header"><div class="wrap header-inner">
+  <a class="brand" href="/" aria-label="RISU Institute home"><span class="brand-risu">RISU</span><span class="brand-institute">Institute</span></a>
+  <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/">Tools</a>
       <a href="/about/">About</a>
-      <a href="https://github.com/risu-research">GitHub</a>
     </nav>
-  </div>
-</header>
-
+</div></header>
 <main>
-  <section class="page-hero">
-    <div class="wrap">
-      <p class="eyebrow">Research program</p>
-      <h1>Semantic integrity from interface to action.</h1>
-      <p class="page-lede">
-        RISU develops bounded, inspectable artifacts around failure modes that appear when automated systems expose, translate, compose, rely on, or retire machine-readable state. The program currently studies missing semantic identity, unsupported semantic gain, silent semantic loss, insufficiently warranted negative premises, cross-boundary strengthening of evidentiary status, and operational consequences that survive agent retirement.
-      </p>
-    </div>
-  </section>
+  <section class="page-hero"><div class="wrap">
+    <p class="eyebrow">Research program</p>
+    <h1>Research</h1>
+    <p class="page-lede">RISU studies machine-readable claims across three linked research threads: how meaning is identified and preserved, how evidence is qualified and carried across boundaries, and when downstream systems may rely on them.</p>
+  </div></section>
 
-  <section class="section">
-    <div class="wrap">
-
-      <div class="section-head">
-        <p class="section-kicker">Current work</p>
-        <h2 class="section-title">Missing. Invented. Lost. Unwarranted. Laundered. Unresolved.</h2>
-      </div>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">MISSING · Experimental semantic · 2026</p>
-          <h2 class="work-title">Appeal</h2>
-
-          <p class="work-question">
-            Can a generic client recognize that an affordance is for requesting review or reconsideration without learning every provider's vocabulary?
+  <section class="section"><div class="wrap">
+    <div class="section-head"><p class="section-kicker">Research thread</p><h2 class="section-title">Reliance, finality, and closure.</h2></div>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Reliance · RISU Technical Note 2026-02 · 2026</p>
+<h2 class="work-title">Reliance Before Closure</h2>
+<p class="work-question">
+            When can one machine rely on a claim before the broader workflow has finished?
           </p>
-
-          <p class="work-summary">
-            Appeal defines a carrier-neutral semantic identity for that purpose. Its first experimental Web Linking binding uses an RFC 8288 extension relation URI controlled by RISU Institute.
+<p class="work-summary">
+            Reliance Before Closure defines an evidence-to-reliance interface for claim-relative decisions under unresolved effects. Provider-specific qualification establishes a future boundary under an explicit trust profile, a verified stability certificate carries a decision margin, and a proposed action is separately bounded by its possible movement toward the verdict's flip boundary. The provider-blind relying function consumes only those bound semantic objects. Kubernetes commissioning included an initial mechanism that remained <code>REVIEW</code>. In a later trust-scoped execution, the relying function returned <code>SUPPORTED</code> before the subsequent Pod creation succeeded and before broader Deployment closure.
           </p>
-
-          <a class="arrow-link" href="/rels/appeal">
-            Semantic specification <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="/work/appeal-interoperability/">
-            Interoperability evidence <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="Appeal project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Missing shared semantic identity</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>Experimental v0.2</dd>
-            </div>
-            <div>
-              <dt>First binding</dt>
-              <dd>RFC 8288 extension relation</dd>
-            </div>
-            <div>
-              <dt>Controlled interoperability</dt>
-              <dd>Demonstrated</dd>
-            </div>
-            <div>
-              <dt>External adoption</dt>
-              <dd>Not demonstrated</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">INVENTED · Experimental profile · 2026</p>
-          <h2 class="work-title">HTTP→MCP Method-Inference Soundness Profile</h2>
-
-          <p class="work-question">
-            When HTTP operations become MCP tools, what machine claims can safely be inferred from the HTTP method alone?
-          </p>
-
-          <p class="work-summary">
-            This bounded executable profile tests whether method-derived MCP ToolAnnotations assert active guarantees unsupported by the source method semantics. Its frozen oracle covers GET, POST, PUT, PATCH, and DELETE across 40 conformance states.
-          </p>
-
-          <a class="arrow-link" href="https://github.com/risu-research/http-mcp-method-inference-soundness-profile/releases/tag/v0.2.1">
-            Public review artifact <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="HTTP to MCP method-inference project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Unsupported semantic gain</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>Experimental draft for public review</dd>
-            </div>
-            <div>
-              <dt>Source methods</dt>
-              <dd>GET, POST, PUT, PATCH, DELETE</dd>
-            </div>
-            <div>
-              <dt>Conformance oracle</dt>
-              <dd>40 states</dd>
-            </div>
-            <div>
-              <dt>Current release</dt>
-              <dd>v0.2.1</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">LOST · Experimental profile · 2026</p>
-          <h2 class="work-title">OpenAPI→MCP Problem-Semantics Preservation Profile</h2>
-
-          <p class="work-question">
-            When an OpenAPI-described API already exposes RFC 9457 Problem Details, does OpenAPI→MCP translation keep that meaning machine-addressable?
-          </p>
-
-          <p class="work-summary">
-            Under the frozen 12-case profile, three tested translation architectures each classified 11 in-scope cases as LOSS. A constructive translation over the tested MCP 2026-07-28 carrier capacity preserved all 11, showing that the observed loss is not forced by that tested carrier capacity.
-          </p>
-
-          <a class="arrow-link" href="/work/problem-semantics/">
-            Experimental record <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/openapi-mcp-problem-semantics">
+<a class="arrow-link" href="/research/technical-notes/2026-02/">
+            Technical Note 2026-02 <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="/tools/reliance-inspector/">
+            Reliance Inspector <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://doi.org/10.5281/zenodo.22038494">
+            Technical Note DOI <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://doi.org/10.5281/zenodo.22037607">
+            Software archive v0.4.0 <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/reliance-before-closure">
             Canonical repository <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.21911147">
-            Archived v0.1.0-rc1 <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="OpenAPI to MCP problem-semantics project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Silent semantic loss</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>Experimental v0.1.0-rc1</dd>
-            </div>
-            <div>
-              <dt>Frozen corpus</dt>
-              <dd>12 cases</dd>
-            </div>
-            <div>
-              <dt>Translation architectures tested</dt>
-              <dd>3</dd>
-            </div>
-            <div>
-              <dt>Constructive control</dt>
-              <dd>11 preserved · 0 loss · 0 invented · 1 N/A</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">UNWARRANTED · Experimental executable reference profile · 2026</p>
-          <h2 class="work-title">Negative Result Warrant</h2>
-
-          <p class="work-question">
-            When a bounded query returns zero, what evidence is sufficient for a downstream operation to use that exact negative premise?
-          </p>
-
-          <p class="work-summary">
-            The profile makes a bounded negative query premise usable only after provider-reported evidence is sufficient, bound to the exact proposition, transported, and receiver-validated. Its recorded Algolia contrast distinguishes an ordinary zero-result observation that remains UNKNOWN from a separate verification observation that becomes WARRANTED_ZERO.
-          </p>
-
-          <a class="arrow-link" href="/tools/negative-result-warrant/">
-            Use the Inspector <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant">
-            Reference profile <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant-agents-consumer/releases/tag/v0.1.0-rc.1">
-            Consumer witness <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="Negative Result Warrant project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Insufficiently warranted negative premise</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>Release candidate · semantics frozen</dd>
-            </div>
-            <div>
-              <dt>Recorded source</dt>
-              <dd>Algolia</dd>
-            </div>
-            <div>
-              <dt>MCP carrier</dt>
-              <dd>2026-07-28</dd>
-            </div>
-            <div>
-              <dt>Downstream gate</dt>
-              <dd>UNKNOWN blocks · WARRANTED_ZERO passes</dd>
-            </div>
-            <div>
-              <dt>Independent human adoption</dt>
-              <dd>Not demonstrated</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">LAUNDERED · Experimental conformance system · 2026</p>
-          <h2 class="work-title">ClosureProbe</h2>
-
-          <p class="work-question">
-            Where does a query-relative negative conclusion first become stronger than the evidence that crossed the boundary?
-          </p>
-
-          <p class="work-summary">
-            ClosureProbe is a receiver-anchored executable conformance system for negative-evidence integrity across observable agentic toolchains. It reconstructs root evidence from supplied source material, binds source context and the exact negative proposition, propagates evidence anchoring through the trace, and localizes the earliest unsupported strengthening, substitution, scope drift, or profile change. It does not decide whether nothing exists; it tests whether the supplied evidence still justified saying so after the observed boundaries.
-          </p>
-
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe/releases/tag/v0.1.0-rc3">
-            ClosureProbe rc3 <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/PROFILE.md">
-            Normative profile <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/POSITIONING.md">
-            Research positioning <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="ClosureProbe project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Cross-boundary evidentiary strengthening</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>Experimental v0.1.0-rc3 pre-release</dd>
-            </div>
-            <div>
-              <dt>Profiles</dt>
-              <dd>5 producer-specific + 1 controlled generic</dd>
-            </div>
-            <div>
-              <dt>Frozen corpus</dt>
-              <dd>50 adversarial and control cases</dd>
-            </div>
-            <div>
-              <dt>External client measurements</dt>
-              <dd>Not yet published</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">UNRESOLVED · Deterministic verifier · 2026</p>
-          <h2 class="work-title">Bounded Agent Closure</h2>
-
-          <p class="work-question">
+</a></div>
+<aside aria-label="Reliance Before Closure project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Evidence-qualified reliance before broader workflow closure</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Technical Note 2026-02 published</dd>
+</div>
+<div>
+<dt>Profile</dt>
+<dd>THRESHOLD_SLACK_V0</dd>
+</div>
+<div>
+<dt>Commissioning</dt>
+<dd>Kubernetes · trust-scoped</dd>
+</div>
+<div>
+<dt>Artifact</dt>
+<dd>Reliance Inspector v0.4.0</dd>
+</div>
+</dl>
+</aside>
+</article>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Finality and closure · RISU Technical Note 2026-01 · 2026</p>
+<h2 class="work-title">Bounded Agent Closure</h2>
+<p class="work-question">
             After an autonomous agent is disabled, what proves that the consequences attributable to it have actually reached a terminal, stable state?
           </p>
-
-          <p class="work-summary">
+<p class="work-summary">
             Bounded Agent Closure distinguishes administrative retirement from operational closure. Under the explicit <code>RISU_AGENT_CLOSURE_V0</code> evidence profile, its deterministic verifier follows evidence-backed residual consequences transitively from the retiring root, evaluates postconditions across authority, execution, commitments, and operational state, and requires stable convergence before issuing the bounded claim <code>CLOSED</code>.
           </p>
-
-          <a class="arrow-link" href="/research/technical-notes/2026-01/">
+<a class="arrow-link" href="/research/technical-notes/2026-01/">
             Technical Note 2026-01 <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="/tools/agent-closure/">
+</a><br/>
+<a class="arrow-link" href="/tools/agent-closure/">
             Explore the Inspector <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22005419">
+</a><br/>
+<a class="arrow-link" href="https://doi.org/10.5281/zenodo.22005419">
             Software archive v0.3.1 <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure">
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure">
             Canonical repository <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md">
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md">
             Normative specification <span aria-hidden="true">→</span>
-          </a>
-        </div>
+</a>
+</div>
+<aside aria-label="Bounded Agent Closure project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Surviving consequences after agent retirement</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>v0.3.1 maintenance line</dd>
+</div>
+<div>
+<dt>Profile</dt>
+<dd>RISU_AGENT_CLOSURE_V0</dd>
+</div>
+<div>
+<dt>Domains</dt>
+<dd>Authority · Execution · Commitment · Operational state</dd>
+</div>
+<div>
+<dt>Canonical corpus</dt>
+<dd>8 cases</dd>
+</div>
+<div>
+<dt>Verification</dt>
+<dd>75/75 tests</dd>
+</div>
+<div>
+<dt>Runtime</dt>
+<dd>Deterministic · no LLM · no runtime network</dd>
+</div>
+</dl>
+</aside>
+</article>
+  </div></section>
 
-        <aside class="work-meta" aria-label="Bounded Agent Closure project status">
-          <dl class="meta-list">
-            <div>
-              <dt>Program lens</dt>
-              <dd>Surviving consequences after agent retirement</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>v0.3.1 maintenance line</dd>
-            </div>
-            <div>
-              <dt>Profile</dt>
-              <dd>RISU_AGENT_CLOSURE_V0</dd>
-            </div>
-            <div>
-              <dt>Domains</dt>
-              <dd>Authority · Execution · Commitment · Operational state</dd>
-            </div>
-            <div>
-              <dt>Canonical corpus</dt>
-              <dd>8 cases</dd>
-            </div>
-            <div>
-              <dt>Verification</dt>
-              <dd>75/75 tests</dd>
-            </div>
-            <div>
-              <dt>Runtime</dt>
-              <dd>Deterministic · no LLM · no runtime network</dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
+  <section class="section"><div class="wrap">
+    <div class="section-head"><p class="section-kicker">Research thread</p><h2 class="section-title">Evidence qualification and transport.</h2></div>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Evidence transport · Experimental conformance system · 2026</p>
+<h2 class="work-title">ClosureProbe</h2>
+<p class="work-question">
+            Where does a query-relative negative conclusion first become stronger than the evidence that crossed the boundary?
+          </p>
+<p class="work-summary">
+            ClosureProbe is a receiver-anchored executable conformance system for negative-evidence integrity across observable agentic toolchains. It reconstructs root evidence from supplied source material, binds source context and the exact negative proposition, propagates evidence anchoring through the trace, and localizes the earliest unsupported strengthening, substitution, scope drift, or profile change. It does not decide whether nothing exists; it tests whether the supplied evidence still justified saying so after the observed boundaries.
+          </p>
+<a class="arrow-link" href="https://github.com/risu-research/closureprobe/releases/tag/v0.1.0-rc3">
+            ClosureProbe rc3 <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/PROFILE.md">
+            Normative profile <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/POSITIONING.md">
+            Research positioning <span aria-hidden="true">→</span>
+</a>
+</div>
+<aside aria-label="ClosureProbe project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Cross-boundary evidentiary strengthening</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Experimental v0.1.0-rc3 pre-release</dd>
+</div>
+<div>
+<dt>Profiles</dt>
+<dd>5 producer-specific + 1 controlled generic</dd>
+</div>
+<div>
+<dt>Frozen corpus</dt>
+<dd>50 adversarial and control cases</dd>
+</div>
+</dl>
+</aside>
+</article>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Evidence qualification · Executable reference profile · 2026</p>
+<h2 class="work-title">Negative Result Warrant</h2>
+<p class="work-question">
+            When a bounded query returns zero, what evidence is sufficient for a downstream operation to use that exact negative premise?
+          </p>
+<p class="work-summary">
+            The profile makes a bounded negative query premise usable only after provider-reported evidence is sufficient, bound to the exact proposition, transported, and receiver-validated. Its recorded Algolia contrast distinguishes an ordinary zero-result observation that remains UNKNOWN from a separate verification observation that becomes WARRANTED_ZERO.
+          </p>
+<a class="arrow-link" href="/tools/negative-result-warrant/">
+            Use the Inspector <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant">
+            Reference profile <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant-agents-consumer/releases/tag/v0.1.0-rc.1">
+            Consumer witness <span aria-hidden="true">→</span>
+</a>
+</div>
+<aside aria-label="Negative Result Warrant project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Insufficiently warranted negative premise</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Release candidate · semantics frozen</dd>
+</div>
+<div>
+<dt>Recorded source</dt>
+<dd>Algolia</dd>
+</div>
+<div>
+<dt>MCP carrier</dt>
+<dd>2026-07-28</dd>
+</div>
+<div>
+<dt>Downstream gate</dt>
+<dd>UNKNOWN blocks · WARRANTED_ZERO passes</dd>
+</div>
+</dl>
+</aside>
+</article>
+  </div></section>
 
-    </div>
-  </section>
+  <section class="section"><div class="wrap">
+    <div class="section-head"><p class="section-kicker">Research thread</p><h2 class="section-title">Semantic identity and preservation.</h2></div>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Semantic preservation · Experimental profile · 2026</p>
+<h2 class="work-title">OpenAPI→MCP Problem-Semantics Preservation Profile</h2>
+<p class="work-question">
+            When an OpenAPI-described API already exposes RFC 9457 Problem Details, does OpenAPI→MCP translation keep that meaning machine-addressable?
+          </p>
+<p class="work-summary">
+            Under the frozen 12-case profile, three tested translation architectures each classified 11 in-scope cases as LOSS. A constructive translation over the tested MCP 2026-07-28 carrier capacity preserved all 11, showing that the observed loss is not forced by that tested carrier capacity.
+          </p>
+<a class="arrow-link" href="/work/problem-semantics/">
+            Experimental record <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://github.com/risu-research/openapi-mcp-problem-semantics">
+            Canonical repository <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="https://doi.org/10.5281/zenodo.21911147">
+            Archived v0.1.0-rc1 <span aria-hidden="true">→</span>
+</a>
+</div>
+<aside aria-label="OpenAPI to MCP problem-semantics project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Silent semantic loss</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Experimental v0.1.0-rc1</dd>
+</div>
+<div>
+<dt>Frozen corpus</dt>
+<dd>12 cases</dd>
+</div>
+<div>
+<dt>Translation architectures tested</dt>
+<dd>3</dd>
+</div>
+<div>
+<dt>Constructive control</dt>
+<dd>11 preserved · 0 loss · 0 invented · 1 N/A</dd>
+</div>
+</dl>
+</aside>
+</article>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Semantic inference · Experimental profile · 2026</p>
+<h2 class="work-title">HTTP→MCP Method-Inference Soundness Profile</h2>
+<p class="work-question">
+            When HTTP operations become MCP tools, what machine claims can safely be inferred from the HTTP method alone?
+          </p>
+<p class="work-summary">
+            This bounded executable profile tests whether method-derived MCP ToolAnnotations assert active guarantees unsupported by the source method semantics. Its frozen oracle covers GET, POST, PUT, PATCH, and DELETE across 40 conformance states.
+          </p>
+<a class="arrow-link" href="https://github.com/risu-research/http-mcp-method-inference-soundness-profile/releases/tag/v0.2.1">
+            Public review artifact <span aria-hidden="true">→</span>
+</a>
+</div>
+<aside aria-label="HTTP to MCP method-inference project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Unsupported semantic gain</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Experimental draft for public review</dd>
+</div>
+<div>
+<dt>Source methods</dt>
+<dd>GET, POST, PUT, PATCH, DELETE</dd>
+</div>
+<div>
+<dt>Conformance oracle</dt>
+<dd>40 states</dd>
+</div>
+<div>
+<dt>Current release</dt>
+<dd>v0.2.1</dd>
+</div>
+</dl>
+</aside>
+</article>
+    <article class="work-card">
+<div class="work-main">
+<p class="work-label">Semantic identity · Experimental semantic · 2026</p>
+<h2 class="work-title">Appeal</h2>
+<p class="work-question">
+            Can a generic client recognize that an affordance is for requesting review or reconsideration without learning every provider's vocabulary?
+          </p>
+<p class="work-summary">
+            Appeal defines a carrier-neutral semantic identity for that purpose. Its first experimental Web Linking binding uses an RFC 8288 extension relation URI controlled by RISU Institute.
+          </p>
+<a class="arrow-link" href="/rels/appeal">
+            Semantic specification <span aria-hidden="true">→</span>
+</a><br/>
+<a class="arrow-link" href="/work/appeal-interoperability/">
+            Interoperability evidence <span aria-hidden="true">→</span>
+</a>
+</div>
+<aside aria-label="Appeal project status" class="work-meta">
+<dl class="meta-list">
+<div>
+<dt>Focus</dt>
+<dd>Missing shared semantic identity</dd>
+</div>
+<div>
+<dt>Status</dt>
+<dd>Experimental v0.2</dd>
+</div>
+<div>
+<dt>First binding</dt>
+<dd>RFC 8288 extension relation</dd>
+</div>
+<div>
+<dt>Controlled interoperability</dt>
+<dd>Demonstrated</dd>
+</div>
+</dl>
+</aside>
+</article>
+  </div></section>
 </main>
-
 <footer class="site-footer">
   <div class="wrap footer-inner">
-    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC.</div>
-    <div>© 2026 RISU LLC</div>
+    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
   </div>
 </footer>
-
 </body>
 </html>

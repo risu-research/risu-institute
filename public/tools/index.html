@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f0e8">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css">
+<title>Research Instruments — RISU Institute</title>
+<meta name="description" content="Public research instruments from RISU Institute for inspecting executable semantics, recorded evidence, and bounded verification results.">
+<link rel="canonical" href="https://risuinstitute.org/tools/">
+</head>
+<body>
+<header class="site-header"><div class="wrap header-inner">
+  <a class="brand" href="/" aria-label="RISU Institute home"><span class="brand-risu">RISU</span><span class="brand-institute">Institute</span></a>
+  <nav class="nav" aria-label="Primary">
+      <a href="/work/">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/" aria-current="page">Tools</a>
+      <a href="/about/">About</a>
+    </nav>
+</div></header>
+<main>
+  <section class="page-hero"><div class="wrap">
+    <p class="eyebrow">Tools</p>
+    <h1>Research instruments</h1>
+    <p class="page-lede">Selected RISU projects include public instruments for examining executable semantics, recorded evidence, and bounded verification results. Each instrument remains within the scope stated by its underlying research artifact.</p>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <article class="work-card">
+      <div class="work-main">
+        <p class="work-label">Local-first · Frozen research release · 2026</p>
+        <h2 class="work-title">Reliance Inspector</h2>
+        <p class="work-question">What evidence, assumptions, identities, and derivations support a claim-specific relying decision?</p>
+        <p class="work-summary">Reliance Inspector supports inspection of canonical cases, compatible evidence bundles, boundary basis, derivation provenance, and already-verified semantic objects using the frozen relying consumer.</p>
+        <a class="arrow-link" href="/tools/reliance-inspector/">Instrument record <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22037607">Software archive <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="https://github.com/risu-research/reliance-before-closure">Source repository <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="/research/technical-notes/2026-02/">Technical Note 2026-02 <span aria-hidden="true">→</span></a>
+      </div>
+      <aside class="work-meta" aria-label="Reliance Inspector status"><dl class="meta-list">
+        <div><dt>Status</dt><dd>Frozen v0.4.0</dd></div>
+        <div><dt>Mode</dt><dd>Local-first</dd></div>
+        <div><dt>Semantic core</dt><dd>Frozen Python consumer</dd></div>
+        <div><dt>Record</dt><dd class="identifier">10.5281/zenodo.22037607</dd></div>
+      </dl></aside>
+    </article>
+
+    <article class="work-card">
+      <div class="work-main">
+        <p class="work-label">Canonical evidence inspector · 2026</p>
+        <h2 class="work-title">Agent Closure Inspector</h2>
+        <p class="work-question">Which residual consequences prevent a bounded agent-closure claim from becoming <code>CLOSED</code>?</p>
+        <p class="work-summary">The hosted Inspector exposes eight canonical evaluations produced by the frozen Bounded Agent Closure verifier. Public mode is limited to canonical evidence; arbitrary private-evidence evaluation remains a local capability.</p>
+        <a class="arrow-link" href="/tools/agent-closure/">Open Inspector <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="/research/technical-notes/2026-01/">Technical Note 2026-01 <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure">Canonical repository <span aria-hidden="true">→</span></a>
+      </div>
+      <aside class="work-meta" aria-label="Agent Closure Inspector status"><dl class="meta-list">
+        <div><dt>Public mode</dt><dd>Static canonical evidence</dd></div>
+        <div><dt>Canonical cases</dt><dd>8</dd></div>
+        <div><dt>Profile</dt><dd>RISU_AGENT_CLOSURE_V0</dd></div>
+        <div><dt>Runtime</dt><dd>No LLM · no runtime network</dd></div>
+      </dl></aside>
+    </article>
+
+    <article class="work-card">
+      <div class="work-main">
+        <p class="work-label">Browser-local experimental instrument · 2026</p>
+        <h2 class="work-title">Negative Result Warrant Inspector</h2>
+        <p class="work-question">What evidence is sufficient for a downstream operation to use an exact negative query premise?</p>
+        <p class="work-summary">The browser-local Inspector reconstructs supplied negative-evidence material and checks whether the exact bounded premise remains supported under the frozen Negative Result Warrant profile. Receiver validation is performed locally and is not serialized authority.</p>
+        <a class="arrow-link" href="/tools/negative-result-warrant/">Open Inspector <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant">Reference profile <span aria-hidden="true">→</span></a>
+      </div>
+      <aside class="work-meta" aria-label="Negative Result Warrant Inspector status"><dl class="meta-list">
+        <div><dt>Status</dt><dd>Experimental</dd></div>
+        <div><dt>Execution</dt><dd>Browser-local</dd></div>
+        <div><dt>Network</dt><dd>No runtime network</dd></div>
+        <div><dt>Boundary</dt><dd>Exact premise validation</dd></div>
+      </dl></aside>
+    </article>
+  </div></section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+  </div>
+</footer>
+</body>
+</html>

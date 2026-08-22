@@ -1,129 +1,70 @@
 <!doctype html>
 <html lang="en">
 <head>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f3f0e8">
+<meta name="theme-color" content="#0b0f14">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css">
-
+<link rel="stylesheet" href="/tools/reliance-inspector/styles.css">
+<link rel="stylesheet" href="/tools/reliance-inspector/hosted.css">
 <title>Reliance Inspector — RISU Institute</title>
-<meta name="description" content="Reliance Inspector is a local-first research instrument for inspecting the Reliance Before Closure semantic model, compatible evidence bundles, and frozen relying semantics.">
+<meta name="description" content="Public canonical-case surface for Reliance Inspector v0.4.0. Inspect frozen recorded and counterfactual Reliance Before Closure cases in-browser; evidence verification and semantic-object evaluation remain local-only.">
 <link rel="canonical" href="https://risuinstitute.org/tools/reliance-inspector/">
-
 <meta property="og:type" content="website">
 <meta property="og:title" content="Reliance Inspector — RISU Institute">
-<meta property="og:description" content="A local-first research instrument for Reliance Before Closure, including evidence inspection, offline verification, and evaluation of verified semantic objects.">
+<meta property="og:description" content="Inspect frozen Reliance Before Closure canonical cases in-browser. Local verification and semantic evaluation remain in the archived Python release.">
 <meta property="og:url" content="https://risuinstitute.org/tools/reliance-inspector/">
 </head>
 <body>
-
-<header class="site-header">
-  <div class="wrap header-inner">
-    <a class="brand" href="/" aria-label="RISU Institute home">
-      <span class="brand-risu">RISU</span>
-      <span class="brand-institute">Institute</span>
-    </a>
-    <nav class="nav" aria-label="Primary">
-      <a href="/work/">Research</a>
-      <a href="/research/">Publications</a>
-      <a href="/tools/" aria-current="page">Tools</a>
-      <a href="/about/">About</a>
-    </nav>
+<div class="hosted-bar">
+  <a class="hosted-brand" href="/">RISU Institute</a>
+  <nav aria-label="Primary">
+    <a href="/work/">Research</a>
+    <a href="/research/">Publications</a>
+    <a href="/tools/" aria-current="page">Tools</a>
+    <a href="/about/">About</a>
+  </nav>
+</div>
+<main class="shell">
+<header class="topbar">
+  <div>
+    <div class="eyebrow">RELIANCE BEFORE CLOSURE</div>
+    <h1>Reliance Inspector</h1>
+    <p>Inspect evidence, boundary qualification, stability margin, action effect, and relying applicability using the frozen semantic core.</p>
   </div>
+  <div class="mode-badge"><strong>PUBLIC CANONICAL MODE</strong><span>v0.4.0 · frozen case data</span></div>
 </header>
-
-<main>
-  <section class="page-hero">
-    <div class="wrap">
-      <p class="eyebrow">Local-first research instrument · Version 0.4.0</p>
-      <h1>Reliance Inspector</h1>
-      <p class="page-lede">
-        Inspect the evidence, assumptions, identities, and derivations behind a Reliance Before Closure decision.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="wrap">
-      <article class="work-card">
-        <div class="work-main">
-          <p class="work-label">FROZEN RESEARCH RELEASE · LOCAL-FIRST · 2026</p>
-          <h2 class="work-title">Inspect the evidence behind the relying decision.</h2>
-
-          <p class="work-question">
-            What evidence, assumptions, identities, and derivations support a claim-specific relying decision?
-          </p>
-
-          <p class="work-summary">
-            Reliance Inspector supports recorded and counterfactual canonical cases, local verification of compatible self-auditing evidence bundles, inspection of boundary basis and derivation provenance, and evaluation of already-verified semantic objects using the frozen Python consumer. It can export deterministic evaluation records. The browser interface is presentation and control surface only; semantic applicability remains in the frozen local consumer.
-          </p>
-
-          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22037607">
-            Get Reliance Inspector v0.4.0 <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="/research/technical-notes/2026-02/">
-            Read Technical Note 2026-02 <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22038494">
-            Technical Note record <span aria-hidden="true">→</span>
-          </a><br>
-
-          <a class="arrow-link" href="https://github.com/risu-research/reliance-before-closure">
-            Source repository <span aria-hidden="true">→</span>
-          </a>
-        </div>
-
-        <aside class="work-meta" aria-label="Reliance Inspector release status">
-          <dl class="meta-list">
-            <div>
-              <dt>Status</dt>
-              <dd>Frozen research release</dd>
-            </div>
-            <div>
-              <dt>Version</dt>
-              <dd>0.4.0</dd>
-            </div>
-            <div>
-              <dt>Runtime</dt>
-              <dd>Local browser interface + loopback server</dd>
-            </div>
-            <div>
-              <dt>Semantic core</dt>
-              <dd>Frozen Python relying consumer</dd>
-            </div>
-            <div>
-              <dt>Inspection</dt>
-              <dd>Cases · evidence bundles · semantic objects</dd>
-            </div>
-            <div>
-              <dt>Archive</dt>
-              <dd class="identifier"><a href="https://doi.org/10.5281/zenodo.22037607">10.5281/zenodo.22037607</a></dd>
-            </div>
-          </dl>
-        </aside>
-      </article>
-    </div>
-  </section>
-
-  <article class="reading prose">
-    <section aria-labelledby="boundary-heading">
-      <h2 id="boundary-heading">Boundaries</h2>
-      <p>Reliance Inspector does not discover every adverse path, establish issuer or signature authenticity, authorize actions, reserve resources, guarantee commit, mutate providers, or implement semantic verdict logic in browser JavaScript. Those limits are part of the frozen release boundary.</p>
-      <p>The instrument is distributed as a local-first release. This page provides its archival record, source repository, and technical note; semantic evaluation runs in the local release.</p>
-    </section>
-  </article>
+<section class="hosted-notice" aria-label="Hosted scope">
+  <div><strong>Hosted scope</strong><span>Recorded and counterfactual canonical cases are inspectable entirely in-browser from the frozen v0.4.0 case data.</span></div>
+  <div><strong>Local-only boundary</strong><span>Evidence-bundle verification and semantic-object evaluation require the archived loopback server and frozen Python consumer. <a href="https://doi.org/10.5281/zenodo.22037607">Get v0.4.0 →</a> · <a href="https://github.com/risu-research/reliance-before-closure">Source repository →</a></span></div>
+</section>
+<noscript><div class="warning">Canonical case inspection requires JavaScript. No remote service or model is used.</div></noscript>
+<nav class="mode-tabs" aria-label="Inspector modes">
+  <button class="mode active" data-mode="cases">Canonical cases</button>
+  <button class="mode" data-mode="verify">Inspect evidence <span class="local-tag">local</span></button>
+  <button class="mode" data-mode="evaluate">Evaluate objects <span class="local-tag">local</span></button>
+</nav>
+<section id="mode-cases" class="mode-panel active"><div class="layout"><aside class="rail"><div class="rail-head">Recorded and counterfactual</div><div id="case-list"></div></aside><article class="workspace">
+<header class="case-header"><div><div class="meta-line"><span id="provenance" class="provenance"></span><span id="source-hash-short" class="hash"></span></div><h2 id="title"></h2><p id="provenance-detail" class="subtle"></p></div><div id="verdict" class="result-chip"></div></header>
+<section class="instrument"><div class="section-label">Decision trace</div><div id="decision-trace" class="trace"></div></section>
+<section id="timeline-card" class="instrument"><div class="section-label">Recorded timing</div><div class="timeline-track"><div class="timeline-line"></div><div class="tick reliance-tick"></div><div class="tick closure-tick"></div></div><div class="timeline-values"><div><strong id="reliance-time"></strong><span>reliance point</span></div><div class="center"><strong id="lead-time"></strong><span>measured lead</span></div><div class="right"><strong id="closure-time"></strong><span>broader closure</span></div></div></section>
+<section class="metrics"><div><span>Boundary</span><strong id="boundary"></strong><small id="trust-conditioned"></small></div><div><span>Stability margin M</span><strong id="margin"></strong><small id="unit1"></small></div><div><span>Action bound Cₐ</span><strong id="action-bound"></strong><small id="unit2"></small></div><div><span>Reason</span><strong id="reason-code" class="reason"></strong><small>frozen consumer</small></div></section>
+<section class="instrument"><div class="section-label">Interpretation</div><p id="interpretation" class="interpretation"></p><div id="fact-grid" class="fact-table"></div></section>
+<section class="split"><div class="instrument"><div class="section-label">Evidence-backed exclusions</div><div id="exclusions"></div></div><div class="instrument"><div class="section-label">Explicit trust assumptions</div><div id="assumptions"></div></div></section>
+<section class="nonclaim-bar"><strong>Does not imply</strong><div id="nonclaims"></div></section><details class="raw"><summary>Inspect immutable case JSON</summary><pre id="raw-json"></pre></details>
+</article></div></section>
+<section id="mode-verify" class="mode-panel"><div class="tool-intro"><div class="eyebrow">LOCAL EVIDENCE INSPECTION</div><h2>Verify and inspect an evidence bundle</h2><p>Run the frozen offline verifier, inspect the reconstructed decision record, and export a deterministic verification record. The ZIP remains on this machine.</p></div>
+<div id="verify-static-warning" class="warning hidden">This hosted surface intentionally exposes no verification endpoint. Download v0.4.0 and run <code>python3 server.py</code> locally.</div><label class="dropzone"><input id="evidence-file" type="file" accept=".zip,application/zip"><strong>Choose a compatible recorded evidence ZIP</strong><span id="chosen-file">No file selected</span></label><div class="tool-actions"><button id="verify-button" class="primary">Verify and inspect</button></div><div id="verify-error" class="error-box hidden"></div>
+<section id="verify-record" class="hidden"><div class="record-head"><div><div class="eyebrow">VERIFICATION RECORD</div><h3 id="verify-status"></h3></div><button id="download-verify-record" class="secondary">Download record JSON</button></div>
+<div class="record-grid"><div class="record-cell"><span>Evidence SHA-256</span><code id="evidence-sha"></code></div><div class="record-cell"><span>Manifest entries</span><strong id="manifest-count"></strong></div><div class="record-cell"><span>Boundary</span><strong id="verify-boundary"></strong><small id="verify-trust"></small></div><div class="record-cell"><span>Applicability</span><strong id="verify-applicability"></strong><small id="verify-reason"></small></div><div class="record-cell"><span>Margin</span><strong id="verify-margin"></strong><small id="verify-unit"></small></div><div class="record-cell"><span>Action bound</span><strong id="verify-action"></strong><small id="verify-action-unit"></small></div><div class="record-cell"><span>Quota at reliance</span><strong id="verify-quota-reliance"></strong></div><div class="record-cell"><span>Final quota</span><strong id="verify-quota-final"></strong></div><div class="record-cell"><span>Measured lead</span><strong id="verify-lead"></strong><small>runner monotonic clock</small></div></div>
+<section class="instrument"><div class="section-label">Boundary basis</div><div class="scope-line"><span>Inventory qualification</span><strong id="inventory-qualification"></strong></div><div class="split compact"><div><div class="subsection-label">Evidence-backed exclusions</div><div id="verify-exclusions"></div></div><div><div class="subsection-label">Explicit trust assumptions</div><div id="verify-assumptions"></div></div></div></section>
+<section class="instrument"><div class="section-label">Derivation record</div><div id="derivation-table" class="fact-table"></div></section><section class="instrument"><div class="section-label">Reproducibility fingerprint</div><div id="fingerprint-table" class="fact-table"></div></section><details class="raw"><summary>Frozen verifier output</summary><pre id="verify-raw"></pre></details></section></section>
+<section id="mode-evaluate" class="mode-panel"><div class="tool-intro"><div class="eyebrow">SEMANTIC OBJECT EVALUATION</div><h2>Evaluate verified semantic objects</h2><p>Evaluate a certificate, action bound, and relying context with the frozen Python consumer. The record includes exact identity diagnostics and a canonical input digest.</p></div><div class="precondition"><strong>Precondition</strong><span>This mode does not verify signatures, issuers, authenticity, or transport integrity. The supplied semantic objects must already have been verified upstream.</span></div><div id="eval-static-warning" class="warning hidden">This hosted surface intentionally exposes no semantic-evaluation endpoint. Download v0.4.0 and run <code>python3 server.py</code> locally.</div>
+<div class="input-row"><label class="file-button"><input id="semantic-file" type="file" accept=".json,application/json">Load JSON file</label><button id="load-example" class="secondary">Load final-case objects</button></div><textarea id="eval-json" spellcheck="false" aria-label="Semantic object bundle"></textarea><div class="tool-actions"><button id="evaluate-button" class="primary">Evaluate with frozen rely()</button></div><div id="evaluate-error" class="error-box hidden"></div>
+<section id="evaluate-record" class="hidden"><div class="record-head"><div><div class="eyebrow">EVALUATION RECORD</div><h3 id="eval-applicability"></h3><p id="eval-reason" class="subtle"></p></div><button id="download-eval-record" class="secondary">Download record JSON</button></div><div class="record-grid three"><div class="record-cell"><span>Input SHA-256</span><code id="eval-input-sha"></code></div><div class="record-cell"><span>Semantic core SHA-256</span><code id="eval-core-sha"></code></div><div class="record-cell"><span>Non-inference</span><strong>no authorization, no reservation, no commit guarantee</strong></div></div><section class="instrument"><div class="section-label">Identity diagnostics</div><div id="identity-table" class="identity-table"></div></section></section></section>
+<footer><span>Reliance Inspector v0.4.0 · hosted canonical surface</span><span><a href="/tools/reliance-inspector/provenance.json">Deployment provenance</a> · <a href="https://doi.org/10.5281/zenodo.22037607">Frozen software record</a></span></footer>
 </main>
-
-<footer class="site-footer">
-  <div class="wrap footer-inner">
-    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div>
-    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
-  </div>
-</footer>
-
+<script src="/tools/reliance-inspector/hosted-guard.js"></script>
+<script src="/tools/reliance-inspector/app.js"></script>
 </body>
 </html>

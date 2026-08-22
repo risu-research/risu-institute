@@ -1,0 +1,441 @@
+{
+  "cases": [
+    {
+      "accent": "supported",
+      "claim": {
+        "actionBound": "1",
+        "boundary": "PROVEN",
+        "margin": "1",
+        "trustConditioned": true,
+        "unit": "POD_SLOT",
+        "verdict": "SATISFIED"
+      },
+      "decisionTrace": [
+        {
+          "detail": "trust-conditioned",
+          "stage": "Boundary",
+          "value": "PROVEN"
+        },
+        {
+          "detail": "M = 1 POD_SLOT",
+          "stage": "Stable verdict",
+          "value": "SATISFIED"
+        },
+        {
+          "detail": "C\u2090 = 1 POD_SLOT",
+          "stage": "Action",
+          "value": "QUALIFIED"
+        },
+        {
+          "detail": "1 \u2264 1",
+          "stage": "Reliance",
+          "value": "SUPPORTED"
+        }
+      ],
+      "evidencedExclusions": [
+        {
+          "id": "qualified_actor_quota_or_rollout_mutation",
+          "label": "Qualified actor cannot mutate quota or rollout state"
+        },
+        {
+          "id": "dynamic_mutating_webhook",
+          "label": "No configured dynamic mutating-webhook path"
+        }
+      ],
+      "facts": [
+        [
+          "Active rollout Pods",
+          4
+        ],
+        [
+          "v2 rollout Pods",
+          4
+        ],
+        [
+          "Old active Pods",
+          0
+        ],
+        [
+          "Terminating rollout Pods",
+          0
+        ],
+        [
+          "New ReplicaSet desired",
+          4
+        ],
+        [
+          "Old ReplicaSet desired",
+          0
+        ],
+        [
+          "Quota at reliance",
+          "4 / 5"
+        ],
+        [
+          "Deployment complete at reliance",
+          "false"
+        ],
+        [
+          "Deployment updatedReplicas summary",
+          1
+        ],
+        [
+          "Closure availableReplicas",
+          4
+        ],
+        [
+          "Final quota",
+          "5 / 5"
+        ]
+      ],
+      "id": "real-final-e2e",
+      "interpretation": "The claim-specific creation requirement was already closed under the accepted boundary while Kubernetes' broader availability completion was still false.",
+      "nonclaims": [
+        "Not universal Kubernetes closure",
+        "Not authorization",
+        "Not reservation",
+        "20.613 s is one scenario-conditioned monotonic-clock measurement"
+      ],
+      "provenance": "REAL",
+      "provenanceDetail": "Recorded final v0.3 RC evidence",
+      "result": {
+        "applicability": "SUPPORTED",
+        "authorizationInferred": false,
+        "reason": "WITHIN_STABILITY_MARGIN",
+        "reservationInferred": false
+      },
+      "sourceHash": "f6829704473671856f4fb84b69d51657db2653c30829592e220a69e96dfcc923",
+      "timeline": {
+        "closureMs": 21310.634,
+        "leadMs": 20613.486999999997,
+        "relianceMs": 697.147
+      },
+      "title": "Final RC: Reliance Before Broader Closure",
+      "trustAssumptions": [
+        {
+          "id": "failure_induced_replacement",
+          "label": "No failure-induced replacement after the reliance point"
+        },
+        {
+          "id": "external_reconciler_creation",
+          "label": "No undiscovered external reconciler creates additional resources"
+        }
+      ]
+    },
+    {
+      "accent": "requalify",
+      "claim": {
+        "actionBound": "1",
+        "boundary": "UNPROVEN",
+        "margin": ": ",
+        "trustConditioned": false,
+        "unit": "SERVICE_SLOT",
+        "verdict": "SATISFIED"
+      },
+      "decisionTrace": [
+        {
+          "detail": "quota relaxation remains admissible",
+          "stage": "Boundary",
+          "value": "UNPROVEN"
+        },
+        {
+          "detail": "no reliance-grade margin",
+          "stage": "Stable verdict",
+          "value": "UNAVAILABLE"
+        },
+        {
+          "detail": "C\u2090 = 1 SERVICE_SLOT",
+          "stage": "Action",
+          "value": "QUALIFIED"
+        },
+        {
+          "detail": "certificate not reliance-grade",
+          "stage": "Reliance",
+          "value": "REQUALIFY"
+        }
+      ],
+      "evidencedExclusions": [],
+      "facts": [
+        [
+          "Actor can update ResourceQuota",
+          "yes"
+        ],
+        [
+          "Quota hard before",
+          "3"
+        ],
+        [
+          "Quota hard after patch",
+          "5"
+        ],
+        [
+          "Meaning",
+          "The observed hard value was enforceable now but relaxable by the evaluated identity"
+        ]
+      ],
+      "id": "real-mutable-bound",
+      "interpretation": "A current enforced bound does not deserve a positive stability certificate when an admissible actor can relax it.",
+      "nonclaims": [
+        "Not evidence that ResourceQuota is generally unsafe",
+        "Only the evaluated actor/boundary is at issue"
+      ],
+      "provenance": "REAL",
+      "provenanceDetail": "Recorded R1 negative-control evidence",
+      "result": {
+        "applicability": "REQUALIFY",
+        "authorizationInferred": false,
+        "reason": "CERTIFICATE_NOT_RELIANCE_GRADE",
+        "reservationInferred": false
+      },
+      "sourceHash": "e8fa994815b3411925fec7a83de02dc291270216dcb4acecc2d6ae75f445777f",
+      "timeline": null,
+      "title": "Mutable Hard Bound :  Current Enforcement Is Not Stability",
+      "trustAssumptions": []
+    },
+    {
+      "accent": "supported",
+      "claim": {
+        "actionBound": "1",
+        "boundary": "PROVEN",
+        "margin": "1",
+        "trustConditioned": true,
+        "unit": "POD_SLOT",
+        "verdict": "SATISFIED"
+      },
+      "decisionTrace": [
+        {
+          "detail": "trust-conditioned",
+          "stage": "Boundary",
+          "value": "PROVEN"
+        },
+        {
+          "detail": "M = 1 POD_SLOT",
+          "stage": "Stable verdict",
+          "value": "SATISFIED"
+        },
+        {
+          "detail": "C\u2090 = 1 POD_SLOT",
+          "stage": "Each action",
+          "value": "SUPPORTED"
+        },
+        {
+          "detail": "authoritative quota admits one",
+          "stage": "Commit",
+          "value": "1 OF 2"
+        }
+      ],
+      "evidencedExclusions": [
+        {
+          "id": "dynamic_mutating_webhook",
+          "label": "No configured dynamic mutating-webhook path"
+        }
+      ],
+      "facts": [
+        [
+          "Independently qualified actions",
+          2
+        ],
+        [
+          "Each action bound",
+          "1 POD_SLOT"
+        ],
+        [
+          "Concurrent CREATE successes",
+          1
+        ],
+        [
+          "Concurrent CREATE failures",
+          1
+        ],
+        [
+          "Explicit quota rejections",
+          1
+        ],
+        [
+          "Final active Pods",
+          5
+        ],
+        [
+          "Quota hard",
+          "5"
+        ]
+      ],
+      "id": "real-proof-not-reservation",
+      "interpretation": "Each one-use action is semantically within the one-slot margin, but the proof does not reserve that slot. The authoritative sink admits only one concurrent use.",
+      "nonclaims": [
+        "SUPPORTED is not a capability token",
+        "Reliance is not the reservation ledger"
+      ],
+      "provenance": "REAL",
+      "provenanceDetail": "Recorded Gate Y concurrency evidence",
+      "result": {
+        "applicability": "SUPPORTED",
+        "authorizationInferred": false,
+        "reason": "WITHIN_STABILITY_MARGIN",
+        "reservationInferred": false
+      },
+      "sourceHash": "cef54f666c16026f7584b1ec428de21bc6c148550f292f26dd72b6f6d150bf55",
+      "timeline": null,
+      "title": "Proof Is Not Reservation :  Concurrent One-Slot Actions",
+      "trustAssumptions": [
+        {
+          "id": "external_reconciler_creation",
+          "label": "No undiscovered external reconciler under the Gate-Y trust profile"
+        }
+      ]
+    },
+    {
+      "accent": "notapplicable",
+      "claim": {
+        "actionBound": "1",
+        "boundary": "PROVEN",
+        "margin": "1",
+        "trustConditioned": true,
+        "unit": "POD_SLOT",
+        "verdict": "SATISFIED"
+      },
+      "decisionTrace": [
+        {
+          "detail": "certificate trust profile",
+          "stage": "Boundary",
+          "value": "PROVEN"
+        },
+        {
+          "detail": "1 \u2264 1",
+          "stage": "Arithmetic",
+          "value": "FITS"
+        },
+        {
+          "detail": "trust identity differs",
+          "stage": "Relying context",
+          "value": "MISMATCH"
+        },
+        {
+          "detail": "semantic identity mismatch",
+          "stage": "Reliance",
+          "value": "NOT_APPLICABLE"
+        }
+      ],
+      "evidencedExclusions": [],
+      "facts": [
+        [
+          "Certificate trust profile",
+          "accepts-assumptions"
+        ],
+        [
+          "Action-bound trust profile",
+          "accepts-assumptions"
+        ],
+        [
+          "Relying-context trust profile",
+          "strict-no-assumptions"
+        ],
+        [
+          "Arithmetic",
+          "1 \u2264 1"
+        ],
+        [
+          "Outcome",
+          "Arithmetic does not override semantic/trust identity mismatch"
+        ]
+      ],
+      "id": "cf-trust-mismatch",
+      "interpretation": "Even though the margin arithmetic would fit, the result is not applicable to a relying party that does not accept the same trust profile.",
+      "nonclaims": [
+        "Matching numbers do not imply matching semantics"
+      ],
+      "provenance": "COUNTERFACTUAL",
+      "provenanceDetail": "Generated from frozen semantic rules; not a recorded cluster event",
+      "result": {
+        "applicability": "NOT_APPLICABLE",
+        "authorizationInferred": false,
+        "reason": "SEMANTIC_IDENTITY_MISMATCH",
+        "reservationInferred": false
+      },
+      "sourceHash": "f6829704473671856f4fb84b69d51657db2653c30829592e220a69e96dfcc923",
+      "timeline": null,
+      "title": "Counterfactual :  Relying Party Rejects the Trust Profile",
+      "trustAssumptions": [
+        {
+          "id": "trust_profile_mismatch",
+          "label": "Final-RC assumptions intentionally rejected by this relying context"
+        }
+      ]
+    },
+    {
+      "accent": "requalify",
+      "claim": {
+        "actionBound": "1",
+        "boundary": "PROVEN",
+        "margin": "0",
+        "trustConditioned": false,
+        "unit": "POD_SLOT",
+        "verdict": "SATISFIED"
+      },
+      "decisionTrace": [
+        {
+          "detail": "POD_SLOT",
+          "stage": "Raw slack",
+          "value": "1"
+        },
+        {
+          "detail": "replacement path",
+          "stage": "Included reserve",
+          "value": "1"
+        },
+        {
+          "detail": "POD_SLOT",
+          "stage": "Effective margin",
+          "value": "0"
+        },
+        {
+          "detail": "C\u2090 = 1 exceeds M = 0",
+          "stage": "Reliance",
+          "value": "REQUALIFY"
+        }
+      ],
+      "evidencedExclusions": [],
+      "facts": [
+        [
+          "Raw free quota slots",
+          1
+        ],
+        [
+          "Included adverse replacement reserve",
+          1
+        ],
+        [
+          "Effective margin",
+          0
+        ],
+        [
+          "Proposed action bound",
+          1
+        ],
+        [
+          "Outcome",
+          "Action no longer fits"
+        ]
+      ],
+      "id": "cf-replacement-reserve",
+      "interpretation": "If one additional adverse replacement Pod is included instead of assumed away, it consumes the remaining margin and the auxiliary action is no longer supportable.",
+      "nonclaims": [
+        "This is a counterfactual profile illustration, not a recorded failure"
+      ],
+      "provenance": "COUNTERFACTUAL",
+      "provenanceDetail": "Generated from frozen semantic rules; not a recorded cluster event",
+      "result": {
+        "applicability": "REQUALIFY",
+        "authorizationInferred": false,
+        "reason": "STABILITY_MARGIN_EXCEEDED",
+        "reservationInferred": false
+      },
+      "sourceHash": "f6829704473671856f4fb84b69d51657db2653c30829592e220a69e96dfcc923",
+      "timeline": null,
+      "title": "Counterfactual :  Include One Replacement Reserve",
+      "trustAssumptions": []
+    }
+  ],
+  "generator": "generate_cases.py using frozen/rely.py",
+  "schemaVersion": "RELIANCE_INSPECTOR_CASES_V0_1"
+}

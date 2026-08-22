@@ -1,0 +1,18 @@
+{
+  "instrument": "Reliance Inspector",
+  "hostedSurface": "https://risuinstitute.org/tools/reliance-inspector/",
+  "hostedMode": "PUBLIC_CANONICAL_CASE_INSPECTION",
+  "version": "0.4.0",
+  "softwareRecord": "https://doi.org/10.5281/zenodo.22037607",
+  "allVersionsRecord": "https://doi.org/10.5281/zenodo.22037606",
+  "technicalNote": "https://doi.org/10.5281/zenodo.22038494",
+  "sourceRepository": "https://github.com/risu-research/reliance-before-closure",
+  "archivedZipSha256": "1fdcb8edb34b13cc263eca3b633de243a7c0a1bd4306ceba5259c30ce9aa567d",
+  "frozenAssetSha256": {
+    "app.js": "5ced25a47111d39f49a09ac1202660468cbeb856425bfc278728fdab8d8b08b6",
+    "styles.css": "f06cd69a148fb34298d011280e1bdab52e2d469f88ad71984a77185de8089872",
+    "cases.json": "29ba243580ac7f96cf34b05031963d10417cd610142d55ddc594ba581e2bb252"
+  },
+  "boundary": "The hosted surface exposes the frozen canonical-case inspection path only. It does not host the loopback verification or semantic-evaluation API. Evidence verification and semantic-object evaluation remain local capabilities of the archived v0.4.0 release using its frozen Python consumer and verifier.",
+  "deploymentAdaptation": "index.html adds RISU navigation, hosted-scope disclosure, and local-only labels; hosted.css contains deployment-only chrome. Frozen app.js, styles.css, and cases.json are copied byte-for-byte from the archived v0.4.0 package."
+}

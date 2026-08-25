@@ -13,7 +13,7 @@ when interaction is necessary to exercise a published artifact.
 - **About** (`/about/`) — research program, method, and publication discipline.
 
 The current research program spans semantic identity and preservation, evidence
-qualification and transport, and reliance, finality, and closure.
+qualification and transport, and reliance, finality, and consequence closure.
 
 ## Canonical semantic identifier
 
@@ -31,6 +31,8 @@ published records; they are not silent new editions.
 
 Current notes:
 
+- RISU Technical Note 2026-03 — *Consequence Closure: Semantic Assurance at the
+  Machine Action Boundary*.
 - RISU Technical Note 2026-02 — *Reliance Before Closure: Evidence-Qualified
   Stability for Machine Decisions Under Unresolved Effects*.
 - RISU Technical Note 2026-01 — *From Revocation to Closure: Verifying
@@ -40,6 +42,9 @@ Current notes:
 
 `/tools/` is the institutional index for selected research instruments.
 
+- `/tools/consequence-closure/` is the institutional record for Consequence
+  Closure Inspector v0.5.0. `/tools/consequence-closure/inspector/` serves the
+  exact frozen browser files without a hosted semantic backend.
 - `/tools/reliance-inspector/` is an institutional landing page for the
   local-first Reliance Inspector v0.4.0 release. It is not a hosted semantic
   evaluator.

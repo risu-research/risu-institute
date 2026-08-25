@@ -37,7 +37,6 @@ test("2026-02 publication page exposes the published scholarly record", async ()
 
 test("Reliance Before Closure surfaces link to the substantive canonical repository", async () => {
   for (const page of [
-    "index.html",
     "work/index.html",
     "research/technical-notes/2026-02/index.html",
     "tools/reliance-inspector/index.html",
@@ -56,6 +55,7 @@ test("the institutional 2026-02 PDF is the selected published file", async () =>
 test("the research program is ordered by current threads and latest work", async () => {
   const work = await readPublic("work/index.html");
   const positions = [
+    "Consequence Closure",
     "Reliance Before Closure",
     "Bounded Agent Closure",
     "ClosureProbe",
@@ -67,7 +67,7 @@ test("the research program is ordered by current threads and latest work", async
   assert.ok(positions.every((position) => position >= 0));
   for (let i = 1; i < positions.length; i += 1) assert.ok(positions[i - 1] < positions[i]);
   for (const thread of [
-    "Reliance, finality, and closure.",
+    "Reliance, finality, and consequence closure.",
     "Evidence qualification and transport.",
     "Semantic identity and preservation.",
   ]) assert.ok(work.includes(thread));
@@ -79,9 +79,11 @@ test("institutional navigation distinguishes research, publications, tools, and 
     "work/index.html",
     "research/index.html",
     "research/technical-notes/index.html",
+    "research/technical-notes/2026-03/index.html",
     "research/technical-notes/2026-02/index.html",
     "research/technical-notes/2026-01/index.html",
     "tools/index.html",
+    "tools/consequence-closure/index.html",
     "tools/reliance-inspector/index.html",
     "about/index.html",
     "rels/appeal.html",
@@ -98,7 +100,7 @@ test("institutional navigation distinguishes research, publications, tools, and 
 
 test("tools index preserves the declared instrument boundaries", async () => {
   const page = await readPublic("tools/index.html");
-  for (const title of ["Reliance Inspector", "Agent Closure Inspector", "Negative Result Warrant Inspector"]) {
+  for (const title of ["Consequence Closure Inspector", "Reliance Inspector", "Agent Closure Inspector", "Negative Result Warrant Inspector"]) {
     assert.ok(page.includes(title), title);
   }
   assert.ok(page.toLowerCase().includes("local-first"));
@@ -110,8 +112,10 @@ test("tools index preserves the declared instrument boundaries", async () => {
 test("sitemap includes the current publication and instrument surfaces", async () => {
   const sitemap = await readPublic("sitemap.xml");
   for (const url of [
+    "https://risuinstitute.org/research/technical-notes/2026-03/",
     "https://risuinstitute.org/research/technical-notes/2026-02/",
     "https://risuinstitute.org/tools/",
+    "https://risuinstitute.org/tools/consequence-closure/",
     "https://risuinstitute.org/tools/reliance-inspector/",
   ]) assert.equal(sitemap.split(`<loc>${url}</loc>`).length - 1, 1, url);
 });

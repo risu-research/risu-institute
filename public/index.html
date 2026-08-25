@@ -9,12 +9,12 @@
 <link rel="stylesheet" href="/assets/style.css">
 
 <title>RISU Institute</title>
-<meta name="description" content="RISU Institute studies meaning, evidence, reliance, and closure in automated systems through bounded technical contracts, executable tests, and public research artifacts.">
+<meta name="description" content="RISU Institute studies semantic assurance for machine action through formal semantics, executable verification, real system commissioning, and public research artifacts.">
 <link rel="canonical" href="https://risuinstitute.org/">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="RISU Institute">
-<meta property="og:description" content="Research on meaning, evidence, reliance, and closure in automated systems.">
+<meta property="og:description" content="Research on meaning, evidence, reliance, and consequence at machine boundaries.">
 <meta property="og:url" content="https://risuinstitute.org/">
 <meta name="twitter:card" content="summary">
 
@@ -49,14 +49,14 @@
 
   <section class="hero">
     <div class="wrap">
-      <p class="eyebrow">Research · Systems · Standards</p>
-      <h1>Meaning, evidence,<br>and reliance in<br>automated systems.</h1>
+      <p class="eyebrow">Research · Formal semantics · Systems</p>
+      <h1>Semantic assurance<br>at machine<br>boundaries.</h1>
       <div class="hero-copy">
         <p>
-          RISU Institute studies what machine-readable claims mean, what evidence supports them, and when another system may rely on them as they cross interfaces, change representation, move across authority boundaries, or persist through changes in operational state.
+          RISU Institute studies the load bearing questions that appear when machine readable claims cross interfaces and become operational: what they mean, what evidence supports them, when another system may rely on them, and whether the consequence of a concrete action is actually determined.
         </p>
         <p class="hero-note">
-          Research questions are narrowed into technical contracts, executable tests, and public artifacts that can be inspected against the claims they support.
+          Research is expressed as bounded semantic contracts, adversarial verification, real system commissioning, and public artifacts that can be inspected against the claims they support.
         </p>
       </div>
     </div>
@@ -66,30 +66,31 @@
     <div class="wrap">
       <div class="section-head">
         <p class="section-kicker">Latest research</p>
-        <h2 class="section-title">Reliance before closure.</h2>
+        <h2 class="section-title">Consequence Closure.</h2>
       </div>
 
       <article class="work-card">
         <div class="work-main">
-          <p class="work-label">RISU Technical Note 2026-02 · August 2026</p>
-          <h3 class="work-title">Reliance Before Closure</h3>
-          <p class="work-question">When can one machine rely on a claim before the surrounding workflow has finished?</p>
+          <p class="work-label">RISU Technical Note 2026-03 · August 2026</p>
+          <h3 class="work-title">Consequence Closure</h3>
+          <p class="work-question">At the moment a machine acts, is the specified consequence already determined by the evidence and operative state?</p>
           <p class="work-summary">
-            Some workflows remain open after the uncertainty relevant to a particular downstream decision has already become bounded. Reliance Before Closure defines an evidence-qualified interface for that case. Upstream qualification establishes the relevant future boundary and action effect under an explicit trust profile; a provider-blind consumer checks whether the action remains within the certified stability margin. The profile was commissioned on Kubernetes, including a preserved failed mechanism, and the archived release supports offline reconstruction of the recorded result.
+            Consequence Closure makes residual consequence dependence an explicit assurance target. At a declared action cut, relational counterexamples expose what can still change the result. The formal core characterizes inclusion minimal semantic obligations, keeps those obligations separate from realizable Establishments and Routes, and defines P0, P1, and P2 preservation levels for carrying closure claims across source abstractions. A frozen differential against the official Cedar 4.12.0 source oracle confirmed exact P1 on the declared bounded surface. Separate Linux, SQLite, filesystem, OAuthLib, and Keycloak commissioning exercises test operative and evidence semantics at real action cuts.
           </p>
-          <a class="arrow-link" href="/research/technical-notes/2026-02/">Read Technical Note <span aria-hidden="true">→</span></a><br>
-          <a class="arrow-link" href="/tools/reliance-inspector/">Reliance Inspector <span aria-hidden="true">→</span></a><br>
-          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22037607">Software record <span aria-hidden="true">→</span></a><br>
-          <a class="arrow-link" href="https://github.com/risu-research/reliance-before-closure">Canonical repository <span aria-hidden="true">→</span></a>
+          <a class="arrow-link" href="/research/technical-notes/2026-03/">Read Technical Note <span aria-hidden="true">→</span></a><br>
+          <a class="arrow-link" href="/tools/consequence-closure/">Consequence Closure Inspector <span aria-hidden="true">→</span></a><br>
+          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22095709">Persistent record <span aria-hidden="true">→</span></a><br>
+          <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22095595">Software archive <span aria-hidden="true">→</span></a><br>
+          <a class="arrow-link" href="https://github.com/risu-research/consequence-closure">Canonical repository <span aria-hidden="true">→</span></a>
         </div>
-        <aside class="work-meta" aria-label="Reliance Before Closure research record">
+        <aside class="work-meta" aria-label="Consequence Closure research record">
           <dl class="meta-list">
-            <div><dt>Publication</dt><dd>RISU Technical Note 2026-02</dd></div>
-            <div><dt>Boundary</dt><dd>Trust-scoped</dd></div>
-            <div><dt>Commissioning</dt><dd>Live Kubernetes</dd></div>
-            <div><dt>Consumer</dt><dd>Provider-blind</dd></div>
-            <div><dt>Artifact</dt><dd>Reliance Inspector v0.4.0</dd></div>
-            <div><dt>Verification</dt><dd>Offline reconstruction</dd></div>
+            <div><dt>Publication</dt><dd>RISU Technical Note 2026-03</dd></div>
+            <div><dt>Assurance target</dt><dd>Action consequence determinacy</dd></div>
+            <div><dt>Formal core</dt><dd>Materiality · obligations · Routes</dd></div>
+            <div><dt>External gate</dt><dd>Cedar 4.12.0 · exact bounded P1</dd></div>
+            <div><dt>Commissioning</dt><dd>Linux · SQLite · filesystem · OAuthLib · Keycloak</dd></div>
+            <div><dt>Artifact</dt><dd>Consequence Closure Inspector v0.5.0</dd></div>
           </dl>
         </aside>
       </article>
@@ -100,16 +101,16 @@
     <div class="wrap">
       <div class="section-head">
         <p class="section-kicker">Research program</p>
-        <h2 class="section-title">From meaning to evidence to reliance.</h2>
+        <h2 class="section-title">From semantic identity to operative consequence.</h2>
       </div>
 
       <article class="work-card">
         <div class="work-main">
-          <p class="work-label">Three linked research threads · 2026</p>
-          <h3 class="work-title">Machine-readable claims across boundaries.</h3>
-          <p class="work-question">What must remain explicit as claims cross interfaces, change representation, or outlive the process that produced them?</p>
+          <p class="work-label">Three connected research threads · 2026</p>
+          <h3 class="work-title">Machine claims that survive contact with action.</h3>
+          <p class="work-question">What must remain explicit as a machine readable claim becomes evidence, reliance, and action?</p>
           <p class="work-summary">
-            Automated systems increasingly depend on claims that cross interfaces, change representation, or survive changes in authority and operational state. RISU studies the obligations that allow those claims to be interpreted, supported, and relied on without silently gaining meaning, authority, or certainty.
+            RISU studies a chain of load bearing questions that software often treats separately: semantic identity, preservation across representations, evidence qualification, reliance under unresolved effects, and consequence determinacy at the action boundary. Each project targets a bounded failure mode. Together they form a research program for making machine claims explicit enough to verify, transport, and act on without silently gaining meaning, authority, or certainty.
           </p>
           <a class="arrow-link" href="/work/">Browse research <span aria-hidden="true">→</span></a><br>
           <a class="arrow-link" href="/research/">Publications <span aria-hidden="true">→</span></a><br>
@@ -119,7 +120,7 @@
           <dl class="meta-list">
             <div><dt>Semantic identity and preservation</dt><dd>Appeal · Method inference · Problem semantics</dd></div>
             <div><dt>Evidence qualification and transport</dt><dd>Negative Result Warrant · ClosureProbe</dd></div>
-            <div><dt>Reliance, finality, and closure</dt><dd>Bounded Agent Closure · Reliance Before Closure</dd></div>
+            <div><dt>Reliance, finality, and consequence closure</dt><dd>Bounded Agent Closure · Reliance Before Closure · Consequence Closure</dd></div>
           </dl>
         </aside>
       </article>

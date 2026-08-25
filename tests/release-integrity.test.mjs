@@ -65,10 +65,12 @@ const productionPages = [
   "work/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
+  "research/technical-notes/2026-03/index.html",
   "research/technical-notes/2026-02/index.html",
   "research/technical-notes/2026-01/index.html",
   "about/index.html",
   "tools/index.html",
+  "tools/consequence-closure/index.html",
   "tools/reliance-inspector/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
@@ -245,6 +247,8 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "research/technical-notes/2026-01/index.html",
     "research/technical-notes/2026-02/RISU_Technical_Note_2026-02_Reliance_Before_Closure.pdf",
     "research/technical-notes/2026-02/index.html",
+    "research/technical-notes/2026-03/RISU_Technical_Note_2026-03_Consequence_Closure.pdf",
+    "research/technical-notes/2026-03/index.html",
     "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
@@ -261,6 +265,12 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/agent-closure/index.html",
     "tools/agent-closure/provenance.json",
     "tools/agent-closure/style.css",
+    "tools/consequence-closure/index.html",
+    "tools/consequence-closure/inspector/app.js",
+    "tools/consequence-closure/inspector/engine.js",
+    "tools/consequence-closure/inspector/index.html",
+    "tools/consequence-closure/inspector/samples.js",
+    "tools/consequence-closure/inspector/styles.css",
     "tools/index.html",
     "tools/negative-result-warrant/core.js",
     "tools/negative-result-warrant/index.html",
@@ -434,18 +444,20 @@ test("the Bounded Agent Closure research card retains its intended links in orde
   assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
 });
 
-test("the homepage features Reliance Before Closure and its published records", async () => {
+test("the homepage features Consequence Closure and its published records", async () => {
   const home = await readProject("public/index.html");
-  const noteHref = 'href="/research/technical-notes/2026-02/"';
-  const inspectorHref = 'href="/tools/reliance-inspector/"';
-  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22037607"';
-  const repositoryHref = 'href="https://github.com/risu-research/reliance-before-closure"';
+  const noteHref = 'href="/research/technical-notes/2026-03/"';
+  const inspectorHref = 'href="/tools/consequence-closure/"';
+  const noteDoiHref = 'href="https://doi.org/10.5281/zenodo.22095709"';
+  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22095595"';
+  const repositoryHref = 'href="https://github.com/risu-research/consequence-closure"';
 
-  for (const href of [noteHref, inspectorHref, softwareHref, repositoryHref]) {
+  for (const href of [noteHref, inspectorHref, noteDoiHref, softwareHref, repositoryHref]) {
     assert.equal(home.split(href).length - 1, 1, href);
   }
   assert.ok(home.indexOf(noteHref) < home.indexOf(inspectorHref));
-  assert.ok(home.indexOf(inspectorHref) < home.indexOf(softwareHref));
+  assert.ok(home.indexOf(inspectorHref) < home.indexOf(noteDoiHref));
+  assert.ok(home.indexOf(noteDoiHref) < home.indexOf(softwareHref));
   assert.ok(home.indexOf(softwareHref) < home.indexOf(repositoryHref));
 });
 

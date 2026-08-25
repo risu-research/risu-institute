@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Consequence Closure Inspector</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div><strong>Consequence Closure</strong><small>Inspector</small></div>
+    </div>
+
+    <button class="open-primary" id="openFileBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+      Open evidence
+    </button>
+    <input id="fileInput" type="file" accept="application/json,.json" hidden>
+
+    <div class="side-group">
+      <div class="side-label">Reference records</div>
+      <button class="case-button" data-case="authority-open"><span class="case-dot open"></span><span><b>Authority revocation</b><small>One obligation remains</small></span></button>
+      <button class="case-button" data-case="linux-admin"><span class="case-dot unsafe"></span><span><b>Linux administrative</b><small>Declared, still operative</small></span></button>
+      <button class="case-button" data-case="linux-operative"><span class="case-dot safe"></span><span><b>Linux operative seal</b><small>Effect path blocked</small></span></button>
+      <button class="case-button" data-case="oauth-live"><span class="case-dot safe"></span><span><b>OAuth closure</b><small>OAuthLib live path</small></span></button>
+      <button class="case-button" data-case="oauth-stale"><span class="case-dot unsafe"></span><span><b>OAuth split state</b><small>Authority and resource diverge</small></span></button>
+      <button class="case-button" data-case="keycloak"><span class="case-dot verified"></span><span><b>Keycloak 26.7.2</b><small>Pinned runtime gate</small></span></button>
+    </div>
+
+    <nav class="side-nav" aria-label="Inspector sections">
+      <button class="nav-item" data-section="inspect" disabled><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>Inspect</button>
+      <button class="nav-item" data-section="route" disabled><svg viewBox="0 0 24 24"><path d="M5 6h6a3 3 0 0 1 3 3v6m0 0 3-3m-3 3-3-3M5 18h3"/></svg>Route</button>
+      <button class="nav-item" data-section="evidence" disabled><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>Evidence</button>
+      <button class="nav-item" data-section="source" disabled><svg viewBox="0 0 24 24"><path d="M8 5 3 12l5 7m8-14 5 7-5 7M14 3l-4 18"/></svg>Source</button>
+    </nav>
+
+    <div class="local-card">
+      <div class="local-icon"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6l-7-3Z"/></svg></div>
+      <div><b>Local only</b><span>Evidence stays in this browser session.</span></div>
+    </div>
+    <div class="version-line">RISU Institute · Inspector <span id="versionText">v0.5.0</span> · Core <span>v0.1.0</span></div>
+  </aside>
+
+  <main class="workspace" id="dropZone">
+    <header class="workspace-head">
+      <div class="crumbs"><span id="sourceKind">Raw authority trace</span><i></i><code id="sourceDigest">sha256:…</code></div>
+      <div class="head-actions">
+        <button class="icon-button" id="copyDigestBtn" title="Copy normalized source digest" aria-label="Copy normalized source digest"><svg viewBox="0 0 24 24"><path d="M9 9h10v10H9zM5 15V5h10"/></svg></button>
+        <button class="secondary-button" id="exportBtn">Export record</button>
+      </div>
+    </header>
+
+    <section class="welcome-view active" id="welcomeView">
+      <div class="welcome-wrap">
+        <div class="welcome-kicker">Local evidence inspection</div>
+        <h1>See exactly what can still change the outcome.</h1>
+        <p>Open a closure profile, authority trace, or OAuth evidence record. The Inspector computes the current consequence status, a selected inclusion-minimal obligation set, concrete counterexamples, and, when available, a declared closure route. It also exposes the boundary and trust assumptions needed to interpret the result.</p>
+        <button class="welcome-drop" id="welcomeOpenBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+          <span><b>Open JSON evidence</b><small>or drop a file anywhere in this window</small></span>
+        </button>
+        <div class="welcome-trust">
+          <span><b>Local</b><small>No upload path</small></span>
+          <span><b>Exact finite analysis</b><small>Replayable certificate</small></span>
+          <span><b>Core 0.1.0</b><small>Six-object semantics</small></span>
+        </div>
+        <div class="welcome-reference">
+          <div class="welcome-reference-head"><span>Reference records</span><small>Open a bundled record without loading a file</small></div>
+          <div class="welcome-reference-grid">
+            <button data-welcome-case="authority-open"><b>Authority revocation</b><span>One obligation remains</span></button>
+            <button data-welcome-case="oauth-stale"><b>OAuth split state</b><span>Authority and resource diverge</span></button>
+            <button data-welcome-case="keycloak"><b>Keycloak 26.7.2</b><span>Keycloak runtime gate</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-view" data-view="inspect">
+      <div class="intro-row">
+        <div><div class="kicker" id="caseKicker">Authority and revocation</div><h1 id="caseTitle">Revocation Closure</h1><p id="caseDescription">Loading…</p></div>
+        <div class="format-pill" id="formatPill">TRACE</div>
+      </div>
+
+      <section class="verdict-card" id="verdictCard">
+        <div class="verdict-icon" id="verdictIcon"></div>
+        <div class="verdict-copy"><div class="verdict-label" id="verdictLabel">OPEN</div><h2 id="verdictTitle">The consequence is still open.</h2><p id="verdictSummary">Two admissible outcomes remain at the current cut.</p></div>
+        <div class="verdict-metrics" id="verdictMetrics"></div>
+      </section>
+
+      <div class="content-grid main-grid">
+        <section class="panel next-panel">
+          <div class="panel-head"><div><span class="eyebrow">Obligation or establishment</span><h3 id="nextTitle">What can close the gap</h3></div><span class="count-badge" id="nextCount">1 fact</span></div>
+          <div id="nextAction"></div>
+        </section>
+        <section class="panel why-panel">
+          <div class="panel-head"><div><span class="eyebrow" id="witnessKicker">Materiality witness</span><h3 id="witnessTitle">Why this changes the outcome</h3></div><button class="text-button" id="showBoundaryBtn">View boundary</button></div>
+          <div id="witness"></div>
+        </section>
+      </div>
+
+      <section class="panel evidence-preview">
+        <div class="panel-head"><div><span class="eyebrow">Current evidence</span><h3 id="evidencePreviewTitle">Declared facts</h3></div><button class="text-button" data-jump="evidence">Inspect evidence</button></div>
+        <div id="evidencePreview"></div>
+      </section>
+    </section>
+
+    <section class="section-view" data-view="route">
+      <div class="section-title"><span class="eyebrow">Closure route</span><h2>How the declared gap can close</h2><p>The route uses only Establishments declared by the loaded profile. Semantic validity comes first: every reachable leaf must be consequence closed. Declared cost ranks valid routes afterward.</p></div>
+      <div class="route-shell" id="routeView"></div>
+    </section>
+
+    <section class="section-view" data-view="evidence">
+      <div class="section-title"><span class="eyebrow">Evidence, boundary, and assurance</span><h2>Inspect the exact cut</h2><p>See what the analysis received, what remains compatible, and which source-preservation and cut-adequacy assumptions still qualify the result.</p></div>
+      <div id="evidenceView"></div>
+    </section>
+
+    <section class="section-view" data-view="source">
+      <div class="section-title"><span class="eyebrow">Source lineage</span><h2>Follow the result back to its source</h2><p>Derivation, model-relative analysis, preservation claims, and commissioning evidence remain distinct so one layer cannot silently substitute for another.</p></div>
+      <div id="sourceView"></div>
+    </section>
+
+    <div class="drop-overlay" id="dropOverlay"><div><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><b>Drop JSON evidence to inspect</b><span>Closure profile, revocation trace, OAuth evidence, or commissioning summary</span></div></div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script src="engine.js"></script>
+<script src="samples.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

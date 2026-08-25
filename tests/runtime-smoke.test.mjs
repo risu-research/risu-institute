@@ -69,12 +69,20 @@ test("exact public surfaces return the expected status and Content-Type", async 
     ["/work/", "text/html"],
     ["/research/", "text/html"],
     ["/research/technical-notes/", "text/html"],
+    ["/research/technical-notes/2026-03/", "text/html"],
+    ["/research/technical-notes/2026-03/RISU_Technical_Note_2026-03_Consequence_Closure.pdf", "application/pdf"],
     ["/research/technical-notes/2026-01/", "text/html"],
     ["/research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf", "application/pdf"],
     ["/about/", "text/html"],
     ["/rels/appeal", "text/html"],
     ["/work/appeal-interoperability/", "text/html"],
     ["/work/problem-semantics/", "text/html"],
+    ["/tools/consequence-closure/", "text/html"],
+    ["/tools/consequence-closure/inspector/", "text/html"],
+    ["/tools/consequence-closure/inspector/app.js", "text/javascript"],
+    ["/tools/consequence-closure/inspector/engine.js", "text/javascript"],
+    ["/tools/consequence-closure/inspector/samples.js", "text/javascript"],
+    ["/tools/consequence-closure/inspector/styles.css", "text/css"],
     ["/tools/agent-closure/", "text/html"],
     ["/tools/agent-closure/app.js", "text/javascript"],
     ["/tools/agent-closure/style.css", "text/css"],
@@ -198,4 +206,25 @@ test("the hosted surface exposes no arbitrary evidence evaluation endpoint", asy
     body: "{}",
   });
   assert.ok([404, 405].includes(response.status), response.status);
+});
+test("the Consequence Closure Inspector route is local only and separately non-indexed", async () => {
+  const response = await fetch(`${origin}/tools/consequence-closure/inspector/`);
+  const policy = response.headers.get("content-security-policy") ?? "";
+  for (const directive of [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'none'",
+    "font-src 'none'",
+    "connect-src 'none'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "manifest-src 'none'",
+  ]) assert.ok(policy.includes(directive), directive);
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin");
+  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(response.headers.get("cache-control"), "no-store");
 });

@@ -249,6 +249,8 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "research/technical-notes/2026-02/index.html",
     "research/technical-notes/2026-03/RISU_Technical_Note_2026-03_Consequence_Closure.pdf",
     "research/technical-notes/2026-03/index.html",
+    "research/technical-notes/2026-04/RISU_Technical_Note_2026-04_Projection_Assurance.pdf",
+    "research/technical-notes/2026-04/index.html",
     "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
@@ -444,21 +446,19 @@ test("the Bounded Agent Closure research card retains its intended links in orde
   assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
 });
 
-test("the homepage features Consequence Closure and its published records", async () => {
+test("the homepage features Projection Assurance and its published records", async () => {
   const home = await readProject("public/index.html");
-  const noteHref = 'href="/research/technical-notes/2026-03/"';
-  const inspectorHref = 'href="/tools/consequence-closure/"';
-  const noteDoiHref = 'href="https://doi.org/10.5281/zenodo.22095709"';
-  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22095595"';
-  const repositoryHref = 'href="https://github.com/risu-research/consequence-closure"';
+  const noteHref = 'href="/research/technical-notes/2026-04/"';
+  const noteDoiHref = 'href="https://doi.org/10.5281/zenodo.22149639"';
+  const softwareHref = 'href="https://doi.org/10.5281/zenodo.22149593"';
+  const capsuleHref = 'href="https://doi.org/10.5281/zenodo.22149517"';
 
-  for (const href of [noteHref, inspectorHref, noteDoiHref, softwareHref, repositoryHref]) {
+  for (const href of [noteHref, noteDoiHref, softwareHref, capsuleHref]) {
     assert.equal(home.split(href).length - 1, 1, href);
   }
-  assert.ok(home.indexOf(noteHref) < home.indexOf(inspectorHref));
-  assert.ok(home.indexOf(inspectorHref) < home.indexOf(noteDoiHref));
+  assert.ok(home.indexOf(noteHref) < home.indexOf(noteDoiHref));
   assert.ok(home.indexOf(noteDoiHref) < home.indexOf(softwareHref));
-  assert.ok(home.indexOf(softwareHref) < home.indexOf(repositoryHref));
+  assert.ok(home.indexOf(softwareHref) < home.indexOf(capsuleHref));
 });
 
 test("the Research URLs appear in the sitemap exactly once", async () => {

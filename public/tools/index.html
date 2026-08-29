@@ -246,7 +246,14 @@ $("clear-files").addEventListener("click",clearAnalysis);
 $("export-receipt").addEventListener("click",exportReceipt);
 document.querySelectorAll(".rv-case").forEach(b=>b.addEventListener("click",()=>{const g=b.dataset.case;state.example=g==="github-file-update"?"github-file-update-before":g==="azure-wiki"?"azure-wiki-etag":"github-guarded-merge";renderExample();}));
 document.querySelectorAll(".rv-phase").forEach(b=>b.addEventListener("click",()=>{state.example=b.dataset.phase==="AFTER"?"github-file-update-after":"github-file-update-before";renderExample();}));
-const hash=location.hash;
-if(hash==="#workbench-examples")setAppMode("examples");else if(hash==="#workbench-compare")setAppMode("compare");else if(hash.startsWith("#workbench"))setAppMode("check");
+function routeWorkbenchFromLocation(){
+  const hash=location.hash;
+  if(hash==="#workbench-examples")setAppMode("examples");
+  else if(hash==="#workbench-compare")setAppMode("compare");
+  else if(hash.startsWith("#workbench"))setAppMode("check");
+  else document.body.classList.remove("rv-appmode");
+}
+window.addEventListener("hashchange",routeWorkbenchFromLocation);
+routeWorkbenchFromLocation();
 renderExample();
 })();</script></body></html>

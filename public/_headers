@@ -7,6 +7,14 @@
 /assets/*
   Cache-Control: public, max-age=604800
 
+/tools/
+  Content-Security-Policy: default-src 'none'; script-src 'sha256-OZq0B92+3ACfttvCKidAYvTwEln3CL4Mbnn2C/eex/U=' 'sha256-ga5dhPD22QMoWhfyg8mJtXJBN0GROYp0zrgGPmB1vJI='; style-src 'self' 'sha256-J5IEhZK4YMBLKbHvIFuKEu99P9VbL8yFQB9/HgRNmcs='; img-src 'self'; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'none'
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: no-store
+
 /tools/negative-result-warrant/*
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'none'
   Referrer-Policy: no-referrer

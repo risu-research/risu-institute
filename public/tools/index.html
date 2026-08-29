@@ -6,9 +6,122 @@
 <meta name="theme-color" content="#f3f0e8">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/style.css">
-<title>Research Instruments — RISU Institute</title>
-<meta name="description" content="Public research instruments from RISU Institute for inspecting executable semantics, recorded evidence, and bounded verification results.">
+<title>RISU Verify Workbench & Research Instruments — RISU Institute</title>
+<meta name="description" content="RISU Verify is a browser-local workbench for inspecting RISU assurance artifacts, recomputing consequence-status mappings and world matches, and checking cross-file SHA-256 commitments without uploading data.">
 <link rel="canonical" href="https://risuinstitute.org/tools/">
+<style>.rv-launch { display:flex; flex-wrap:wrap; gap:10px 22px; margin-top:26px; }
+.rv-button, .rv-tab, .rv-case, .rv-phase, .rv-ghost { font:inherit; }
+.rv-button { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:44px; padding:10px 16px; border:1px solid var(--ink); background:var(--ink); color:var(--white); text-decoration:none; font-weight:720; cursor:pointer; }
+.rv-button:hover { color:var(--white); background:#30312d; }
+.rv-button.secondary { color:var(--ink); background:transparent; border-color:var(--line); }
+.rv-button.secondary:hover { color:var(--accent); border-color:var(--accent); }
+.rv-flagship { margin-top:4px; }
+.rv-flagship .work-title { max-width:820px; }
+.rv-app { margin:0 auto 78px; width:min(calc(100% - 32px), 1280px); border:1px solid #b9b5aa; background:#f9f7f1; box-shadow:0 22px 70px rgba(23,24,21,.08); }
+.rv-appbar { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:17px 20px; border-bottom:1px solid var(--line); background:#efebe2; }
+.rv-appbrand { display:flex; align-items:baseline; gap:12px; }
+.rv-appbrand strong { font-family:Georgia,"Times New Roman",serif; font-size:1.15rem; letter-spacing:-.015em; }
+.rv-appbrand span, .rv-local { color:var(--muted); font-size:.76rem; }
+.rv-local { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.rv-local::before { content:""; width:7px; height:7px; border-radius:50%; background:#56735f; }
+.rv-toolbar { display:flex; justify-content:space-between; gap:20px; padding:18px 20px; border-bottom:1px solid var(--line); }
+.rv-tabs, .rv-case-tabs, .rv-phase-tabs { display:flex; flex-wrap:wrap; gap:7px; }
+.rv-tab, .rv-case, .rv-phase, .rv-ghost { border:1px solid var(--line); background:transparent; color:var(--muted); padding:8px 11px; cursor:pointer; }
+.rv-tab[aria-selected="true"], .rv-case[aria-pressed="true"], .rv-phase[aria-pressed="true"] { border-color:var(--ink); background:var(--ink); color:var(--white); }
+.rv-ghost { border:0; padding:8px 4px; text-decoration:underline; text-underline-offset:.2em; }
+.rv-ghost:hover { color:var(--accent); }
+.rv-pane { display:none; }
+.rv-pane.active { display:block; }
+.rv-example-head { display:grid; grid-template-columns:1fr auto; gap:22px; padding:22px 20px; border-bottom:1px solid var(--line); align-items:end; }
+.rv-kicker { margin:0 0 7px; color:var(--muted); font-size:.7rem; font-weight:760; letter-spacing:.13em; text-transform:uppercase; }
+.rv-example-title { margin:0; font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.7rem,3vw,2.7rem); font-weight:500; letter-spacing:-.025em; }
+.rv-main { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr); }
+.rv-primary { padding:26px 24px 32px; border-right:1px solid var(--line); min-width:0; }
+.rv-side { padding:26px 24px 32px; min-width:0; }
+.rv-verdict-row { display:flex; align-items:center; justify-content:space-between; gap:18px; padding-bottom:22px; border-bottom:1px solid var(--line); }
+.rv-verdict { font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.9rem,4vw,3.6rem); letter-spacing:-.04em; line-height:1; }
+.rv-verdict.preserved { color:#355b43; }
+.rv-verdict.regression { color:var(--accent); }
+.rv-integrity { text-align:right; color:var(--muted); font-size:.78rem; }
+.rv-axis-grid { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--line); }
+.rv-axis { padding:20px 18px; border-right:1px solid var(--line); }
+.rv-axis:first-child { padding-left:0; }
+.rv-axis:last-child { border-right:0; }
+.rv-axis span { display:block; color:var(--muted); font-size:.66rem; font-weight:760; letter-spacing:.13em; text-transform:uppercase; }
+.rv-axis strong { display:block; margin-top:9px; font-family:Georgia,"Times New Roman",serif; font-size:2rem; font-weight:500; }
+.rv-explanation { margin:24px 0 0; max-width:780px; font-size:1.02rem; color:#353630; }
+.rv-worlds { margin-top:26px; overflow:auto; }
+.rv-table { width:100%; border-collapse:collapse; min-width:650px; font-size:.82rem; }
+.rv-table th { text-align:left; color:var(--muted); font-size:.65rem; letter-spacing:.11em; text-transform:uppercase; padding:10px 9px; border-bottom:1px solid var(--ink); }
+.rv-table td { padding:12px 9px; vertical-align:top; border-bottom:1px solid var(--line); }
+.rv-mono { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; overflow-wrap:anywhere; }
+.rv-match { font-weight:760; }
+.rv-match.pass { color:#355b43; }
+.rv-match.fail { color:var(--accent); }
+.rv-side h3 { margin:0 0 14px; font-family:Georgia,"Times New Roman",serif; font-size:1.3rem; font-weight:500; }
+.rv-side-block { padding-bottom:23px; margin-bottom:23px; border-bottom:1px solid var(--line); }
+.rv-side-block:last-child { border-bottom:0; margin-bottom:0; padding-bottom:0; }
+.rv-detail-list { display:grid; gap:11px; margin:0; }
+.rv-detail-list div { display:grid; grid-template-columns:112px 1fr; gap:12px; }
+.rv-detail-list dt { color:var(--muted); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; }
+.rv-detail-list dd { margin:0; overflow-wrap:anywhere; }
+.rv-drop { margin:24px 20px 0; padding:30px 24px; border:1px dashed #aaa69c; background:#f4f1e9; text-align:center; transition:.15s ease; }
+.rv-drop.drag { border-color:var(--accent); background:var(--accent-soft); }
+.rv-drop h3 { margin:0 0 9px; font-family:Georgia,"Times New Roman",serif; font-weight:500; font-size:1.65rem; }
+.rv-drop p { margin:0 auto 18px; max-width:650px; color:var(--muted); }
+.rv-file-input { position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+.rv-files { margin:20px; border-top:1px solid var(--line); }
+.rv-file { display:grid; grid-template-columns:minmax(150px,.7fr) minmax(0,1.3fr) auto; gap:16px; padding:13px 0; border-bottom:1px solid var(--line); align-items:center; font-size:.8rem; }
+.rv-file-kind { color:var(--muted); }
+.rv-check-summary { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); margin:24px 20px 0; }
+.rv-check-summary div { padding:17px 16px; border-right:1px solid var(--line); }
+.rv-check-summary div:last-child { border-right:0; }
+.rv-check-summary span { display:block; color:var(--muted); font-size:.65rem; text-transform:uppercase; letter-spacing:.11em; }
+.rv-check-summary strong { display:block; margin-top:6px; }
+.rv-checks { margin:0 20px 26px; }
+.rv-check { display:grid; grid-template-columns:90px 1fr; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:.84rem; }
+.rv-check-badge { font-weight:760; }
+.rv-check-badge.pass { color:#355b43; }
+.rv-check-badge.fail { color:var(--accent); }
+.rv-check-badge.warn { color:#806318; }
+.rv-empty { padding:28px 20px 34px; color:var(--muted); }
+.rv-boundary { margin:0 20px 28px; padding:17px 19px; border-left:3px solid var(--accent); background:#eee9df; color:#45463f; font-size:.84rem; }
+.rv-actions { display:flex; flex-wrap:wrap; gap:8px 16px; margin:18px 20px 28px; }
+.rv-actions button { font:inherit; }
+.rv-receipt { display:none; }
+.rv-research-chain { display:grid; grid-template-columns:1fr 36px 1fr 36px 1fr; gap:0; align-items:stretch; margin-top:30px; border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); }
+.rv-chain-card { padding:24px 18px; }
+.rv-chain-card span { color:var(--muted); font-size:.67rem; text-transform:uppercase; letter-spacing:.12em; }
+.rv-chain-card h3 { margin:22px 0 8px; font-family:Georgia,"Times New Roman",serif; font-weight:500; font-size:1.45rem; }
+.rv-chain-card p { margin:0; color:var(--muted); font-size:.88rem; }
+.rv-chain-arrow { display:grid; place-items:center; color:var(--muted); }
+.rv-proofline { padding:26px 0 0; display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+.rv-proofline div { min-width:0; }
+.rv-proofline span { display:block; color:var(--muted); font-size:.66rem; text-transform:uppercase; letter-spacing:.1em; }
+.rv-proofline strong { display:block; margin-top:5px; font-size:.88rem; overflow-wrap:anywhere; }
+body.rv-workbench-mode .page-hero, body.rv-workbench-mode .rv-directory { display:none; }
+body.rv-workbench-mode main { padding-top:28px; }
+body.rv-workbench-mode .rv-app { margin-top:0; min-height:calc(100vh - 150px); }
+@media (max-width:860px) {
+  .rv-main { grid-template-columns:1fr; }
+  .rv-primary { border-right:0; border-bottom:1px solid var(--line); }
+  .rv-example-head { grid-template-columns:1fr; align-items:start; }
+  .rv-research-chain { grid-template-columns:1fr; }
+  .rv-chain-arrow { min-height:34px; transform:rotate(90deg); }
+  .rv-proofline { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:620px) {
+  .rv-app { width:min(calc(100% - 18px),1280px); }
+  .rv-appbar, .rv-toolbar { align-items:flex-start; flex-direction:column; }
+  .rv-local { white-space:normal; }
+  .rv-axis-grid, .rv-check-summary { grid-template-columns:1fr; }
+  .rv-axis, .rv-check-summary div { border-right:0; border-bottom:1px solid var(--line); padding-left:0; }
+  .rv-check-summary div:last-child { border-bottom:0; }
+  .rv-file { grid-template-columns:1fr; gap:5px; }
+  .rv-proofline { grid-template-columns:1fr; }
+  .rv-verdict-row { align-items:flex-start; flex-direction:column; }
+  .rv-integrity { text-align:left; }
+}</style>
 </head>
 <body>
 <header class="site-header"><div class="wrap header-inner">
@@ -18,96 +131,316 @@
       <a href="/research/">Publications</a>
       <a href="/tools/" aria-current="page">Tools</a>
       <a href="/about/">About</a>
-    </nav>
+  </nav>
 </div></header>
 <main>
   <section class="page-hero"><div class="wrap">
-    <p class="eyebrow">Tools</p>
-    <h1>Research instruments</h1>
-    <p class="page-lede">Selected RISU projects include public instruments for examining executable semantics, recorded evidence, and bounded verification results. The instruments expose what a research claim depends on without enlarging the scope stated by the underlying artifact.</p>
+    <p class="eyebrow">Flagship research software · Browser local · v0.4.0-rc1</p>
+    <h1>RISU Verify</h1>
+    <p class="page-lede">Did the consequential safeguard survive the interface? RISU Verify checks agent-facing projections against a declared source consequence. The browser Workbench below can also inspect real RISU result artifacts locally, without uploading them.</p>
+    <div class="rv-launch"><a class="rv-button" href="/tools/#workbench" target="_blank" rel="noopener">Launch Workbench <span aria-hidden="true">↗</span></a><a class="rv-button secondary" href="https://doi.org/10.5281/zenodo.22152024" target="_blank" rel="noopener">Software DOI</a><a class="rv-button secondary" href="https://github.com/risu-research/risu-verify" target="_blank" rel="noopener">Source</a></div>
   </div></section>
 
-  <section class="section"><div class="wrap">
-    <article class="work-card">
+  <section class="section rv-directory"><div class="wrap">
+    <article class="work-card rv-flagship">
       <div class="work-main">
-        <p class="work-label">Local first · Frozen v0.5.0 · 2026</p>
-        <h2 class="work-title">Consequence Closure Inspector</h2>
-        <p class="work-question">What can still change the consequence of this action, and what declared step can close the gap?</p>
-        <p class="work-summary">The Inspector recomputes supported bounded analyses locally and presents consequence status, inclusion minimal obligation families, materiality and removal witnesses, declared Routes, source lineage, and assurance qualifications. The hosted application serves the frozen browser files without adding a semantic backend.</p>
-        <a class="arrow-link" href="/tools/consequence-closure/">Open Inspector record <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="/tools/consequence-closure/inspector/">Launch Inspector <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22095595">Software archive <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://github.com/risu-research/consequence-closure">Source repository <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="/research/technical-notes/2026-03/">Technical Note 2026-03 <span aria-hidden="true">→</span></a>
+        <p class="work-label">Profile-driven consequence assurance · frozen scientific core v0.7.0</p>
+        <h2 class="work-title">A tool can look the same while changing what the action can do.</h2>
+        <p class="work-question">RISU Verify asks whether the distinctions that determine a declared consequence remain represented, distinguishable, and operative at the effect cut.</p>
+        <p class="work-summary">The current release combines proof-carrying verification, retained GitHub and Azure cases, one real historical GitHub regression-to-repair transition, audit-hardened provenance, a development Version-Bound Effect profile, and a prospectively sealed Corpus 0.1 protocol. The browser Workbench does not issue new assurance certificates; it independently recomputes report-level status mapping, world matches, SHA-256 file digests, and cross-artifact commitments.</p>
+        <a class="arrow-link" href="/tools/#workbench" target="_blank" rel="noopener">Launch local Workbench <span aria-hidden="true">↗</span></a><br>
+        <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22152024" target="_blank" rel="noopener">Archived software record <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="https://github.com/risu-research/risu-verify/releases/tag/v0.4.0-rc1" target="_blank" rel="noopener">Canonical release <span aria-hidden="true">→</span></a><br>
+        <a class="arrow-link" href="/research/technical-notes/2026-04/">Projection Assurance Technical Note <span aria-hidden="true">→</span></a>
       </div>
-      <aside class="work-meta" aria-label="Consequence Closure Inspector status"><dl class="meta-list">
-        <div><dt>Version</dt><dd>v0.5.0</dd></div>
-        <div><dt>Execution</dt><dd>Browser local</dd></div>
-        <div><dt>Core</dt><dd>v0.1.0</dd></div>
-        <div><dt>Record</dt><dd class="identifier">10.5281/zenodo.22095595</dd></div>
+      <aside class="work-meta" aria-label="RISU Verify status"><dl class="meta-list">
+        <div><dt>Release</dt><dd>v0.4.0-rc1</dd></div>
+        <div><dt>Core</dt><dd>Consequence-Preserving Projections v0.7.0 · frozen</dd></div>
+        <div><dt>Browser execution</dt><dd>Local only · no runtime network</dd></div>
+        <div><dt>Software DOI</dt><dd class="identifier">10.5281/zenodo.22152024</dd></div>
       </dl></aside>
     </article>
 
-    <article class="work-card">
-      <div class="work-main">
-        <p class="work-label">Local-first · Hosted canonical inspection · Frozen v0.4.0 · 2026</p>
-        <h2 class="work-title">Reliance Inspector</h2>
-        <p class="work-question">What evidence, assumptions, identities, and derivations support a claim-specific relying decision?</p>
-        <p class="work-summary">The hosted Inspector exposes frozen recorded and counterfactual canonical cases directly in-browser. Evidence-bundle verification and semantic-object evaluation remain local-only capabilities of the archived release and use the frozen Python consumer.</p>
-        <a class="arrow-link" href="/tools/reliance-inspector/">Open Inspector <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22037607">Software archive <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://github.com/risu-research/reliance-before-closure">Source repository <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="/research/technical-notes/2026-02/">Technical Note 2026-02 <span aria-hidden="true">→</span></a>
-      </div>
-      <aside class="work-meta" aria-label="Reliance Inspector status"><dl class="meta-list">
-        <div><dt>Public mode</dt><dd>Frozen canonical cases</dd></div>
-        <div><dt>Local mode</dt><dd>Evidence + semantic objects</dd></div>
-        <div><dt>Semantic core</dt><dd>Frozen Python consumer</dd></div>
-        <div><dt>Record</dt><dd class="identifier">10.5281/zenodo.22037607</dd></div>
-      </dl></aside>
-    </article>
+    <div class="rv-research-chain" aria-label="Research progression">
+      <div class="rv-chain-card"><span>01 · Consequence Closure</span><h3>What must be known?</h3><p>Identify the semantic obligations required to determine a consequential machine action.</p></div>
+      <div class="rv-chain-arrow" aria-hidden="true">→</div>
+      <div class="rv-chain-card"><span>02 · Projection Assurance</span><h3>Did it survive projection?</h3><p>Check whether the consequence-relevant distinctions survive an agent-facing representation and still govern the effect.</p></div>
+      <div class="rv-chain-arrow" aria-hidden="true">→</div>
+      <div class="rv-chain-card"><span>03 · RISU Verify</span><h3>Make it executable.</h3><p>Produce reproducible assurance artifacts, counterexamples, semantic locks, provenance, and machine-checkable evidence.</p></div>
+    </div>
+    <div class="rv-proofline"><div><span>Historical transition</span><strong>GitHub BEFORE C0 → AFTER C1/D1/O1</strong></div><div><span>Carrier-neutral profile</span><strong>Version-Bound Effect · development</strong></div><div><span>Canonical archive</span><strong class="rv-mono">df06e8d6a8b072333355e1ef91b80c30e43fa68d6fc4666dd920a3fc0e46fc6f</strong></div><div><span>Prospective protocol</span><strong class="rv-mono">3316528f22599c808262d10c2c451df672b1cba0</strong></div></div>
+  </div></section>
 
-    <article class="work-card">
-      <div class="work-main">
-        <p class="work-label">Canonical evidence inspector · 2026</p>
-        <h2 class="work-title">Agent Closure Inspector</h2>
-        <p class="work-question">Which residual consequences prevent a bounded agent-closure claim from becoming <code>CLOSED</code>?</p>
-        <p class="work-summary">The hosted Inspector exposes eight canonical evaluations produced by the frozen Bounded Agent Closure verifier. Public mode is limited to canonical evidence; arbitrary private-evidence evaluation remains a local capability.</p>
-        <a class="arrow-link" href="/tools/agent-closure/">Open Inspector <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="/research/technical-notes/2026-01/">Technical Note 2026-01 <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://github.com/risu-research/bounded-agent-closure">Canonical repository <span aria-hidden="true">→</span></a>
-      </div>
-      <aside class="work-meta" aria-label="Agent Closure Inspector status"><dl class="meta-list">
-        <div><dt>Public mode</dt><dd>Static canonical evidence</dd></div>
-        <div><dt>Canonical cases</dt><dd>8</dd></div>
-        <div><dt>Profile</dt><dd>RISU_AGENT_CLOSURE_V0</dd></div>
-        <div><dt>Runtime</dt><dd>No LLM · no runtime network</dd></div>
-      </dl></aside>
-    </article>
+  <section id="workbench" class="rv-app" aria-label="RISU Verify Workbench">
+    <div class="rv-appbar"><div class="rv-appbrand"><strong>RISU Verify Workbench</strong><span>browser consumer v0.1</span></div><div class="rv-local">Local only · no file leaves this browser</div></div>
+    <div class="rv-toolbar"><div class="rv-tabs" role="tablist" aria-label="Workbench mode"><button class="rv-tab" type="button" role="tab" aria-selected="true" data-mode="examples">Canonical evidence</button><button class="rv-tab" type="button" role="tab" aria-selected="false" data-mode="inspect">Inspect result artifacts</button></div><a class="rv-ghost" href="/tools/">Exit workbench</a></div>
 
-    <article class="work-card">
-      <div class="work-main">
-        <p class="work-label">Browser-local experimental instrument · 2026</p>
-        <h2 class="work-title">Negative Result Warrant Inspector</h2>
-        <p class="work-question">What evidence is sufficient for a downstream operation to use an exact negative query premise?</p>
-        <p class="work-summary">The browser-local Inspector reconstructs supplied negative-evidence material and checks whether the exact bounded premise remains supported under the frozen Negative Result Warrant profile. Receiver validation is performed locally and is not serialized authority.</p>
-        <a class="arrow-link" href="/tools/negative-result-warrant/">Open Inspector <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://github.com/risu-research/negative-result-warrant">Reference profile <span aria-hidden="true">→</span></a>
-      </div>
-      <aside class="work-meta" aria-label="Negative Result Warrant Inspector status"><dl class="meta-list">
-        <div><dt>Status</dt><dd>Experimental</dd></div>
-        <div><dt>Execution</dt><dd>Browser-local</dd></div>
-        <div><dt>Network</dt><dd>No runtime network</dd></div>
-        <div><dt>Boundary</dt><dd>Exact premise validation</dd></div>
-      </dl></aside>
-    </article>
+    <div id="pane-examples" class="rv-pane active" role="tabpanel">
+      <div class="rv-example-head"><div><p id="example-subtitle" class="rv-kicker"></p><h2 id="example-title" class="rv-example-title"></h2></div><div><div class="rv-case-tabs" aria-label="Canonical case"><button class="rv-case" type="button" data-case="github-file-update" aria-pressed="true">GitHub file update</button><button class="rv-case" type="button" data-case="azure-wiki" aria-pressed="false">Azure Wiki</button><button class="rv-case" type="button" data-case="github-merge" aria-pressed="false">GitHub merge</button></div><div id="phase-controls" class="rv-phase-tabs" style="margin-top:8px" aria-label="Historical phase"><button class="rv-phase" type="button" data-phase="BEFORE" aria-pressed="true">Before</button><button class="rv-phase" type="button" data-phase="AFTER" aria-pressed="false">After repair</button></div></div></div>
+      <div id="example-result"></div>
+      <div class="rv-boundary">Canonical mode renders retained v0.4.0-rc1 calibration data. It does not rerun the Python producer or independent proof checker in the browser. The GitHub historical transition is retrospective validation against independently developed software, not an independent bug-discovery claim.</div>
+    </div>
+
+    <div id="pane-inspect" class="rv-pane" role="tabpanel">
+      <div id="dropzone" class="rv-drop"><h3>Inspect a real RISU result.</h3><p>Load <span class="rv-mono">report.json</span>. Add <span class="rv-mono">certificate.json</span> and <span class="rv-mono">run-manifest.json</span> for stronger cryptographic and cross-artifact checks. You may also add report.md, logs, case.json, adapter.json, or source-contract.json to verify their recorded manifest digests.</p><input id="artifact-input" class="rv-file-input" type="file" multiple><button id="choose-files" class="rv-button" type="button">Choose local files</button></div>
+      <div id="file-list" class="rv-files"></div>
+      <div id="custom-result"></div>
+      <div id="check-summary" class="rv-check-summary"></div>
+      <div id="checks" class="rv-checks"></div>
+      <div class="rv-actions"><button id="export-receipt" class="rv-button secondary" type="button" disabled>Export browser check receipt</button><button id="clear-files" class="rv-ghost" type="button">Clear local files</button></div>
+      <div class="rv-boundary">Browser checks are deliberately narrower than a RISU assurance run. They recompute product-status mapping, world-level matches, selected certificate/report commitments, and SHA-256 bindings for files you provide. They do not verify provenance facts, source-model completeness, or the proof-carrying certificate itself, and they do not issue a new RISU verdict.</div>
+    </div>
+  </section>
+
+  <section class="section rv-directory"><div class="wrap"><div class="section-head"><p class="section-kicker">Other instruments</p><h2 class="section-title">Inspect the claim, not just the interface.</h2></div>
+    <article class="work-card"><div class="work-main"><p class="work-label">Local first · Frozen v0.5.0 · 2026</p><h2 class="work-title">Consequence Closure Inspector</h2><p class="work-question">What can still change the consequence of this action, and what declared step can close the gap?</p><p class="work-summary">The Inspector recomputes supported bounded analyses locally and presents consequence status, inclusion minimal obligation families, materiality and removal witnesses, declared Routes, source lineage, and assurance qualifications.</p><a class="arrow-link" href="/tools/consequence-closure/">Open Inspector record <span aria-hidden="true">→</span></a><br><a class="arrow-link" href="/tools/consequence-closure/inspector/">Launch Inspector <span aria-hidden="true">→</span></a></div><aside class="work-meta"><dl class="meta-list"><div><dt>Version</dt><dd>v0.5.0</dd></div><div><dt>Execution</dt><dd>Browser local</dd></div><div><dt>Record</dt><dd class="identifier">10.5281/zenodo.22095595</dd></div></dl></aside></article>
+    <article class="work-card"><div class="work-main"><p class="work-label">Local-first · Frozen canonical inspection · 2026</p><h2 class="work-title">Reliance Inspector</h2><p class="work-question">What evidence, assumptions, identities, and derivations support a claim-specific relying decision?</p><p class="work-summary">The hosted Inspector exposes frozen recorded and counterfactual canonical cases directly in-browser while preserving the archived Python consumer as the local semantic authority.</p><a class="arrow-link" href="/tools/reliance-inspector/">Open Inspector <span aria-hidden="true">→</span></a></div><aside class="work-meta"><dl class="meta-list"><div><dt>Record</dt><dd class="identifier">10.5281/zenodo.22037607</dd></div></dl></aside></article>
+    <article class="work-card"><div class="work-main"><p class="work-label">Canonical evidence inspector · 2026</p><h2 class="work-title">Agent Closure Inspector</h2><p class="work-question">Which residual consequences prevent a bounded agent-closure claim from becoming CLOSED?</p><p class="work-summary">The hosted Inspector exposes eight canonical evaluations produced by the frozen Bounded Agent Closure verifier.</p><a class="arrow-link" href="/tools/agent-closure/">Open Inspector <span aria-hidden="true">→</span></a></div><aside class="work-meta"><dl class="meta-list"><div><dt>Canonical cases</dt><dd>8</dd></div><div><dt>Runtime</dt><dd>No LLM · no runtime network</dd></div></dl></aside></article>
+    <article class="work-card"><div class="work-main"><p class="work-label">Browser-local experimental instrument · 2026</p><h2 class="work-title">Negative Result Warrant Inspector</h2><p class="work-question">What evidence is sufficient for a downstream operation to use an exact negative query premise?</p><p class="work-summary">The browser-local Inspector reconstructs supplied negative-evidence material and checks whether the exact bounded premise remains supported under the frozen profile.</p><a class="arrow-link" href="/tools/negative-result-warrant/">Open Inspector <span aria-hidden="true">→</span></a></div><aside class="work-meta"><dl class="meta-list"><div><dt>Status</dt><dd>Experimental</dd></div><div><dt>Execution</dt><dd>Browser local</dd></div></dl></aside></article>
   </div></section>
 </main>
-<footer class="site-footer">
-  <div class="wrap footer-inner">
-    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div>
-    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
-  </div>
-</footer>
+<footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div><div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
+<script type="application/json" id="risu-examples">{"version":"0.1","release":"0.4.0-rc1","core":{"version":"0.7.0","archive_sha256":"bc3c0be440b1b729d3131a630491cce62f1f885fb305aa46a4483fee0adad72f"},"cases":[{"id":"github-file-update-before","group":"github-file-update","phase":"BEFORE","label":"GitHub file update","system":"GitHub","mechanism":"blob SHA","status":"CONSEQUENCE_REGRESSION","structural":{"C":"C0","D":"NA","O":"NA","coverage_complete":true,"classification":"CORRESPONDENCE_NOT_ESTABLISHED"},"exact":{"status":"REALIZATION_CONTRADICTED","failure_mode":"OPERATIVE_INSUFFICIENCY"},"source_semantic_digest":"a1da66b05bdccfc39691bdfaec25a9435f26841d43898d71d671a52e287470d1","worlds":[{"world":"W-156ec19991f34bd9b865","coordinates":{"current_blob_sha":"S1"},"required_consequence":"STALE_UPDATE_REJECTED","projected_effect":{"label":"STALE_UPDATE_REJECTED","space":"C"},"matches":true},{"world":"W-3041facb9064b9d8e3e9","coordinates":{"current_blob_sha":"S0"},"required_consequence":"UPDATE_COMMITTED","projected_effect":{"label":"STALE_UPDATE_REJECTED","space":"C"},"matches":false}],"explanation":"The projection collapses a materially different source operation. One admitted world that should commit the reviewed update is instead mapped to stale rejection."},{"id":"github-file-update-after","group":"github-file-update","phase":"AFTER","label":"GitHub file update","system":"GitHub","mechanism":"blob SHA","status":"PRESERVED","structural":{"C":"C1","D":"D1","O":"O1","coverage_complete":true,"classification":"STRUCTURAL_ASSURANCE_ESTABLISHED"},"exact":{"status":"REALIZATION_ESTABLISHED","failure_mode":"NONE"},"source_semantic_digest":"a1da66b05bdccfc39691bdfaec25a9435f26841d43898d71d671a52e287470d1","worlds":[{"world":"W-156ec19991f34bd9b865","coordinates":{"current_blob_sha":"S1"},"required_consequence":"STALE_UPDATE_REJECTED","projected_effect":{"label":"STALE_UPDATE_REJECTED","space":"C"},"matches":true},{"world":"W-3041facb9064b9d8e3e9","coordinates":{"current_blob_sha":"S0"},"required_consequence":"UPDATE_COMMITTED","projected_effect":{"label":"UPDATE_COMMITTED","space":"C"},"matches":true}],"explanation":"Under the same declared source consequence contract, the repaired projection distinguishes the admitted worlds and binds the consequential effect to the reviewed version."},{"id":"azure-wiki-etag","group":"azure-wiki","phase":"CALIBRATION","label":"Azure Wiki edit","system":"Azure DevOps","mechanism":"ETag / If-Match","status":"PRESERVED","structural":{"C":"C1","D":"D1","O":"O1","coverage_complete":true,"classification":"STRUCTURAL_ASSURANCE_ESTABLISHED"},"exact":{"status":"REALIZATION_ESTABLISHED","failure_mode":"NONE"},"source_semantic_digest":"ec0a5cf7e68d9d7395f09a206da3609ec0522e4569b511ec5bb24c1b2c1aa6de","worlds":[{"world":"W-3a0881af42d2795c7432","coordinates":{"current_etag":"E0"},"required_consequence":"UPDATE_COMMITTED","projected_effect":{"label":"UPDATE_COMMITTED","space":"C"},"matches":true},{"world":"W-91d952c20f111d685f4a","coordinates":{"current_etag":"E1"},"required_consequence":"STALE_EDIT_REJECTED","projected_effect":{"label":"STALE_EDIT_REJECTED","space":"C"},"matches":true}],"explanation":"The supplied reviewed ETag remains operative at the effect cut: matching state commits, stale state rejects."},{"id":"github-guarded-merge","group":"github-merge","phase":"CALIBRATION","label":"GitHub guarded merge","system":"GitHub","mechanism":"reviewed head SHA","status":"CONSEQUENCE_REGRESSION","structural":{"C":"C1","D":"D1","O":"O0","coverage_complete":true,"classification":"OPERATIVE_DISCHARGE_MISSING"},"exact":{"status":"REALIZATION_CONTRADICTED","failure_mode":"MECHANISM_MISALIGNMENT"},"source_semantic_digest":"0a381d65696a9399b3ea05a61d844d265a682cf1b955e3077073f4f8a042b117","worlds":[{"world":"W-04af36bfe15c8fdedab0","coordinates":{"otherwise_mergeable":true,"request_head":"H1","reviewed_head":"H0"},"required_consequence":"STALE_REQUEST_REJECTED","projected_effect":{"native":{"kind":"MERGED_CURRENT_HEAD","merged_head":"H1"},"space":"OUTSIDE_C"},"matches":false},{"world":"W-4ba2c06c73b713d2d2de","coordinates":{"otherwise_mergeable":true,"request_head":"H0","reviewed_head":"H0"},"required_consequence":"MERGED_REVIEWED_HEAD","projected_effect":{"label":"MERGED_REVIEWED_HEAD","space":"C"},"matches":true}],"explanation":"The distinction is represented and discriminated, but it does not gate the consequential merge at the declared action cut."}]}</script>
+<script>(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const examples = JSON.parse($("risu-examples").textContent);
+  const PINNED_CORE_SHA = examples.core.archive_sha256;
+  const PINNED_CORE_VERSION = examples.core.version;
+  const state = { mode: "examples", caseId: "github-file-update-before", files: [], parsed: {}, checks: [], receipt: null };
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+  function canonical(value) {
+    if (value === null || typeof value !== "object") return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical(value[k])}`).join(",")}}`;
+  }
+  function prettyEffect(effect) {
+    if (effect && effect.space === "C" && Object.prototype.hasOwnProperty.call(effect, "label")) return String(effect.label);
+    if (effect && effect.native) return `${effect.native.kind || "native"} ${canonical(Object.fromEntries(Object.entries(effect.native).filter(([k]) => k !== "kind")))}`.trim();
+    return canonical(effect);
+  }
+  function consequenceMatches(required, actual) {
+    return Boolean(actual && actual.space === "C" && Object.prototype.hasOwnProperty.call(actual, "label") && actual.label === required);
+  }
+  function classify(structural, exact) {
+    if (!structural || !exact) return { status: "INVALID_ARTIFACT", exit: 30 };
+    if (exact.status === "REALIZATION_CONTRADICTED") return { status: "CONSEQUENCE_REGRESSION", exit: 10 };
+    if (exact.status === "REALIZATION_ESTABLISHED" && structural.C === "C1" && structural.D === "D1" && structural.O === "O1") {
+      return { status: structural.coverage_complete === true ? "PRESERVED" : "PRESERVED_IN_DECLARED_SCOPE", exit: 0 };
+    }
+    return { status: "INCOMPLETE_ASSURANCE", exit: 20 };
+  }
+  async function digestFile(file) {
+    const buf = await file.arrayBuffer();
+    const hash = await crypto.subtle.digest("SHA-256", buf);
+    return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  function detectKind(name, obj) {
+    const n = name.toLowerCase();
+    if (obj && obj.manifest_version === "0.2" && obj.report_json_sha256 && obj.certificate_sha256) return "run-manifest";
+    if (obj && obj.product_status && obj.structural && obj.exact_realization && Array.isArray(obj.worlds)) return "report";
+    if (obj && obj.results && obj.inner_certificate && obj.source_compilation) return "certificate";
+    if (n.endsWith("report.md")) return "report-md";
+    if (n.endsWith("producer.log")) return "producer-log";
+    if (n.endsWith("consumer.log")) return "consumer-log";
+    if (n.endsWith("case.json")) return "case-metadata";
+    if (n.endsWith("adapter.json")) return "adapter";
+    if (n.endsWith("source-contract.json")) return "source-contract";
+    return "other";
+  }
+  function certWorldRows(cert) {
+    try {
+      const records = cert.inner_certificate.bundle_snapshot.semantic.derivation.world_records;
+      const required = cert.inner_certificate.bundle_snapshot.semantic.structural_template.consequence.source_by_world;
+      const actual = cert.inner_certificate.proof.blind_compilation.derived.mechanism_consequence_by_world;
+      return [...records].sort((a,b) => String(a.id).localeCompare(String(b.id))).map((r) => ({
+        world: r.id,
+        coordinates: r.coordinates,
+        required_consequence: required[r.id],
+        projected_effect: actual[r.id],
+        matches: consequenceMatches(required[r.id], actual[r.id])
+      }));
+    } catch { return null; }
+  }
+  function certCommitments(cert, status) {
+    try {
+      const s = cert.results.structural;
+      const e = cert.results.exact_realization;
+      return {
+        source_contract_file_sha256: cert.source_contract_file_sha256,
+        source_semantic_digest: cert.source_compilation.source_semantic_digest,
+        adapter_digest: cert.adapter_digest,
+        normalized_bundle_digest: cert.normalized_bundle_digest,
+        proof_digest: cert.inner_certificate.proof_digest,
+        product_status: status,
+        structural: { C:s.C, D:s.D, O:s.O },
+        coverage_complete: s.coverage_complete,
+        structural_classification: s.structural_classification,
+        exact_status: e.status,
+        exact_failure_mode: e.failure_mode
+      };
+    } catch { return null; }
+  }
+  function addCheck(level, name, detail) { state.checks.push({ level, name, detail }); }
+  function exactMatch(a,b) { return canonical(a) === canonical(b); }
+
+  function evaluateLoaded() {
+    state.checks = [];
+    const reportEntry = state.files.find((f) => f.kind === "report");
+    const certEntry = state.files.find((f) => f.kind === "certificate");
+    const manifestEntry = state.files.find((f) => f.kind === "run-manifest");
+    const report = reportEntry?.obj;
+    const cert = certEntry?.obj;
+    const manifest = manifestEntry?.obj;
+    if (!report) {
+      addCheck("warn", "report.json required", "Load the JSON report generated by RISU Verify. Certificate and run-manifest files are optional but enable stronger cross-checks.");
+      state.receipt = null;
+      renderCustom();
+      return;
+    }
+    const recomputed = classify(report.structural, report.exact_realization);
+    addCheck(report.product_status === recomputed.status ? "pass" : "fail", "Product status mapping", `recorded ${report.product_status}; recomputed ${recomputed.status}`);
+    addCheck(report.semantic_exit_code === recomputed.exit ? "pass" : "fail", "Semantic exit code", `recorded ${report.semantic_exit_code}; recomputed ${recomputed.exit}`);
+    const worldMismatch = report.worlds.filter((w) => Boolean(w.matches) !== consequenceMatches(w.required_consequence, w.projected_effect));
+    addCheck(worldMismatch.length === 0 ? "pass" : "fail", "World-level consequence matches", worldMismatch.length === 0 ? `${report.worlds.length} world row(s) recomputed` : `${worldMismatch.length} row(s) disagree with recomputation`);
+    const coreKnown = report.core?.version === PINNED_CORE_VERSION && report.core?.archive_sha256 === PINNED_CORE_SHA;
+    addCheck(coreKnown ? "pass" : "warn", "Frozen core pin", coreKnown ? `v${PINNED_CORE_VERSION} / ${PINNED_CORE_SHA.slice(0,16)}…` : "This browser release does not recognize the reported core pin.");
+    addCheck(report.assurance_integrity === "PASS" ? "pass" : "warn", "Recorded assurance integrity", `report records ${report.assurance_integrity || "unspecified"}; browser does not rerun provenance or the frozen proof checker`);
+
+    if (certEntry) {
+      addCheck(report.certificate?.sha256 === certEntry.sha256 ? "pass" : "fail", "Certificate SHA-256", `report ${report.certificate?.sha256 || "missing"}; uploaded ${certEntry.sha256}`);
+      const certStatus = classify(cert.results?.structural, cert.results?.exact_realization);
+      addCheck(certStatus.status === report.product_status ? "pass" : "fail", "Certificate ↔ report verdict", `certificate-derived ${certStatus.status}; report ${report.product_status}`);
+      const rows = certWorldRows(cert);
+      addCheck(rows && exactMatch(rows, report.worlds) ? "pass" : "fail", "Certificate ↔ report worlds", rows ? `${rows.length} reconstructed row(s)` : "certificate world structure could not be reconstructed");
+      const commitments = certCommitments(cert, certStatus.status);
+      addCheck(commitments && exactMatch(commitments, report.commitments) ? "pass" : "fail", "Certificate ↔ technical commitments", commitments ? "commitment surfaces agree" : "certificate commitments could not be reconstructed");
+    } else {
+      addCheck("warn", "Certificate cross-check", "Optional: add certificate.json to verify its SHA-256 and reconstruct report worlds/commitments locally.");
+    }
+
+    if (manifestEntry) {
+      addCheck(manifest.report_json_sha256 === reportEntry.sha256 ? "pass" : "fail", "Run manifest ↔ report digest", `manifest ${manifest.report_json_sha256}; uploaded ${reportEntry.sha256}`);
+      if (certEntry) addCheck(manifest.certificate_sha256 === certEntry.sha256 ? "pass" : "fail", "Run manifest ↔ certificate digest", `manifest ${manifest.certificate_sha256}; uploaded ${certEntry.sha256}`);
+      addCheck(manifest.case_id === report.case_id ? "pass" : "fail", "Run manifest ↔ case identity", `manifest ${manifest.case_id}; report ${report.case_id}`);
+      addCheck(manifest.core_archive_sha256 === report.core?.archive_sha256 ? "pass" : "fail", "Run manifest ↔ core pin", "core archive digest agrees across run artifacts");
+      const digestMap = {
+        "report-md":"report_md_sha256",
+        "producer-log":"producer_log_sha256",
+        "consumer-log":"consumer_log_sha256",
+        "case-metadata":"case_metadata_sha256",
+        "adapter":"adapter_sha256",
+        "source-contract":"source_contract_sha256"
+      };
+      for (const [kind, field] of Object.entries(digestMap)) {
+        const entry = state.files.find((f) => f.kind === kind);
+        if (entry && manifest[field]) addCheck(manifest[field] === entry.sha256 ? "pass" : "fail", `Run manifest ↔ ${entry.name}`, `SHA-256 ${entry.sha256}`);
+      }
+    } else {
+      addCheck("warn", "Run-manifest cross-check", "Optional: add run-manifest.json to bind report/certificate digests to one RISU Verify execution record.");
+    }
+
+    const failures = state.checks.filter((c) => c.level === "fail").length;
+    const passes = state.checks.filter((c) => c.level === "pass").length;
+    state.receipt = {
+      receipt_schema: "risu.browser-consumer-check/v0.1",
+      generated_at: new Date().toISOString(),
+      reported_product_status: report.product_status,
+      recomputed_product_status: recomputed.status,
+      artifact_consistency: failures === 0 ? "PASS" : "FAIL",
+      browser_boundary: "Local consistency and digest checks only. This receipt is not a RISU assurance certificate and does not rerun the frozen scientific core or independent proof checker.",
+      files: state.files.map(({name,kind,sha256}) => ({name,kind,sha256})),
+      checks: state.checks,
+      counts: { pass: passes, fail: failures, warning: state.checks.filter((c) => c.level === "warn").length }
+    };
+    renderCustom();
+  }
+
+  async function loadFiles(fileList) {
+    const incoming = [];
+    for (const file of [...fileList]) {
+      let obj = null;
+      if (file.name.toLowerCase().endsWith(".json")) {
+        try { obj = JSON.parse(await file.text()); } catch { obj = null; }
+      }
+      incoming.push({ name:file.name, size:file.size, sha256:await digestFile(file), obj, kind:detectKind(file.name,obj) });
+    }
+    const byKind = new Map(state.files.map((f) => [f.kind, f]));
+    for (const f of incoming) byKind.set(f.kind === "other" ? `${f.kind}:${f.name}` : f.kind, f);
+    state.files = [...byKind.values()];
+    evaluateLoaded();
+  }
+
+  function renderWorlds(worlds) {
+    return `<div class="rv-worlds"><table class="rv-table"><thead><tr><th>World</th><th>Coordinates</th><th>Required</th><th>Projected</th><th>Match</th></tr></thead><tbody>${(worlds||[]).map((w) => `<tr><td class="rv-mono">${esc(w.world)}</td><td class="rv-mono">${esc(canonical(w.coordinates))}</td><td class="rv-mono">${esc(w.required_consequence)}</td><td class="rv-mono">${esc(prettyEffect(w.projected_effect))}</td><td class="rv-match ${w.matches?"pass":"fail"}">${w.matches?"YES":"NO"}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+  function renderResult(container, item, integrityText) {
+    const cls = item.status === "PRESERVED" || item.status === "PRESERVED_IN_DECLARED_SCOPE" ? "preserved" : "regression";
+    container.innerHTML = `<div class="rv-main"><section class="rv-primary"><div class="rv-verdict-row"><div><p class="rv-kicker">RISU Verify result</p><div class="rv-verdict ${cls}">${esc(item.status.replaceAll("_"," "))}</div></div><div class="rv-integrity">${esc(integrityText)}</div></div><div class="rv-axis-grid"><div class="rv-axis"><span>Correspondence</span><strong>${esc(item.structural.C)}</strong></div><div class="rv-axis"><span>Discrimination</span><strong>${esc(item.structural.D)}</strong></div><div class="rv-axis"><span>Operativity</span><strong>${esc(item.structural.O)}</strong></div></div>${item.explanation?`<p class="rv-explanation">${esc(item.explanation)}</p>`:""}${renderWorlds(item.worlds)}</section><aside class="rv-side"><div class="rv-side-block"><h3>Assurance record</h3><dl class="rv-detail-list"><div><dt>Exact</dt><dd>${esc(item.exact.status)}</dd></div><div><dt>Failure mode</dt><dd>${esc(item.exact.failure_mode)}</dd></div><div><dt>Coverage</dt><dd>${item.structural.coverage_complete===true?"Complete":"Incomplete / unspecified"}</dd></div><div><dt>Classification</dt><dd>${esc(item.structural.classification)}</dd></div></dl></div><div class="rv-side-block"><h3>Semantic commitment</h3><dl class="rv-detail-list"><div><dt>Source digest</dt><dd class="rv-mono">${esc(item.source_semantic_digest||item.commitments?.source_semantic_digest||"—")}</dd></div><div><dt>Core</dt><dd>Consequence-Preserving Projections v0.7.0</dd></div></dl></div></aside></div>`;
+  }
+
+  function renderExample() {
+    const item = examples.cases.find((c) => c.id === state.caseId) || examples.cases[0];
+    $("example-title").textContent = item.label;
+    $("example-subtitle").textContent = `${item.system} · ${item.mechanism}`;
+    document.querySelectorAll("[data-case]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.case === item.group)));
+    document.querySelectorAll("[data-phase]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.phase === item.phase)));
+    $("phase-controls").hidden = item.group !== "github-file-update";
+    renderResult($("example-result"), item, "Published calibration artifact · browser rendering only");
+  }
+  function customItem(report) {
+    return {
+      status: report.product_status,
+      structural: report.structural,
+      exact: report.exact_realization,
+      worlds: report.worlds,
+      commitments: report.commitments,
+      source_semantic_digest: report.commitments?.source_semantic_digest,
+      explanation: report.claim_boundary?.summary || "Loaded from a local RISU Verify report."
+    };
+  }
+  function renderCustom() {
+    $("file-list").innerHTML = state.files.length ? state.files.map((f) => `<div class="rv-file"><strong>${esc(f.name)}</strong><span class="rv-mono">${esc(f.sha256)}</span><span class="rv-file-kind">${esc(f.kind)}</span></div>`).join("") : `<div class="rv-empty">No files loaded. Start with <span class="rv-mono">report.json</span>.</div>`;
+    const reportEntry = state.files.find((f) => f.kind === "report");
+    if (reportEntry) renderResult($("custom-result"), customItem(reportEntry.obj), "Reported verdict · browser consistency checks below");
+    else $("custom-result").innerHTML = "";
+    const counts = { pass:state.checks.filter((c)=>c.level==="pass").length, fail:state.checks.filter((c)=>c.level==="fail").length, warn:state.checks.filter((c)=>c.level==="warn").length };
+    $("check-summary").innerHTML = `<div><span>Consistency</span><strong>${counts.fail?"FAIL":reportEntry?"PASS":"WAITING"}</strong></div><div><span>Checks passed</span><strong>${counts.pass}</strong></div><div><span>Warnings</span><strong>${counts.warn}</strong></div>`;
+    $("checks").innerHTML = state.checks.map((c) => `<div class="rv-check"><span class="rv-check-badge ${c.level}">${c.level.toUpperCase()}</span><div><strong>${esc(c.name)}</strong><br><span>${esc(c.detail)}</span></div></div>`).join("");
+    $("export-receipt").disabled = !state.receipt;
+  }
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll(".rv-tab").forEach((b)=>b.setAttribute("aria-selected",String(b.dataset.mode===mode)));
+    $("pane-examples").classList.toggle("active",mode==="examples");
+    $("pane-inspect").classList.toggle("active",mode==="inspect");
+  }
+  function downloadReceipt() {
+    if (!state.receipt) return;
+    const blob = new Blob([JSON.stringify(state.receipt,null,2)+"\n"],{type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download="risu-browser-check.json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),0);
+  }
+  document.querySelectorAll(".rv-tab").forEach((b)=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+  document.querySelectorAll("[data-case]").forEach((b)=>b.addEventListener("click",()=>{ const group=b.dataset.case; state.caseId=group==="github-file-update"?"github-file-update-after":group==="azure-wiki"?"azure-wiki-etag":"github-guarded-merge"; renderExample(); }));
+  document.querySelectorAll("[data-phase]").forEach((b)=>b.addEventListener("click",()=>{ state.caseId=b.dataset.phase==="BEFORE"?"github-file-update-before":"github-file-update-after"; renderExample(); }));
+  const drop=$("dropzone"), input=$("artifact-input");
+  $("choose-files").addEventListener("click",()=>input.click());
+  input.addEventListener("change",()=>loadFiles(input.files));
+  for (const ev of ["dragenter","dragover"]) drop.addEventListener(ev,(e)=>{e.preventDefault();drop.classList.add("drag");});
+  for (const ev of ["dragleave","drop"]) drop.addEventListener(ev,(e)=>{e.preventDefault();drop.classList.remove("drag");});
+  drop.addEventListener("drop",(e)=>loadFiles(e.dataTransfer.files));
+  $("clear-files").addEventListener("click",()=>{state.files=[];state.checks=[];state.receipt=null;input.value="";renderCustom();});
+  $("export-receipt").addEventListener("click",downloadReceipt);
+  window.addEventListener("hashchange",()=>document.body.classList.toggle("rv-workbench-mode",location.hash==="#workbench"));
+  document.body.classList.toggle("rv-workbench-mode",location.hash==="#workbench");
+  renderExample(); renderCustom();
+  if (location.hash==="#workbench") setMode("inspect");
+})();</script>
 </body>
 </html>

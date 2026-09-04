@@ -268,8 +268,9 @@ try {
   const challenge = await waitForPage(
     chromeState,
     `${origin}/tools/consequence-closure/current/?case=authority-open&view=challenge`,
-    'Replayable certificate',
+    'The concrete reason the cut is still open',
   );
+  assert.match(challenge.html, /Replayable certificate/u);
   assert.match(challenge.text, /SUFFICIENT/u);
   assert.match(challenge.text, /INCLUSION MINIMAL/u);
   assert.match(challenge.text, /Remove it and/u);

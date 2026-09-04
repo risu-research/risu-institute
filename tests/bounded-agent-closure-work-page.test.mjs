@@ -58,6 +58,10 @@ test("Bounded Agent Closure has a website-first conceptual overview", async () =
     "10.5281/zenodo.22005419",
     noteUrl,
     inspectorUrl,
+    "/tools/agent-closure-inspector/evaluator-provenance.json",
+    "browser-targeted build from the frozen v0.3 verifier",
+    "not uploaded to RISU",
+    "no server-side evidence-evaluation endpoint",
     repositoryUrl,
   ]) assert.ok(page.includes(expected), expected);
 
@@ -68,6 +72,7 @@ test("Bounded Agent Closure has a website-first conceptual overview", async () =
   assert.match(page, /final scan and the immediately preceding scan must both qualify/iu);
   assert.match(page, /No live-runtime adapter is part of the frozen v0\.3 line/iu);
   assert.match(page, /BAC puts principal-relative transitive attribution/iu);
+  assert.doesNotMatch(page, /hosted Inspector is intentionally limited to the eight canonical generated evaluations/iu);
 
   for (const label of [">Research</a>", ">Publications</a>", ">Tools</a>", ">About</a>"]) {
     assert.ok(page.includes(label), label);

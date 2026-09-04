@@ -144,8 +144,8 @@
 
     <h2>The Inspector</h2>
     <p>The Agent Closure Inspector is a debugger for the same verifier, not a second implementation of the semantics. It exposes the consequence lineage, engine reasons, scan and convergence timeline, source scope, trust assumptions, received evidence, and the closure certificate when one exists.</p>
-    <p>The hosted Inspector is intentionally limited to the eight canonical generated evaluations. Local mode can open an arbitrary conforming evidence bundle on literal <span class="identifier">127.0.0.1</span>, evaluates it through the frozen <span class="identifier">verifyClosure()</span> path, holds the uploaded evidence in memory, and sends it to no external service.</p>
-    <p><a href="/tools/agent-closure-inspector/">Open the Agent Closure Inspector</a></p>
+    <p>The current RISU-hosted Inspector keeps the eight canonical generated evaluations available and can also open an arbitrary conforming JSON evidence bundle directly in the browser. A browser-targeted build from the frozen v0.3 verifier runs in an ephemeral Web Worker. The selected evidence is passed to the evaluator in browser memory, is not uploaded to RISU, and is not persisted by the Inspector. The origin exposes no server-side evidence-evaluation endpoint. The canonical loopback Inspector remains the archival fallback when browser-local evaluation is unavailable.</p>
+    <p><a href="/tools/agent-closure-inspector/">Open the Agent Closure Inspector</a> · <a href="/tools/agent-closure-inspector/evaluator-provenance.json">Browser evaluator provenance</a></p>
 
     <h2>Result</h2>
     <div class="callout">

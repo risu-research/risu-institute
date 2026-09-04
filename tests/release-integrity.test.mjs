@@ -39,7 +39,7 @@ const evidenceAnchors = [
 const frozenInspectorSha256 = {
   "app.js": "5430a6f21bbe71370cd977a91d53960f5c1e8a098c25e93eccf26716e64386df",
   "cases/c1-direct-zombie.json": "0a20d0ee69cf9c95bf5a9ec441648916bf69780bbaf1fc4189e38a5fae1ad1e1",
-  "cases/c2-transitive-zombie.json": "b5efcc907373f0714ff4ee7cc03bffefc7b03e9315594d4e1c2a1dc17d7b2148",
+  "cases/c2-transitive-zombie.json": "b5efcc907373f0714ff4ee7cc03bffec7b03e9315594d4e1c2a1dc17d7b2148",
   "cases/c3-pending-commitment.json": "b64c09940a66cd01109e59713a50869c6176af4a3e770caf6963cd15cd4c8d35",
   "cases/c4-retained-evidence.json": "4f56482cd100ebd23eeffffb82a3cf0190881e14e1ee7b61c3789249bc9c576c",
   "cases/c5-successor-transfer.json": "7df17c6124e8aa061bad160f20f6c0dd4f218e399132034b2dd3edcae4c4abd6",
@@ -64,6 +64,7 @@ const productionPages = [
   "index.html",
   "work/index.html",
   "work/native-plus/index.html",
+  "work/closureprobe/index.html",
   "work/http-mcp-method-inference/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
@@ -241,6 +242,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "_redirects",
     "about/index.html",
     "assets/favicon.svg",
+    "assets/research-ledger.css",
     "assets/style.css",
     "index.html",
     "rels/appeal.html",
@@ -291,6 +293,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/reliance-inspector/provenance.json",
     "tools/reliance-inspector/styles.css",
     "work/appeal-interoperability/index.html",
+    "work/closureprobe/index.html",
     "work/http-mcp-method-inference/index.html",
     "work/index.html",
     "work/native-plus/index.html",
@@ -590,6 +593,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/native-plus\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/closureprobe\/<\/loc>/gu)].length,
     1,
   );
 

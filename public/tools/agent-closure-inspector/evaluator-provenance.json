@@ -1,0 +1,14 @@
+{
+  "artifact": "RISU Agent Closure Browser-Local Evaluator",
+  "purpose": "Browser-local transport adapter for the frozen BAC verifier. No server-side evidence endpoint is deployed.",
+  "engine_commit": "a46456f028cd3dd1d386111b1faab890a26ae5e9",
+  "inspector_commit": "07325dd1304cc3fe1acd86ce50596161581a1cdb",
+  "verifier_source_sha256": "b23d20c7f26a162d3588fab1e49372d0b5ec68a0953a3f71bc7670ec0245eaa6",
+  "presentation_source_sha256": "6320100920bd6fa143ec59ff11ad718a8eb94707eb43808545b07cb29c4ebf8b",
+  "schema_source_sha256": "02c7365b7eddac9f810afc55c1a58d834ab4e6b8926076eab18ea5e6042b8b33",
+  "ajv_version": "8.17.1",
+  "noble_hashes_version": "1.8.0",
+  "esbuild_version": "0.25.9",
+  "upload_limit_bytes": 1048576,
+  "worker_sha256": "4d30df2c83dbac1e37310f6d05548692d1c2fb5c678b5b236773b4342d05cbdb"
+}

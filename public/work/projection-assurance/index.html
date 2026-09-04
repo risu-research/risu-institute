@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>Projection Assurance | RISU Institute</title>
+<meta name="description" content="Projection Assurance tests whether distinctions that determine the consequence of a source operation survive projection into an agent-facing interface and still govern the effect.">
+<link rel="canonical" href="https://risuinstitute.org/work/projection-assurance/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Projection Assurance | RISU Institute">
+<meta property="og:description" content="A consequence-centered assurance framework for testing semantic preservation across agent-facing projections without confusing visible surface retention with operative effect preservation.">
+<meta property="og:url" content="https://risuinstitute.org/work/projection-assurance/">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/">Tools</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Semantic preservation · agent-facing projections · current core v0.7.0</p>
+      <h1>Projection Assurance</h1>
+      <p class="page-lede">An operation can keep its name, arguments, and familiar safeguards when it becomes an agent-facing tool, yet lose the distinction that actually controls what the action will do.</p>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <div class="callout">
+      <p><strong>Core question:</strong> Which source distinctions determine the declared consequence, do those distinctions survive the projection, and are they still connected to the mechanism that governs the effect?</p>
+    </div>
+
+    <h2>Surface fidelity is not consequence fidelity</h2>
+    <p>API and tool translations are often judged by what remains visible: an operation name, an argument, a schema field, a version token, a guard-looking header. Projection Assurance asks a harder question. If two source situations require different consequences, can the projected action still tell them apart, and does that distinction actually constrain the effect?</p>
+    <p>Visible information can become decorative. A tool may expose the reviewed version while the underlying operation ignores it at the effect cut. The opposite can happen too: a broad source option may disappear from the agent surface while a narrower target mechanism still realizes the exact source consequence being claimed.</p>
+    <p>Projection Assurance therefore treats the source consequence as the reference point. Interface similarity is evidence only when it contributes to preserving that consequence.</p>
+
+    <h2>What has to survive</h2>
+    <p>The framework keeps five questions separate instead of folding preservation into one similarity score.</p>
+    <dl class="spec-grid">
+      <dt>Correspondence</dt><dd>Is the target fact or mechanism legitimately about the same source distinction? A value that merely looks similar is not enough.</dd>
+      <dt>Discrimination</dt><dd>Do source worlds with different required consequences remain distinguishable in the projected representation?</dd>
+      <dt>Operative Placement</dt><dd>Does the preserved distinction reach a recognized mechanism at the cut where the consequence is actually governed?</dd>
+      <dt>Exact Realization</dt><dd>Given the declared mechanism semantics, does the projected action reproduce the source consequence across the bounded worlds?</dd>
+      <dt>Coverage</dt><dd>How much of the source capability is represented? Breadth stays separate from correctness of the slice that is represented.</dd>
+    </dl>
+    <p>These questions can disagree, and those disagreements are often the useful result. A projection can preserve information structurally while failing to use it operatively. Another can expose less surface area while exactly realizing the declared consequence on the supported slice.</p>
+
+    <h2>A safeguard can survive the interface and disappear at the effect</h2>
+    <p>The GitHub guarded-merge case is the cleanest example. The bounded source consequence says that a merge may proceed when the pull request head is still the reviewed head <span class="identifier">H0</span>, but a stale request at <span class="identifier">H1</span> must be rejected.</p>
+    <p>The studied projection retains enough information to distinguish <span class="identifier">H0</span> from <span class="identifier">H1</span>. Correspondence and discrimination therefore hold. But the operative merge path does not bind the effect to the reviewed head through the available expected-head guard.</p>
+    <div class="code-block">reviewed head: H0
+
+request-time head H0 → required: merge reviewed head
+request-time head H1 → required: reject stale request
+
+projected effect at H1 → merge H1</div>
+    <p>The result is <span class="identifier">C1 / D1 / O0</span> with Exact Realization contradicted. The interface has not forgotten the head identity. The failure is that the retained identity no longer governs the consequential merge.</p>
+
+    <h2>Less surface can still preserve the consequence</h2>
+    <p>The frozen Technical Note evaluation also contains the opposite pattern. In the studied Azure Blob path, the target does not preserve a general overwrite-choice surface. Yet the declared consequence is narrower: create only if the blob does not already exist.</p>
+    <p>At the effect cut, <span class="identifier">If-None-Match: *</span> realizes that create-if-absent consequence directly. The source control does not need to survive as the same knob when the target has a different mechanism that preserves the declared consequence exactly.</p>
+    <p>This is why Projection Assurance is not schema preservation. It can reject a visually faithful projection and accept a structurally different one when the consequence warrants that difference.</p>
+
+    <h2>Exact realization catches what structure can miss</h2>
+    <p>Structural preservation is necessary for many claims, but it is not the final word. Exact Realization evaluates the projected mechanism against the source consequence over the declared bounded worlds.</p>
+    <p>The prospectively frozen PayPal holdout in the Technical Note illustrates the point. An idempotency mechanism exists at the effect side, but a static header value is too coarse when the required distinction is logical-operation specific. The evaluation produces a minimal counterexample and, within the predeclared repair vocabulary, a singleton repair.</p>
+    <p>Here the problem is not the header type itself. The static value fails to encode the logical-operation distinction required by the declared consequence.</p>
+
+    <h2>The frozen evaluation stays frozen</h2>
+    <p>RISU Technical Note 2026-04 reports the frozen v0.2.0 Evaluation Capsule. That record contains the declared profiles, retained source evidence, qualifications, cryptographic identities, and the reported GitHub, Azure, and PayPal evaluation results.</p>
+    <p>Consequence-Preserving Projections v0.7.0 is the current separately archived implementation. It strengthens source-contract handling, evidence binding, proof-carrying construction, and certificate checking. It does not rewrite the frozen evaluation or retroactively enlarge the claims reported in the Technical Note.</p>
+    <p>Later engineering can therefore improve how assurance artifacts are produced and checked while the evidence behind the published evaluation remains fixed.</p>
+
+    <h2>Certificate-backed external cases</h2>
+    <p>RISU Verify builds a developer-facing layer over the byte-pinned v0.7.0 core rather than reimplementing its verdict logic. Before a semantic result is accepted, provenance checks bind retained evidence to declared source material. The frozen producer emits a proof-carrying certificate, and a separate compact consumer checks that certificate against the evidence root before the product derives a status.</p>
+    <p>The retained external cases give the framework three useful kinds of evidence.</p>
+    <dl class="spec-grid">
+      <dt>GitHub guarded merge</dt><dd>Historical negative control. <span class="identifier">CONSEQUENCE_REGRESSION · C1/D1/O0</span>. The reviewed head remains distinguishable but is not operatively bound to the merge effect.</dd>
+      <dt>Azure DevOps Wiki edit</dt><dd>External positive control. On the declared existing-page edit slice, the caller-reviewed ETag is carried into <span class="identifier">If-Match</span>: <span class="identifier">PRESERVED · C1/D1/O1</span>, Exact Realization established.</dd>
+      <dt>GitHub file update transition</dt><dd>A real historical before/after software revision under the same byte-identical source consequence contract moves from <span class="identifier">C0</span> and contradicted realization to <span class="identifier">C1/D1/O1</span> and established realization.</dd>
+    </dl>
+
+    <h2>A real revision can change preservation without changing the source consequence</h2>
+    <p>The GitHub <span class="identifier">create_or_update_file</span> transition is especially useful because the source consequence contract is byte-identical before and after. The question stays fixed: commit only if the current file is still the blob version the caller reviewed; otherwise reject the stale update.</p>
+    <div class="code-block">same source consequence contract
+
+BEFORE
+reviewed version: blob SHA
+operative validator: HTTP ETag
+→ CONSEQUENCE_REGRESSION
+→ C0 / D NA / O NA
+→ REALIZATION_CONTRADICTED
+
+AFTER
+current blob SHA read from Contents API
+reviewed blob SHA compared with current blob SHA
+→ PRESERVED
+→ C1 / D1 / O1
+→ REALIZATION_ESTABLISHED</div>
+    <p>The pair is labeled <span class="identifier">REPAIR_CONSISTENT_HISTORICAL_TRANSITION</span>. The label says that the pinned after revision preserves the declared consequence where the pinned before revision does not, under the same bounded contract. The upstream issue and pull request identify the historical revisions; they do not determine the RISU verdict.</p>
+
+    <h2>Visible guards are tested, not trusted</h2>
+    <p>The Azure DevOps positive control also carries a semantic mutation that keeps the same agent-facing operation, the same <span class="identifier">etag</span> input, the same <span class="identifier">If-Match</span> header surface, and the same source consequence contract. The only change is operative binding: the caller-reviewed ETag is ignored and the latest fetched ETag is used instead.</p>
+    <p>The visible safeguard therefore survives while the consequence does not. The result flips from <span class="identifier">PRESERVED · C1/D1/O1</span> to <span class="identifier">CONSEQUENCE_REGRESSION · C1/D1/O0</span> with <span class="identifier">MECHANISM_MISALIGNMENT</span>. That mutation is a compact demonstration of why interface inspection alone cannot establish consequence preservation.</p>
+
+    <h2>The Workbench keeps the proof path inspectable</h2>
+    <p>RISU Verify can package one completed run into a content-addressed <span class="identifier">.risu.json</span> handoff. The browser-local Workbench rehashes the embedded report, certificate, run manifest, and available logs, checks their cross-references, and renders the already-produced result without issuing a new scientific verdict.</p>
+    <p>For before/after comparisons, the handoff records whether both runs share the same <span class="identifier">source_semantic_digest</span>. A focused projection comparison is shown only when the declared source semantics are unchanged. This keeps a software change from being presented as a pure projection repair when the source consequence itself has changed.</p>
+    <p><a href="/tools/#workbench">Open the RISU Verify Workbench</a></p>
+
+    <h2>Result</h2>
+    <div class="callout">
+      <p><strong>Projection Assurance makes consequence preservation a testable property of the path from source semantics to agent-facing action.</strong> It distinguishes whether the mapping is legitimate, whether consequence-distinct worlds remain distinguishable, whether the retained distinction reaches the effect-governing mechanism, whether that mechanism realizes the source consequence, and how much of the source capability the projection actually covers.</p>
+    </div>
+    <p>Taken together, the records show why no single interface pattern is a proxy for preservation. Visually similar projections can diverge at the effect, while structurally different projections can still realize the same declared consequence. The assurance record carries the evidence, witnesses, qualifications, and certificate checks that justify that distinction.</p>
+
+    <h2>Scope of the result</h2>
+    <p>Every result remains relative to a declared source consequence, bounded worlds, retained evidence, explicit semantic premises, and the effect cut under study. Projection Assurance does not establish general agent safety, whole-operation correctness, live-runtime conformance, complete source-model adequacy, or representative ecosystem prevalence.</p>
+    <p>Coverage is not inferred from preservation of one slice. A certificate-backed result for an existing-page Azure Wiki edit does not certify the whole upsert tool. A historical GitHub result does not become a live deployment certificate. Later RISU Verify product layers do not gain authority to alter C/D/O or Exact Realization from the frozen scientific core.</p>
+
+    <h2>Research and source record</h2>
+    <dl class="spec-grid">
+      <dt>Technical Note</dt><dd>RISU Technical Note 2026-04</dd>
+      <dt>Technical Note DOI</dt><dd class="identifier">10.5281/zenodo.22149639</dd>
+      <dt>Frozen evaluation</dt><dd>Projection Assurance Evaluation Capsule v1.0.0 · frozen v0.2.0 evaluation</dd>
+      <dt>Evaluation Capsule DOI</dt><dd class="identifier">10.5281/zenodo.22149517</dd>
+      <dt>Current scientific core</dt><dd>Consequence-Preserving Projections v0.7.0</dd>
+      <dt>Current software DOI</dt><dd class="identifier">10.5281/zenodo.22149593</dd>
+      <dt>v0.7.0 archive pin</dt><dd class="identifier">bc3c0be440b1b729d3131a630491cce62f1f885fb305aa46a4483fee0adad72f</dd>
+      <dt>Developer-facing layer</dt><dd>RISU Verify v0.4.0-rc1 · frozen core remains byte-pinned</dd>
+    </dl>
+    <div class="reference-list">
+      <a href="/research/technical-notes/2026-04/">RISU Technical Note 2026-04</a>
+      <a href="/research/technical-notes/2026-04/RISU_Technical_Note_2026-04_Projection_Assurance.pdf">Full Technical Note PDF</a>
+      <a href="https://doi.org/10.5281/zenodo.22149517">Frozen Evaluation Capsule</a>
+      <a href="https://doi.org/10.5281/zenodo.22149593">Consequence-Preserving Projections v0.7.0</a>
+      <a href="/tools/#workbench">RISU Verify Workbench</a>
+      <a href="https://github.com/risu-research/risu-verify">RISU Verify repository</a>
+      <a href="https://github.com/risu-research/risu-verify/blob/main/docs/PUBLIC_EVIDENCE_OVERVIEW.md">Public evidence overview</a>
+      <a href="https://github.com/risu-research/risu-verify/blob/main/docs/EXTERNAL_CASE_003_HISTORICAL_TRANSITION.md">Historical transition record</a>
+      <a href="/work/">Back to the RISU research program</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+  </div>
+</footer>
+</body>
+</html>

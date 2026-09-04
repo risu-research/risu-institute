@@ -68,6 +68,7 @@ const productionPages = [
   "work/bounded-agent-closure/index.html",
   "work/native-plus/index.html",
   "work/closureprobe/index.html",
+  "work/projection-assurance/index.html",
   "work/http-mcp-method-inference/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
@@ -303,6 +304,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "work/index.html",
     "work/native-plus/index.html",
     "work/problem-semantics/index.html",
+    "work/projection-assurance/index.html",
     "work/reliance-before-closure/index.html",
   ];
   const discovered = (await listFiles(publicRoot)).map(publicRelative).sort();

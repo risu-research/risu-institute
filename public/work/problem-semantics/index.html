@@ -82,11 +82,11 @@ RC1 fresh-install reproduction                            11         0        0 
     <p>On the tested official-package path, a 200 JSON success from the generated tool remained available as structured content. The non-2xx Problem Details response was parsed, but the source Problem Details object reached the MCP side only through diagnostic error text, with no accepted machine-addressable carrier for the profile to recover.</p>
 
     <h3>CNOE openapi-mcp-codegen</h3>
-    <p>The generated API client retained the upstream non-2xx JSON internally under <span class="identifier">details</span>. The generated MCP tool then discarded those details and returned a generic structured error before the MCP result boundary.</p>
+    <p>The frozen target was pinned at commit <span class="identifier">d0d9e1d848c5705d9bfb1f58a82a7e653c9c85c2</span>. Its generated API client retained the upstream non-2xx JSON internally under <span class="identifier">details</span>. The generated MCP tool then discarded those details and returned a generic structured error before the MCP result boundary.</p>
     <p>The generated server uses FastMCP as a runtime dependency, so these are not presented as two completely independent MCP runtimes. The CNOE loss observed here was localized earlier, in generated translation code before that runtime boundary.</p>
 
     <h3>nihal1294/openapi-to-mcp</h3>
-    <p>This target exposed richer structured error metadata, but the source Problem Details semantics exercised by the profile still could not be recovered through the accepted machine carriers. Structured target errors, by themselves, were therefore not enough.</p>
+    <p>The frozen target was pinned at commit <span class="identifier">e5fbb3524384f7dd3367cec3b02b7982cddac614</span>. It exposed richer structured error metadata, but the source Problem Details semantics exercised by the profile still could not be recovered through the accepted machine carriers. Structured target errors, by themselves, were therefore not enough.</p>
     <p>A non-standard top-level <span class="identifier">meta.error.retryable=true</span> also appeared in P12. The frozen claim ledger records it as an adjacent finding rather than an oracle <span class="identifier">INVENTED</span> verdict.</p>
 
     <h2>A preserving translation</h2>
@@ -109,6 +109,7 @@ RC1 fresh-install reproduction                            11         0        0 
 
     <h2>Frozen record and reproducibility</h2>
     <p>The archived release candidate is fixed independently of this website page. Its repository contains the normative experimental profile, frozen corpus and oracle, immutable evidence assets, constructive reference, clean-room provenance, claim ledger, and dependency-free release verifier.</p>
+    <p>The release can be checked with <span class="identifier">python3 verify_release.py</span>. The verifier uses only the Python standard library and checks the frozen semantic core, result summaries, clean-room provenance, evidence-derived process topology, ledger count, and public-source manifest.</p>
     <dl class="spec-grid">
       <dt>Version</dt><dd>v0.1.0-rc1</dd>
       <dt>Release commit</dt><dd class="identifier">07bcc4d7b13402c120fb26d28a35f1af5a271f61</dd>

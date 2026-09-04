@@ -133,6 +133,25 @@ async function startChrome(chrome) {
   };
 }
 
+async function stopChrome(chromeState) {
+  const { child, profile } = chromeState;
+  if (child.exitCode === null && child.signalCode === null) {
+    let exited = false;
+    const exit = new Promise((resolveExit) => child.once('exit', () => {
+      exited = true;
+      resolveExit();
+    }));
+    child.kill('SIGTERM');
+    await Promise.race([exit, sleep(3000)]);
+    if (!exited && child.exitCode === null && child.signalCode === null) {
+      const killed = new Promise((resolveExit) => child.once('exit', resolveExit));
+      child.kill('SIGKILL');
+      await killed;
+    }
+  }
+  await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
 class CdpClient {
   constructor(url) {
     this.url = url;
@@ -275,7 +294,6 @@ try {
 
   console.log('Consequence Closure Chromium gate: PASS');
 } finally {
-  chromeState.child.kill('SIGTERM');
+  await stopChrome(chromeState);
   await new Promise((resolveClose) => server.close(resolveClose));
-  await rm(chromeState.profile, { recursive: true, force: true });
 }

@@ -264,6 +264,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
+    "tools/agent-closure-inspector/index.html",
     "tools/agent-closure/app.js",
     "tools/agent-closure/cases/c1-direct-zombie.json",
     "tools/agent-closure/cases/c2-transitive-zombie.json",
@@ -277,7 +278,6 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/agent-closure/index.html",
     "tools/agent-closure/provenance.json",
     "tools/agent-closure/style.css",
-    "tools/agent-closure-inspector/index.html",
     "tools/consequence-closure/index.html",
     "tools/consequence-closure/inspector/app.js",
     "tools/consequence-closure/inspector/engine.js",
@@ -454,7 +454,7 @@ test("the Bounded Agent Closure research card routes through the website overvie
   const work = await readProject("public/work/index.html");
   const overviewHref = 'href="/work/bounded-agent-closure/"';
   const noteHref = 'href="/research/technical-notes/2026-01/"';
-  const inspectorHref = 'href="/tools/agent-closure/"';
+  const inspectorHref = 'href="/tools/agent-closure-inspector/"';
   const softwareHref = 'href="https://doi.org/10.5281/zenodo.22005419"';
 
   assert.equal(work.split(overviewHref).length - 1, 2, overviewHref);
@@ -581,10 +581,7 @@ test("Cloudflare routing preserves canonical identities and the custom 404", asy
   assert.deepEqual(config.routes, [
     { pattern: "risuinstitute.org", custom_domain: true },
   ]);
-  assert.deepEqual(redirects.trim().split("\n"), [
-    "/rels/appeal/ /rels/appeal 301",
-    "/tools/agent-closure/ /tools/agent-closure-inspector/ 301",
-  ]);
+  assert.equal(redirects.trim(), "/rels/appeal/ /rels/appeal 301");
 });
 
 test("sitemap, manifest, and release documents agree on the frozen identity", async () => {

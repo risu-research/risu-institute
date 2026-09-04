@@ -3,17 +3,36 @@ const input = document.getElementById("file-input");
 const capabilityNote = document.getElementById("capability-note");
 const privacyNote = document.getElementById("privacy-note");
 const nativeFetch = window.fetch.bind(window);
+const MAX_EVIDENCE_BYTES = 1024 * 1024;
+const LOCAL_INSPECTOR_URL =
+  "https://github.com/risu-research/bounded-agent-closure/tree/main/inspector";
 
 const isLiteralLocalInspector =
   window.location.protocol === "http:" && window.location.hostname === "127.0.0.1";
 
-function showFallback() {
+let mode = "preparing";
+let worker = null;
+let sequence = 0;
+let ready = false;
+const pending = new Map();
+
+function browserReadyCopy() {
+  capabilityNote.textContent =
+    "Evaluated in this browser. No upload or account required.";
+  privacyNote.textContent = "Browser-local · Evidence stays on this device";
+}
+
+function setBrowserReady() {
+  mode = "browser-local";
+  button.disabled = false;
+  button.textContent = "Open local evidence";
+  browserReadyCopy();
+}
+
+function setFallback() {
+  mode = "fallback";
   button.disabled = false;
   button.textContent = "Run the local Inspector";
-  button.addEventListener("click", () => {
-    window.location.href =
-      "https://github.com/risu-research/bounded-agent-closure/tree/main/inspector";
-  });
   capabilityNote.textContent =
     "Browser-local evaluation is unavailable here. The local Inspector remains available from the canonical repository.";
   privacyNote.textContent = "Static mode · Canonical evidence only";
@@ -37,88 +56,66 @@ function workerFailureBody(code, explanation) {
   };
 }
 
-async function enableBrowserLocalEvaluation() {
-  if (isLiteralLocalInspector) return;
-  if (!("Worker" in window)) {
-    showFallback();
-    return;
+function failPending(code, explanation) {
+  for (const { resolve, timer } of pending.values()) {
+    clearTimeout(timer);
+    resolve({ status: 500, body: workerFailureBody(code, explanation) });
   }
+  pending.clear();
+}
 
-  let worker;
-  try {
-    worker = new Worker(
-      "/tools/agent-closure-inspector/evaluator-worker.js",
-      { name: "risu-agent-closure-evaluator" },
-    );
-  } catch {
-    showFallback();
-    return;
-  }
+function retireWorker(code, explanation) {
+  if (worker) worker.terminate();
+  worker = null;
+  ready = false;
+  failPending(code, explanation);
+  if (!isLiteralLocalInspector) setFallback();
+}
 
-  let sequence = 0;
-  let ready = false;
-  const pending = new Map();
-
-  const failPending = (code, explanation) => {
-    for (const { resolve, timer } of pending.values()) {
-      clearTimeout(timer);
-      resolve({ status: 500, body: workerFailureBody(code, explanation) });
-    }
-    pending.clear();
+function unavailableResult() {
+  return {
+    status: 503,
+    body: workerFailureBody(
+      "BROWSER_EVALUATOR_UNAVAILABLE",
+      "The browser-local evaluator is unavailable. No evidence was sent to the site.",
+    ),
   };
+}
 
-  const readyPromise = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Evaluator startup timed out.")), 5000);
-    worker.addEventListener("message", (event) => {
-      const message = event.data ?? {};
-      if (message.type === "ready" && !ready) {
-        ready = true;
-        clearTimeout(timer);
-        resolve();
-        return;
-      }
-      if (message.type !== "result" || typeof message.id !== "string") return;
-      const item = pending.get(message.id);
-      if (!item) return;
-      pending.delete(message.id);
-      clearTimeout(item.timer);
-      item.resolve({ status: message.status, body: message.body });
-    });
-    worker.addEventListener("error", () => {
+function evaluateInWorker(request) {
+  if (!worker || !ready || mode !== "browser-local") {
+    return Promise.resolve(unavailableResult());
+  }
+
+  return new Promise((resolve) => {
+    const id = `evaluation-${++sequence}`;
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      resolve({
+        status: 504,
+        body: workerFailureBody(
+          "BROWSER_EVALUATION_TIMEOUT",
+          "The browser-local evaluation did not finish within 30 seconds.",
+        ),
+      });
+    }, 30000);
+    pending.set(id, { resolve, timer });
+
+    try {
+      worker.postMessage({ type: "evaluate", id, request });
+    } catch {
+      pending.delete(id);
       clearTimeout(timer);
-      if (!ready) reject(new Error("Evaluator startup failed."));
-      failPending(
+      resolve(unavailableResult());
+      retireWorker(
         "BROWSER_EVALUATOR_UNAVAILABLE",
         "The browser-local evaluator stopped before it could issue a verdict.",
       );
-    });
+    }
   });
+}
 
-  const evaluateInWorker = (request) =>
-    new Promise((resolve) => {
-      const id = `evaluation-${++sequence}`;
-      const timer = setTimeout(() => {
-        pending.delete(id);
-        resolve({
-          status: 504,
-          body: workerFailureBody(
-            "BROWSER_EVALUATION_TIMEOUT",
-            "The browser-local evaluation did not finish within 30 seconds.",
-          ),
-        });
-      }, 30000);
-      pending.set(id, { resolve, timer });
-      worker.postMessage({ type: "evaluate", id, request });
-    });
-
-  try {
-    await readyPromise;
-  } catch {
-    worker.terminate();
-    showFallback();
-    return;
-  }
-
+function installEvaluationBoundary() {
   window.fetch = async (input, init) => {
     if (!isEvaluationRequest(input)) return nativeFetch(input, init);
 
@@ -139,12 +136,103 @@ async function enableBrowserLocalEvaluation() {
       },
     });
   };
+}
 
-  button.disabled = false;
-  button.addEventListener("click", () => input.click());
-  capabilityNote.textContent =
-    "Evaluated in this browser. No upload or account required.";
-  privacyNote.textContent = "Browser-local · Evidence stays on this device";
+async function enableBrowserLocalEvaluation() {
+  if (isLiteralLocalInspector) return;
+  if (!("Worker" in window)) {
+    setFallback();
+    return;
+  }
+
+  try {
+    worker = new Worker(
+      "/tools/agent-closure-inspector/evaluator-worker.js",
+      { name: "risu-agent-closure-evaluator" },
+    );
+  } catch {
+    setFallback();
+    return;
+  }
+
+  const readyPromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Evaluator startup timed out.")), 5000);
+
+    worker.addEventListener("message", (event) => {
+      const message = event.data ?? {};
+      if (message.type === "ready" && !ready) {
+        ready = true;
+        clearTimeout(timer);
+        resolve();
+        return;
+      }
+      if (message.type !== "result" || typeof message.id !== "string") return;
+      const item = pending.get(message.id);
+      if (!item) return;
+      pending.delete(message.id);
+      clearTimeout(item.timer);
+      item.resolve({ status: message.status, body: message.body });
+    });
+
+    worker.addEventListener("error", () => {
+      clearTimeout(timer);
+      if (!ready) reject(new Error("Evaluator startup failed."));
+      retireWorker(
+        "BROWSER_EVALUATOR_UNAVAILABLE",
+        "The browser-local evaluator stopped before it could issue a verdict.",
+      );
+    });
+
+    worker.addEventListener("messageerror", () => {
+      clearTimeout(timer);
+      if (!ready) reject(new Error("Evaluator startup message could not be decoded."));
+      retireWorker(
+        "BROWSER_EVALUATOR_MESSAGE_ERROR",
+        "The browser could not decode an evaluator message, so no verdict was issued.",
+      );
+    });
+  });
+
+  try {
+    await readyPromise;
+  } catch {
+    retireWorker(
+      "BROWSER_EVALUATOR_UNAVAILABLE",
+      "The browser-local evaluator could not start.",
+    );
+    return;
+  }
+
+  installEvaluationBoundary();
+  setBrowserReady();
+}
+
+if (!isLiteralLocalInspector) {
+  button.addEventListener("click", () => {
+    if (mode === "browser-local") {
+      browserReadyCopy();
+      input.click();
+    } else if (mode === "fallback") {
+      window.location.href = LOCAL_INSPECTOR_URL;
+    }
+  });
+
+  input.addEventListener(
+    "change",
+    (event) => {
+      if (mode !== "browser-local") return;
+      const [file] = input.files;
+      if (!file || file.size <= MAX_EVIDENCE_BYTES) return;
+
+      event.stopImmediatePropagation();
+      input.value = "";
+      capabilityNote.textContent =
+        "Evidence bundle exceeds the 1 MiB browser-local limit. Choose a smaller JSON file.";
+      privacyNote.textContent =
+        "Not evaluated · The oversized file was not uploaded or read into the evaluator";
+    },
+    { capture: true },
+  );
 }
 
 await enableBrowserLocalEvaluation();

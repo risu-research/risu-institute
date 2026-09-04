@@ -7,6 +7,15 @@ import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (path) => readFile(join(root, path), "utf8");
 
+function headerBlock(source, route) {
+  const marker = `${route}\n`;
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `${route} header block is missing`);
+  const bodyStart = start + marker.length;
+  const next = source.indexOf("\n/", bodyStart);
+  return source.slice(bodyStart, next === -1 ? source.length : next);
+}
+
 test("current Agent Closure Inspector presents the BAC decision boundary before the corpus", async () => {
   const html = await read("public/tools/agent-closure-inspector/index.html");
 
@@ -63,6 +72,31 @@ test("current surface keeps public canonical inspection separate from local priv
   assert.match(html, /id="open-file"[^>]*disabled/u);
   assert.match(html, /id="file-input"/u);
   assert.match(html, /id="capability-note"/u);
+});
+
+test("current Agent Closure route has an explicit same-origin, no-exfiltration security boundary", async () => {
+  const headers = await read("public/_headers");
+  const block = headerBlock(headers, "/tools/agent-closure-inspector/*");
+
+  for (const directive of [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self'",
+    "font-src 'none'",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "manifest-src 'none'",
+  ]) assert.ok(block.includes(directive), directive);
+
+  assert.doesNotMatch(block, /script-src[^\n;]*'unsafe-inline'/u);
+  assert.match(block, /Referrer-Policy: no-referrer/u);
+  assert.match(block, /Cross-Origin-Opener-Policy: same-origin/u);
+  assert.match(block, /Cross-Origin-Resource-Policy: same-origin/u);
+  assert.match(block, /Cache-Control: no-store/u);
 });
 
 test("current Agent Closure surface is indexed while the frozen publication stays archival", async () => {

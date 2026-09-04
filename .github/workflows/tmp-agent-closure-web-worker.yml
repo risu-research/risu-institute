@@ -1,0 +1,120 @@
+name: Temporary Agent Closure Web Worker Build
+
+on:
+  push:
+    branches:
+      - agent-closure-browser-local
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout site branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent-closure-browser-local
+
+      - name: Checkout frozen engine
+        uses: actions/checkout@v4
+        with:
+          repository: risu-research/bounded-agent-closure
+          ref: a46456f028cd3dd1d386111b1faab890a26ae5e9
+          path: .tmp/bac-engine
+
+      - name: Checkout frozen Inspector presentation
+        uses: actions/checkout@v4
+        with:
+          repository: risu-research/bounded-agent-closure
+          ref: 07325dd1304cc3fe1acd86ce50596161581a1cdb
+          path: .tmp/bac-inspector
+
+      - name: Build ephemeral browser evaluator from frozen sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .tmp/bac-engine rev-parse HEAD)" = "a46456f028cd3dd1d386111b1faab890a26ae5e9"
+          test "$(git -C .tmp/bac-inspector rev-parse HEAD)" = "07325dd1304cc3fe1acd86ce50596161581a1cdb"
+          npm ci --prefix .tmp/bac-engine
+          npm install --prefix .tmp/bac-engine --no-save --package-lock=false esbuild@0.25.9 @noble/hashes@1.8.0
+          mkdir -p .tmp/browser-build public/tools/agent-closure-inspector
+          node <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const engineCommit = 'a46456f028cd3dd1d386111b1faab890a26ae5e9';
+          const inspectorCommit = '07325dd1304cc3fe1acd86ce50596161581a1cdb';
+          const verifyPath = '.tmp/bac-engine/src/verify-closure.mjs';
+          const presentationPath = '.tmp/bac-inspector/inspector/presentation.mjs';
+          const schemaPath = '.tmp/bac-engine/schemas/closure-evidence.schema.json';
+          const verify = readFileSync(verifyPath, 'utf8');
+          const presentation = readFileSync(presentationPath, 'utf8');
+          const schemaText = readFileSync(schemaPath, 'utf8');
+          const schema = JSON.parse(schemaText);
+          const sha256 = (text) => createHash('sha256').update(text).digest('hex');
+
+          const expectedHeader = `import { readFileSync } from "node:fs";\nimport Ajv2020 from "ajv/dist/2020.js";\nimport { canonicalStringify, sha256Digest } from "./canonicalize.mjs";`;
+          if (!verify.startsWith(expectedHeader)) throw new Error('Frozen verifier header changed unexpectedly');
+          const schemaBlock = `const schema = JSON.parse(\n  readFileSync(new URL("../schemas/closure-evidence.schema.json", import.meta.url), "utf8"),\n);`;
+          if (!verify.includes(schemaBlock)) throw new Error('Frozen verifier schema loader changed unexpectedly');
+
+          const transformed = verify
+            .replace('import { readFileSync } from "node:fs";\n', '')
+            .replace(
+              'import { canonicalStringify, sha256Digest } from "./canonicalize.mjs";',
+              'import { canonicalStringify, sha256Digest } from "./canonicalize-browser.mjs";',
+            )
+            .replace(schemaBlock, `const schema = ${JSON.stringify(schema)};`);
+          writeFileSync('.tmp/bac-engine/src/verify-closure.browser.mjs', transformed);
+
+          writeFileSync('.tmp/bac-engine/src/canonicalize-browser.mjs', `import { sha256 } from "@noble/hashes/sha256";\nimport { bytesToHex } from "@noble/hashes/utils";\n\nexport function canonicalize(value) {\n  if (Array.isArray(value)) return value.map(canonicalize);\n  if (value !== null && typeof value === "object") {\n    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalize(value[key])]));\n  }\n  return value;\n}\n\nexport function canonicalStringify(value) {\n  return JSON.stringify(canonicalize(value));\n}\n\nexport function sha256Digest(value) {\n  const bytes = new TextEncoder().encode(canonicalStringify(value));\n  return \`sha256:\${bytesToHex(sha256(bytes))}\`;\n}\n`);
+
+          writeFileSync('.tmp/browser-build/entry.mjs', `import { verifyClosure } from "../bac-engine/src/verify-closure.browser.mjs";\nimport { presentEvaluation, presentParseError } from "../bac-inspector/inspector/presentation.mjs";\n\nconst MAX_BODY_BYTES = 1024 * 1024;\n\nfunction result(status, body) { return { status, body }; }\n\nfunction evaluateRequest({ method, contentType, raw }) {\n  if (method !== "POST") return result(405, { runner_state: "REQUEST_ERROR", error: { code: "METHOD_NOT_ALLOWED" } });\n  if (String(contentType ?? "").split(";", 1)[0].trim().toLowerCase() !== "application/json") {\n    return result(415, { runner_state: "REQUEST_ERROR", error: { code: "UNSUPPORTED_MEDIA_TYPE" } });\n  }\n  if (new TextEncoder().encode(String(raw ?? "")).byteLength > MAX_BODY_BYTES) {\n    const message = "Request body exceeds 1 MiB.";\n    return result(413, { runner_state: "PARSE_ERROR", presentation: presentParseError("REQUEST_BODY_TOO_LARGE", message) });\n  }\n  let bundle;\n  try { bundle = JSON.parse(String(raw ?? "")); }\n  catch (error) {\n    return result(400, { runner_state: "PARSE_ERROR", presentation: presentParseError("MALFORMED_JSON", error.message) });\n  }\n  const evaluation = verifyClosure(bundle);\n  return result(200, { evaluation, presentation: presentEvaluation(bundle, evaluation) });\n}\n\nself.addEventListener("message", (event) => {\n  const message = event.data ?? {};\n  if (message.type !== "evaluate" || typeof message.id !== "string") return;\n  try {\n    const response = evaluateRequest(message.request ?? {});\n    self.postMessage({ type: "result", id: message.id, ...response });\n  } catch {\n    self.postMessage({ type: "result", id: message.id, status: 500, body: { runner_state: "REQUEST_ERROR", error: { code: "INTERNAL_WORKER_ERROR" } } });\n  }\n});\nself.postMessage({ type: "ready" });\n`);
+
+          const provenance = {
+            artifact: 'RISU Agent Closure Browser-Local Evaluator',
+            purpose: 'Ephemeral Web Worker adapter for the frozen BAC verifier. Private evidence is passed by browser memory message, not HTTP.',
+            engine_commit: engineCommit,
+            inspector_commit: inspectorCommit,
+            verifier_source_sha256: sha256(verify),
+            presentation_source_sha256: sha256(presentation),
+            schema_source_sha256: sha256(schemaText),
+            ajv_version: '8.17.1',
+            noble_hashes_version: '1.8.0',
+            esbuild_version: '0.25.9',
+            upload_limit_bytes: 1048576,
+            persistence: 'none',
+            network_evaluation_endpoint: false,
+            equivalence_basis: 'All eight frozen canonical cases are replayed against this browser evaluator in site CI.'
+          };
+          writeFileSync('public/tools/agent-closure-inspector/evaluator-provenance.json', JSON.stringify(provenance, null, 2) + '\n');
+          NODE
+          ./.tmp/bac-engine/node_modules/.bin/esbuild .tmp/browser-build/entry.mjs \
+            --bundle \
+            --platform=browser \
+            --format=iife \
+            --target=es2022 \
+            --legal-comments=none \
+            --banner:js='/* Generated browser-local evaluator. Frozen BAC engine a46456f028cd3dd1d386111b1faab890a26ae5e9; Inspector presentation 07325dd1304cc3fe1acd86ce50596161581a1cdb. */' \
+            --outfile=public/tools/agent-closure-inspector/evaluator-worker.js
+          node <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+          const provenancePath = 'public/tools/agent-closure-inspector/evaluator-provenance.json';
+          const workerPath = 'public/tools/agent-closure-inspector/evaluator-worker.js';
+          const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
+          const worker = readFileSync(workerPath);
+          provenance.worker_sha256 = createHash('sha256').update(worker).digest('hex');
+          writeFileSync(provenancePath, JSON.stringify(provenance, null, 2) + '\n');
+          if (existsSync('public/tools/agent-closure-inspector/evaluator-sw.js')) rmSync('public/tools/agent-closure-inspector/evaluator-sw.js');
+          NODE
+          rm -rf .tmp
+          git add -A public/tools/agent-closure-inspector/evaluator-worker.js public/tools/agent-closure-inspector/evaluator-provenance.json public/tools/agent-closure-inspector/evaluator-sw.js
+          git diff --cached --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Use ephemeral Web Worker for Agent Closure evaluation"
+          git push origin HEAD:agent-closure-browser-local

@@ -67,7 +67,7 @@
     <h2>Five dispositions, not one cleanup rule</h2>
     <p>Each residual declares how it is supposed to finish. BAC then derives terminality from the observed postcondition rather than from an action report or a generic “done” flag.</p>
     <dl class="spec-grid">
-      <dt>EXTINGUISH</dt><dd>The old-root linkage has ended, and the consequence is absent or present without a live effect.</dd>
+      <dt>EXTINGUISH</dt><dd>The old-root linkage has ended, and the consequence is either absent or still present but inert.</dd>
       <dt>SETTLE</dt><dd>The commitment is settled, inert, and no longer linked to the retiring root.</dd>
       <dt>TRANSFER</dt><dd>The old-root linkage has ended, a distinct successor is named, and that successor has accepted the transfer. The object may remain active.</dd>
       <dt>RETAIN</dt><dd>The object remains present by design, but it is inert and its linkage to the retiring root has ended.</dd>
@@ -92,9 +92,9 @@
     <p>The verifier does not invent these source guarantees. Adapters must supply them under explicit source contracts, which keeps the trust boundary visible.</p>
 
     <h2>One clean scan is not enough</h2>
-    <p>A system can look closed for a moment and reveal another consequence immediately afterward. BAC therefore processes the whole scan sequence and requires the final two qualifying scans to agree on the closure-relevant semantic state.</p>
-    <p>The Fixed-Point Wind-Down case shows why. Early in the sequence, a schedule appears to terminate, but a derived retry job later enters the cone. Only after that retry is extinguished and the final semantic state qualifies again does the case become <span class="identifier">CLOSED</span>.</p>
-    <p>The comparison uses a SHA-256 semantic signature that includes closure-relevant state and lineage while excluding incidental evidence transport details such as scan IDs and timestamps. Equality across the final qualifying pair is a bounded convergence claim, not a promise that the system can never change again.</p>
+    <p>A system can look closed for a moment and reveal another consequence immediately afterward. BAC therefore processes the whole scan sequence. The final scan and the immediately preceding scan must both qualify and must agree on the closure-relevant semantic state.</p>
+    <p>The Fixed-Point Wind-Down case shows why. Early in the sequence, a schedule appears to terminate, but a derived retry job later enters the cone. Only after that retry is extinguished and the same terminal semantic state is confirmed again in the final scan does the case become <span class="identifier">CLOSED</span>.</p>
+    <p>The comparison uses a SHA-256 semantic signature that includes closure-relevant state and lineage while excluding incidental evidence transport details such as scan IDs and timestamps. Equality across the final pair is a bounded convergence claim, not a promise that the system can never change again.</p>
 
     <h2>What a scan must establish</h2>
     <p>A scan can support closure only when every required gate is satisfied:</p>
@@ -105,7 +105,7 @@
       <li>every residual in the consequence cone is freshly observed; and</li>
       <li>every reachable residual is terminal under its own disposition.</li>
     </ul>
-    <p>The final pair must then qualify with the same semantic signature, plus any required bounded-lag confirmation window.</p>
+    <p>The final scan and the immediately preceding scan must then both qualify with the same semantic signature, plus any required bounded-lag confirmation window.</p>
 
     <h2>Four evidence domains</h2>
     <p>The frozen profile <span class="identifier">RISU_AGENT_CLOSURE_V0</span> fixes exactly four domains. Keeping them separate prevents one kind of evidence from standing in for another.</p>

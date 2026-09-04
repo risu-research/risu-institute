@@ -18,3 +18,14 @@ test("Agent Closure keeps the frozen publication separate from the current hoste
   assert.equal(provenance.inspector_commit, "07325dd1304cc3fe1acd86ce50596161581a1cdb");
   assert.equal(provenance.engine_commit, "a46456f028cd3dd1d386111b1faab890a26ae5e9");
 });
+
+test("the Tools directory routes Agent Closure visitors to the current Inspector", async () => {
+  const tools = await read("public/tools/index.html");
+  const card = tools.match(
+    /<article class="rv-other-card"><h3>Agent Closure Inspector<\/h3>[\s\S]*?<\/article>/u,
+  )?.[0];
+
+  assert.ok(card, "Agent Closure Inspector card is missing from Tools");
+  assert.match(card, /href="\/tools\/agent-closure-inspector\/"/u);
+  assert.doesNotMatch(card, /href="\/tools\/agent-closure\/"/u);
+});

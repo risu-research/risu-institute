@@ -1,0 +1,231 @@
+/* Current RISU shell for the NRW Inspector. The evaluator and evidence semantics remain unchanged. */
+:root {
+  --tool-ink: #111512;
+  --tool-muted: #687069;
+  --tool-faint: #8d958e;
+  --tool-rule: #d8dcd7;
+  --tool-paper: #f6f6f2;
+  --tool-panel: #ffffff;
+  --tool-panel-deep: #eceeea;
+  --tool-accent: #0b5f49;
+  --tool-accent-pale: #e5efe9;
+  --tool-green: #0b6b50;
+  --tool-green-pale: #e7f3ed;
+  --tool-amber: #8a5a13;
+  --tool-amber-pale: #f5eddc;
+  --tool-red: #a33a32;
+  --tool-red-pale: #f7e8e5;
+  --tool-dark: #151a17;
+  --tool-dark-rule: #39413c;
+}
+
+.instrument-page { background: var(--canvas); }
+.instrument-page .site-header { background: rgba(246,246,242,.955); }
+.tool-wrap { width: min(calc(100% - 56px), 1280px); }
+
+.instrument-hero {
+  padding: clamp(62px, 7vw, 92px) 0 54px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+.inspector-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+  gap: clamp(44px, 7vw, 92px);
+  align-items: end;
+}
+.instrument-hero h1 {
+  max-width: 900px;
+  font-family: var(--display);
+  font-size: clamp(3.3rem, 7.4vw, 6.7rem);
+  line-height: .94;
+  letter-spacing: -.052em;
+}
+.instrument-question {
+  max-width: 780px;
+  margin-top: 28px;
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 2.5vw, 2.1rem);
+  line-height: 1.2;
+  letter-spacing: -.022em;
+}
+.instrument-intro { max-width: 760px; margin-top: 17px; color: var(--text); font-size: 1rem; }
+.locality-note {
+  margin-top: 24px;
+  border-color: var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.locality-mark { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.inspector-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 26px; }
+.inspector-link,
+.inspector-action {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: .79rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.inspector-link.primary { border-color: var(--ink); background: var(--ink); color: #fff; }
+.inspector-link.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+.inspector-action:hover,
+.inspector-link:not(.primary):hover { border-color: var(--accent); color: var(--accent); }
+
+.inspector-map {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
+}
+.inspector-map > span {
+  display: block;
+  color: var(--muted);
+  font-size: .65rem;
+  font-weight: 760;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.inspector-map h2 { margin: 6px 0 18px; font-family: var(--display); font-size: 1.55rem; font-weight: 560; }
+.inspector-map ol { margin: 0; padding: 0; list-style: none; counter-reset: nrwpath; }
+.inspector-map li {
+  position: relative;
+  padding: 12px 0 12px 36px;
+  border-top: 1px solid var(--line);
+  color: var(--text);
+  font-size: .81rem;
+  counter-increment: nrwpath;
+}
+.inspector-map li::before {
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--paper-deep);
+  color: var(--accent);
+  content: counter(nrwpath);
+  font-family: var(--mono);
+  font-size: .65rem;
+  font-weight: 800;
+}
+
+.instrument-shell { padding: 42px 0 68px; background: #f7f8f6; border-bottom-color: var(--line); }
+.workspace-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+.workspace-intro h2 { margin: 4px 0 0; font-family: var(--display); font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 550; letter-spacing: -.035em; }
+.workspace-intro p { max-width: 600px; margin: 0; color: var(--muted); font-size: .9rem; }
+
+.mode-switch { max-width: 680px; margin-bottom: 18px; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: #fff; }
+.mode-button { color: var(--muted); }
+.mode-button + .mode-button { border-color: var(--line-strong); }
+.mode-button.is-active { background: var(--ink); color: #fff; }
+.mode-number { color: var(--accent); font-family: var(--mono); font-style: normal; }
+.mode-button.is-active .mode-number { color: #a9d0c2; }
+
+.recorded-controls {
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-color: var(--line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.observation-switch { border-color: var(--line-strong); border-radius: 7px; overflow: hidden; }
+.observation-button { background: #fff; }
+.observation-button + .observation-button { border-color: var(--line-strong); }
+.observation-button.is-active { background: var(--accent-strong); color: #fff; }
+.observation-button span { font-family: var(--mono); }
+
+.workspace-grid {
+  border-color: var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.capture-panel { background: #fff; }
+.verdict-panel { border-left-color: var(--line); background: #f8faf8; }
+.panel-head, .machine-head { border-color: var(--line); }
+.panel-head h2, .machine-head h2 { font-family: var(--display); font-weight: 560; }
+.panel-kicker { color: var(--accent); }
+.micro-chip, .verdict-chip { border-radius: 999px; }
+
+.form-section { border-color: var(--line); }
+.form-section legend span { font-family: var(--display); font-weight: 600; }
+.field { color: var(--muted); }
+.field input, .field textarea {
+  border-color: var(--line-strong);
+  border-radius: 7px;
+  background: #fff;
+}
+.field input:focus, .field textarea:focus { border-color: var(--accent); }
+.field input[readonly], .field textarea[readonly] { background: #f2f4f1; border-color: var(--line); }
+
+.primary-button, .secondary-button, .text-button { border-radius: 7px; }
+.primary-button { border-color: var(--ink); background: var(--ink); }
+.primary-button:hover { border-color: var(--accent-strong); background: var(--accent-strong); }
+.secondary-button { border-color: var(--line-strong); }
+.text-button { color: var(--muted); }
+.text-button:hover { color: var(--accent); }
+
+.verdict-summary { border-color: var(--line); }
+.verdict-summary .verdict-display { font-size: clamp(1.7rem, 3vw, 2.45rem); }
+.trust-note { border-left-color: var(--accent); border-radius: 0 7px 7px 0; background: var(--accent-soft); }
+.trust-note span { color: var(--accent); }
+.trust-note p { color: var(--text); }
+.diagnostic-row { border-color: var(--line); }
+
+.result-section, .receiver-section, .premise-section, .method-section { border-bottom-color: var(--line); }
+.result-section { background: var(--canvas); }
+.receiver-section { background: #f7f8f6; }
+.premise-section { background: var(--paper-deep); }
+.result-copy h2, .receiver-layout h2, .premise-layout h2, .method-grid h2 { font-family: var(--display); font-weight: 550; }
+.proposition-sentence { border-color: var(--ink); }
+.boundary-list li { border-color: var(--line); }
+.boundary-list li::before { content: "·"; color: var(--accent); font-weight: 900; }
+.machine-output { border-radius: 12px; box-shadow: var(--shadow-soft); }
+.import-form, .premise-form { border-color: var(--line); border-radius: 10px; background: #fff; box-shadow: var(--shadow-soft); }
+.package-result, .premise-result { border-radius: 8px; }
+.method-copy p { color: var(--text); }
+.reference-links { border-color: var(--line); }
+
+.instrument-page button:focus-visible,
+.instrument-page input:focus-visible,
+.instrument-page textarea:focus-visible,
+.instrument-page a:focus-visible,
+.instrument-page pre:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 980px) {
+  .inspector-hero-grid { grid-template-columns: 1fr; }
+  .inspector-map { max-width: 680px; }
+  .workspace-intro { align-items: start; flex-direction: column; }
+}
+@media (max-width: 560px) {
+  .tool-wrap { width: min(calc(100% - 30px), 1280px); }
+  .instrument-hero h1 { font-size: clamp(2.8rem, 15vw, 4.8rem); }
+  .inspector-actions { align-items: stretch; flex-direction: column; }
+  .inspector-link, .inspector-action { width: 100%; }
+  .inspector-map { padding: 20px; }
+}

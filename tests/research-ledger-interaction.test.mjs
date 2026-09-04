@@ -18,7 +18,7 @@ test("every research entry title is a primary navigation link", async () => {
     ["Bounded Agent Closure", "/work/bounded-agent-closure/"],
     ["Native++ v0.2", "/work/native-plus/"],
     ["ClosureProbe", "/work/closureprobe/"],
-    ["Negative Result Warrant", "/tools/negative-result-warrant/"],
+    ["Negative Result Warrant", "/work/negative-result-warrant/"],
     ["Projection Assurance", "/work/projection-assurance/"],
     ["OpenAPI→MCP Problem-Semantics Preservation Profile", "/work/problem-semantics/"],
     ["HTTP→MCP Method-Inference Soundness Profile", "/work/http-mcp-method-inference/"],

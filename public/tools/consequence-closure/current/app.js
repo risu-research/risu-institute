@@ -3,6 +3,9 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const MAX_INPUT_BYTES = 16 * 1024 * 1024;
+document.documentElement.dataset.ccApp = 'started';
+document.documentElement.dataset.ccEngine = 'idle';
+
 const REFERENCE_META = {
   'authority-open': { title: 'Authority revocation', kicker: 'Authority and revocation' },
   'linux-admin': { title: 'Linux administrative', kicker: 'Recorded operating system case' },
@@ -88,6 +91,7 @@ function workerRequest(type, payload = {}, transfer = []) {
 }
 
 function startWorker() {
+  document.documentElement.dataset.ccEngine = 'starting';
   try {
     state.worker = new Worker('worker.js', { name: 'risu-consequence-closure-current' });
   } catch (error) {
@@ -99,6 +103,7 @@ function startWorker() {
     const message = event.data || {};
     if (message.type === 'ready') {
       state.workerReady = true;
+      document.documentElement.dataset.ccEngine = 'ready';
       $('#engineState').textContent = `Inspector ${message.inspectorVersion} · Core ${message.coreVersion}`;
       $('#openBtn').disabled = false;
       $('#welcomeOpenBtn').disabled = false;
@@ -121,6 +126,7 @@ function startWorker() {
   });
   state.worker.addEventListener('error', () => {
     state.workerReady = false;
+    document.documentElement.dataset.ccEngine = 'error';
     $('#engineState').textContent = 'Worker stopped';
     for (const item of state.pending.values()) {
       clearTimeout(item.timer);

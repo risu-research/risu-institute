@@ -63,6 +63,10 @@ model-visible projection
 agent or downstream claim</div>
     <p>At each stage, the analyzer asks whether the same negative conclusion is still tied to the same request, source context, scope, traversal, profile, and proposition. If not, it reports the earliest observed boundary where that chain stopped supporting the claim.</p>
 
+    <h2>The protocol can succeed while the evidence gets weaker</h2>
+    <p>ClosureProbe is not primarily a protocol-error detector. A source can correctly report an incomplete empty result, an adapter can faithfully produce an empty collection, a protocol can deliver that collection without a schema violation, and a client can retain it exactly. The evidentiary failure appears only when a later stage treats that observation as proof of absence.</p>
+    <p>That is why protocol completion, HTTP success, page length, source identity, and producer-profile validation remain separate in the model. A clean transport path does not upgrade partial evidence into complete evidence. ClosureProbe tests the epistemic transition that ordinary component-level checks can miss.</p>
+
     <h2>A negative needs more than zero</h2>
     <p>The profile keeps several evidence axes separate because one cannot stand in for another.</p>
     <dl class="spec-grid">

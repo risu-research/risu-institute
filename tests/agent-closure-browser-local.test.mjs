@@ -20,53 +20,48 @@ const caseFiles = [
 ];
 
 async function loadWorker() {
-  const source = await read("public/tools/agent-closure-inspector/evaluator-sw.js");
+  const source = await read("public/tools/agent-closure-inspector/evaluator-worker.js");
   const listeners = new Map();
+  const outbound = [];
   const self = {
-    location: { origin: "https://risuinstitute.org" },
-    clients: { claim: async () => undefined },
-    skipWaiting: async () => undefined,
     addEventListener(type, handler) {
       listeners.set(type, handler);
     },
+    postMessage(message) {
+      outbound.push(JSON.parse(JSON.stringify(message)));
+    },
   };
-  const context = {
-    self,
-    URL,
-    Request,
-    Response,
-    Headers,
-    TextEncoder,
-    TextDecoder,
-    Uint8Array,
-    ArrayBuffer,
-    structuredClone,
-    console,
-  };
-  vm.runInNewContext(source, context, {
-    filename: "agent-closure-evaluator-sw.js",
-  });
-  assert.equal(typeof listeners.get("fetch"), "function");
-  return { source, fetchHandler: listeners.get("fetch") };
+  vm.runInNewContext(
+    source,
+    {
+      self,
+      TextEncoder,
+      TextDecoder,
+      Uint8Array,
+      ArrayBuffer,
+      structuredClone,
+      console,
+    },
+    { filename: "agent-closure-evaluator-worker.js" },
+  );
+  assert.equal(typeof listeners.get("message"), "function");
+  assert.deepEqual(outbound.shift(), { type: "ready" });
+  return { source, messageHandler: listeners.get("message"), outbound };
 }
 
-async function dispatch(fetchHandler, request) {
-  let responsePromise = null;
-  fetchHandler({
-    request,
-    respondWith(value) {
-      responsePromise = Promise.resolve(value);
-    },
-  });
-  if (!responsePromise) return null;
-  return responsePromise;
+function evaluate(messageHandler, outbound, request, id = "test") {
+  messageHandler({ data: { type: "evaluate", id, request } });
+  const response = outbound.shift();
+  assert.equal(response?.type, "result");
+  assert.equal(response?.id, id);
+  return response;
 }
 
 test("browser-local evaluator is pinned to the frozen engine and its published bytes", async () => {
   const provenance = JSON.parse(
     await read("public/tools/agent-closure-inspector/evaluator-provenance.json"),
   );
-  const worker = await read("public/tools/agent-closure-inspector/evaluator-sw.js");
+  const worker = await read("public/tools/agent-closure-inspector/evaluator-worker.js");
   const digest = createHash("sha256").update(worker).digest("hex");
 
   assert.equal(
@@ -79,32 +74,37 @@ test("browser-local evaluator is pinned to the frozen engine and its published b
   );
   assert.equal(provenance.worker_sha256, digest);
   assert.equal(provenance.upload_limit_bytes, 1024 * 1024);
+  assert.equal(provenance.persistence, "none");
+  assert.equal(provenance.network_evaluation_endpoint, false);
+  assert.match(provenance.equivalence_basis, /eight frozen canonical cases/u);
   assert.match(worker, /Frozen BAC engine a46456f028cd3dd1d386111b1faab890a26ae5e9/u);
   assert.match(worker, /Inspector presentation 07325dd1304cc3fe1acd86ce50596161581a1cdb/u);
 });
 
 test("browser-local evaluator exactly replays all eight frozen boundary evaluations", async () => {
-  const { fetchHandler } = await loadWorker();
+  const { messageHandler, outbound } = await loadWorker();
 
   for (const file of caseFiles) {
     const artifact = JSON.parse(
       await read(`public/tools/agent-closure/cases/${file}`),
     );
-    const request = new Request("https://risuinstitute.org/api/evaluate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(artifact.bundle),
-    });
-    const response = await dispatch(fetchHandler, request);
-    assert.ok(response, `${file} was not intercepted`);
+    const response = evaluate(
+      messageHandler,
+      outbound,
+      {
+        method: "POST",
+        contentType: "application/json",
+        raw: JSON.stringify(artifact.bundle),
+      },
+      file,
+    );
     assert.equal(response.status, 200, file);
-    const result = await response.json();
+    assert.deepEqual(response.body.evaluation, artifact.evaluation, `${file} evaluation`);
 
-    assert.deepEqual(result.evaluation, artifact.evaluation, `${file} evaluation`);
     const expectedPresentation = structuredClone(artifact.presentation);
     expectedPresentation.metadata = null;
     assert.deepEqual(
-      result.presentation,
+      response.body.presentation,
       expectedPresentation,
       `${file} presentation`,
     );
@@ -112,64 +112,56 @@ test("browser-local evaluator exactly replays all eight frozen boundary evaluati
 });
 
 test("browser-local evaluator fails closed on malformed, oversized, and wrong-media evidence", async () => {
-  const { fetchHandler } = await loadWorker();
+  const { messageHandler, outbound } = await loadWorker();
 
-  const malformed = await dispatch(
-    fetchHandler,
-    new Request("https://risuinstitute.org/api/evaluate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{",
-    }),
-  );
+  const malformed = evaluate(messageHandler, outbound, {
+    method: "POST",
+    contentType: "application/json",
+    raw: "{",
+  });
   assert.equal(malformed.status, 400);
-  assert.equal((await malformed.json()).presentation.errors[0].code, "MALFORMED_JSON");
+  assert.equal(malformed.body.presentation.errors[0].code, "MALFORMED_JSON");
 
-  const oversized = await dispatch(
-    fetchHandler,
-    new Request("https://risuinstitute.org/api/evaluate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: `"${"x".repeat(1024 * 1024)}"`,
-    }),
-  );
+  const oversized = evaluate(messageHandler, outbound, {
+    method: "POST",
+    contentType: "application/json",
+    raw: `"${"x".repeat(1024 * 1024)}"`,
+  });
   assert.equal(oversized.status, 413);
   assert.equal(
-    (await oversized.json()).presentation.errors[0].code,
+    oversized.body.presentation.errors[0].code,
     "REQUEST_BODY_TOO_LARGE",
   );
 
-  const wrongMedia = await dispatch(
-    fetchHandler,
-    new Request("https://risuinstitute.org/api/evaluate", {
-      method: "POST",
-      headers: { "content-type": "text/plain" },
-      body: "{}",
-    }),
-  );
+  const wrongMedia = evaluate(messageHandler, outbound, {
+    method: "POST",
+    contentType: "text/plain",
+    raw: "{}",
+  });
   assert.equal(wrongMedia.status, 415);
 });
 
-test("browser-local evaluator only intercepts the exact same-origin evaluation request", async () => {
-  const { source, fetchHandler } = await loadWorker();
+test("browser-local adapter has no network or persistence capability", async () => {
+  const worker = await read("public/tools/agent-closure-inspector/evaluator-worker.js");
+  const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");
 
-  for (const url of [
-    "https://risuinstitute.org/tools/agent-closure-inspector/",
-    "https://risuinstitute.org/api/capabilities",
-    "https://example.com/api/evaluate",
-  ]) {
-    const response = await dispatch(fetchHandler, new Request(url));
-    assert.equal(response, null, url);
+  assert.match(bootstrap, /const nativeFetch = window\.fetch\.bind\(window\);/u);
+  assert.match(bootstrap, /url\.pathname === "\/api\/evaluate"/u);
+  assert.match(bootstrap, /return nativeFetch\(input, init\);/u);
+  assert.match(bootstrap, /worker\.postMessage\(\{ type: "evaluate", id, request \}\);/u);
+  assert.doesNotMatch(bootstrap, /serviceWorker/u);
+
+  for (const source of [worker, bootstrap]) {
+    for (const forbidden of [
+      /\bXMLHttpRequest\b/u,
+      /\bWebSocket\b/u,
+      /\bEventSource\b/u,
+      /\bsendBeacon\b/u,
+      /\blocalStorage\b/u,
+      /\bsessionStorage\b/u,
+      /\bindexedDB\b/u,
+      /\bcaches\./u,
+    ]) assert.doesNotMatch(source, forbidden);
   }
-
-  for (const forbidden of [
-    /\bXMLHttpRequest\b/u,
-    /\bWebSocket\b/u,
-    /\bEventSource\b/u,
-    /\bsendBeacon\b/u,
-    /\blocalStorage\b/u,
-    /\bsessionStorage\b/u,
-    /\bindexedDB\b/u,
-    /\bcaches\./u,
-  ]) assert.doesNotMatch(source, forbidden);
+  assert.doesNotMatch(worker, /\bfetch\s*\(/u);
 });

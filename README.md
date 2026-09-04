@@ -7,10 +7,10 @@ when interaction is necessary to exercise a published artifact.
 
 ## Public information architecture
 
-- **Research** (`/work/`) — current research organized by research thread.
-- **Publications** (`/research/`) — RISU Technical Notes and persistent records.
-- **Tools** (`/tools/`) — public research instruments and instrument records.
-- **About** (`/about/`) — research program, method, and publication discipline.
+- **Research** (`/work/`): current research organized by research thread.
+- **Publications** (`/research/`): RISU Technical Notes and persistent records.
+- **Tools** (`/tools/`): public research instruments and instrument records.
+- **About** (`/about/`): research program, method, and publication discipline.
 
 The current research program spans semantic identity and preservation, evidence
 qualification and transport, and reliance, finality, and consequence closure.
@@ -31,12 +31,20 @@ published records; they are not silent new editions.
 
 Current notes:
 
-- RISU Technical Note 2026-03 — *Consequence Closure: Semantic Assurance at the
+- RISU Technical Note 2026-03: *Consequence Closure: Semantic Assurance at the
   Machine Action Boundary*.
-- RISU Technical Note 2026-02 — *Reliance Before Closure: Evidence-Qualified
+- RISU Technical Note 2026-02: *Reliance Before Closure: Evidence-Qualified
   Stability for Machine Decisions Under Unresolved Effects*.
-- RISU Technical Note 2026-01 — *From Revocation to Closure: Verifying
+- RISU Technical Note 2026-01: *From Revocation to Closure: Verifying
   Attributable Consequences in AI Agent Decommissioning*.
+
+## Institutional experimental records
+
+`records/` contains frozen experimental checkpoints that are useful to preserve
+as institutional research records but are not numbered RISU Technical Notes and
+are not necessarily standalone software releases. These records remain outside
+the deployed website asset boundary unless a separate public page explicitly
+summarizes them.
 
 ## Research instruments
 
@@ -58,9 +66,10 @@ Instrument pages do not enlarge the claims of the underlying research artifact.
 ## Repository boundary
 
 Only `public/` is configured as the deployable asset directory. Project
-documentation, tests, package metadata, and release files remain outside that
-boundary. Cloudflare parses `public/_headers`, `public/_redirects`, and
-`public/.assetsignore` as static-asset controls and does not serve those files.
+documentation, tests, package metadata, institutional experimental records under
+`records/`, and release files remain outside that boundary. Cloudflare parses
+`public/_headers`, `public/_redirects`, and `public/.assetsignore` as static-asset
+controls and does not serve those files.
 
 `public/rels/appeal.html` is intentionally a file rather than a directory index.
 With `html_handling` set to `auto-trailing-slash`, Cloudflare exposes it at the

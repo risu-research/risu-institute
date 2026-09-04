@@ -35,68 +35,53 @@
     <div class="reading">
       <p class="eyebrow">Evidence-qualified reliance · executable profile · Inspector v0.4.0</p>
       <h1>Reliance Before Closure</h1>
-      <p class="page-lede">A workflow can still be open even after the uncertainty relevant to one particular decision has become small enough for another machine to act on that decision.</p>
+      <p class="page-lede">A workflow can still be open even after the uncertainty relevant to one particular decision has become small enough for another machine to rely on that decision.</p>
     </div>
   </section>
 
   <article class="reading prose">
     <div class="callout">
-      <p><strong>Core idea:</strong> Reliance Before Closure separates workflow completion from decision readiness. It asks whether real evidence has bounded the unresolved futures relevant to one claim, whether that claim remains stable across those futures, and whether a proposed action fits inside the certified margin without changing the claim's verdict.</p>
+      <p><strong>Core idea:</strong> Reliance Before Closure separates workflow completion from decision readiness. It asks whether real evidence has bounded the unresolved futures relevant to one claim, whether that claim stays stable across those futures, and whether a proposed action fits inside the certified margin without changing the verdict.</p>
     </div>
 
     <h2>The gap before closure</h2>
-    <p>Many systems wait for a workflow-wide completion signal before allowing downstream use. That is safe but can be unnecessarily coarse. A deployment may still be converging, a controller may still have work to do, or a distributed process may still be open even though the futures that could change one specific claim have already been constrained.</p>
-    <p>The opposite shortcut is worse: seeing a favorable snapshot and acting as if the unfinished future no longer matters. Reliance Before Closure sits between those two extremes. It does not require global completion, but it also does not treat a current value as stable merely because it looks good now.</p>
+    <p>Many systems wait for a workflow-wide completion signal before allowing downstream use. That is conservative, but it can be coarser than the decision actually requires. A deployment may still be converging, a controller may still have work to do, or a distributed process may still be open even though the futures capable of changing one specific claim have already been constrained.</p>
+    <p>A favorable snapshot is not enough either. The unfinished future still matters until the system can justify which adverse paths remain possible. Reliance Before Closure works in that gap: it does not require global completion, but it also does not treat a current value as stable merely because it looks good now.</p>
 
-    <h2>One claim, not the whole workflow</h2>
-    <p>The profile is claim-relative. It asks whether a particular verdict remains stable over the unresolved futures that matter to that verdict. Other parts of the workflow may remain incomplete or irrelevant to that question.</p>
-    <p>This distinction is what makes early reliance possible without pretending that the system is globally finished. The result is narrow by design: a relying party receives support for one bounded semantic claim under one declared boundary and trust profile.</p>
+    <h2>The relying object is smaller than the workflow</h2>
+    <p>The profile is claim-relative. It asks whether one verdict remains stable over the unresolved futures that matter to that verdict. Other parts of the workflow may remain incomplete without affecting that narrower question.</p>
+    <p>The result is therefore not “the system is done.” It is support for one semantic claim, under one qualified future boundary and one declared trust profile, for use by a relying party that accepts those same identities.</p>
 
-    <h2>Four obligations have to line up</h2>
-    <p>The project keeps four questions separate because success on one does not answer the others.</p>
+    <h2>From operational evidence to a relying decision</h2>
+    <p>The project keeps four obligations separate because none can substitute for the others.</p>
     <dl class="spec-grid">
       <dt>Future boundary</dt><dd>Which unresolved paths are still admissible, which have been excluded by evidence, and which remain explicit trust assumptions?</dd>
-      <dt>Verdict stability</dt><dd>Given that qualified future boundary, how far can the claim move before its verdict flips?</dd>
+      <dt>Verdict stability</dt><dd>Given that qualified boundary, how far can the claim move before its verdict flips?</dd>
       <dt>Action effect</dt><dd>How much can the proposed action itself worsen the same claim, including qualified action-induced future expansion?</dd>
-      <dt>Relying identity</dt><dd>Do the certificate, action bound, and relying party agree on the exact claim, semantic profile, unit, boundary identity, and trust-profile identity?</dd>
+      <dt>Relying identity</dt><dd>Do the certificate, action bound, and relying context agree on the exact claim, semantic profile, unit, boundary identity, and trust-profile identity?</dd>
     </dl>
-    <p>A positive result requires all four. The arithmetic comes last.</p>
-
-    <h2>Evidence and assumptions stay different</h2>
-    <p>The difficult part is not comparing two integers. It is deciding what future uncertainty those integers are allowed to summarize.</p>
-    <p>Reliance Before Closure records paths that were excluded by operational evidence separately from paths accepted as trust assumptions. A positive boundary may therefore be trust-scoped without pretending that an assumed absence was empirically proved.</p>
-    <p>If an unknown path could still worsen the claim and has not been evidenced away or explicitly accepted under the named trust profile, the system does not manufacture a positive margin. It requalifies instead.</p>
-
-    <h2>A current bound is not automatically a stable bound</h2>
-    <p>The recorded mutable-bound control makes this concrete. A ResourceQuota hard limit may be actively enforced at the current moment, but if the evaluated actor can relax that quota, the current number does not justify a positive future-stability certificate for that boundary.</p>
-    <p>The control therefore returns <span class="identifier">REQUALIFY</span>. Current enforcement answers what is true now. Reliance-grade stability asks what remains true across the admissible future.</p>
-
-    <h2>The stability margin</h2>
-    <p>For the frozen scalar profile <span class="identifier">THRESHOLD_SLACK_V0</span>, a verified stability certificate carries a nonnegative margin <span class="identifier">M</span>. The margin is decision-sufficient only after the boundary is proven and the claim, semantic profile, unit, boundary identity, and trust-profile identity are fixed.</p>
-    <p>The margin means that the claim's relevant quantity can worsen by a bounded amount before the verdict changes. It is not a universal safety number and it has no meaning outside the certificate's semantic and trust bindings.</p>
-
-    <h2>The action is qualified separately</h2>
-    <p>The proposed action receives its own bound, <span class="identifier">Cₐ</span>. That bound covers the action's direct claim-worsening effect plus any qualified future expansion caused by the action itself.</p>
-    <p>This separation matters. A stable claim does not automatically make every action safe to take against it. The relying decision compares a verified stability margin with a separately proven action effect.</p>
-
-    <h2>The provider-blind relying function</h2>
-    <p>Once provider-specific evidence has been turned into a verified stability certificate and a qualified action bound, the final <span class="identifier">rely()</span> function does not need Kubernetes-specific logic or another provider's internal model.</p>
-    <p>It checks exact semantic identity, requires a proven boundary and stable certificate, requires a proven action bound scoped to post-action admissible futures, and then applies the profile rule:</p>
+    <p>Evidence-backed exclusions remain distinct from accepted trust assumptions. If an unknown path could still worsen the claim and has neither been evidenced away nor explicitly accepted under the named trust profile, the system does not manufacture a positive margin.</p>
+    <p>For the frozen scalar profile <span class="identifier">THRESHOLD_SLACK_V0</span>, a verified stability certificate carries a nonnegative margin <span class="identifier">M</span>. The proposed action receives a separate qualified claim-worsening bound <span class="identifier">Cₐ</span>, covering its direct effect plus qualified action-induced future expansion.</p>
+    <p>Only after those provider-specific qualifications are complete does the provider-blind <span class="identifier">rely()</span> function act. It checks exact semantic and trust identity, requires a proven boundary and stable certificate, requires a proven action bound scoped to post-action admissible futures, and applies:</p>
     <div class="code-block">stable SATISFIED:  SUPPORTED iff Cₐ ≤ M
 stable VIOLATED:   SUPPORTED iff Cₐ &lt; M</div>
-    <p>The violated case is strict because consuming the entire violation margin reaches the threshold equality and changes the verdict.</p>
+    <p>The violated case is strict because consuming the whole violation margin reaches threshold equality and changes the verdict. The arithmetic is simple by design. Establishing what those numbers are entitled to mean is the larger part of the system.</p>
 
-    <h2>Matching numbers are not enough</h2>
+    <h2>Current truth is not future stability</h2>
+    <p>The recorded mutable-bound control makes the distinction concrete. A ResourceQuota hard limit may be enforced now, but if the evaluated actor can relax that quota, the current number does not justify a positive future-stability certificate for that boundary.</p>
+    <p>The result is <span class="identifier">REQUALIFY</span>. Current enforcement answers what is true at the snapshot. Reliance-grade stability asks what remains true across the admissible future.</p>
+
+    <h2>Matching numbers still may not apply</h2>
     <p>A counterfactual Inspector case uses <span class="identifier">M = 1</span> and <span class="identifier">Cₐ = 1</span>, so the arithmetic fits. But the relying context rejects the trust profile accepted by the certificate and action bound.</p>
-    <p>The result is <span class="identifier">NOT_APPLICABLE</span>, not <span class="identifier">SUPPORTED</span>. The profile refuses to let two mutually matching artifacts silently choose assumptions for the relying party.</p>
+    <p>The result is <span class="identifier">NOT_APPLICABLE</span>, not <span class="identifier">SUPPORTED</span>. Two artifacts cannot silently choose assumptions on behalf of the machine that consumes them.</p>
 
-    <h2>SUPPORTED is not permission and not a reservation</h2>
-    <p>The relying function returns only <span class="identifier">SUPPORTED</span>, <span class="identifier">REQUALIFY</span>, or <span class="identifier">NOT_APPLICABLE</span>. Every output explicitly says that authorization and reservation were not inferred.</p>
+    <h2>SUPPORTED is not permission or reservation</h2>
+    <p>The relying function returns only <span class="identifier">SUPPORTED</span>, <span class="identifier">REQUALIFY</span>, or <span class="identifier">NOT_APPLICABLE</span>. Every output explicitly states that authorization and reservation were not inferred.</p>
     <p>The recorded concurrency case shows why. Two one-slot actions can each be semantically within the same one-slot stability margin when evaluated independently. That does not reserve the slot twice. At commit time the authoritative Kubernetes quota admitted one action and rejected the other.</p>
-    <p>Reliance therefore answers a semantic applicability question. The authoritative system still controls authorization, coordination, admission, and commit success.</p>
+    <p>Reliance answers a semantic applicability question. The authoritative system still controls authorization, coordination, admission, and commit success.</p>
 
     <h2>The Kubernetes commissioning</h2>
-    <p>The project commissioned the interface against one local Kubernetes scenario rather than stopping at fixtures. At the reliance point, the claim-relevant rollout creation condition had become stable under an explicitly trust-scoped boundary while the broader Deployment completion condition was still false.</p>
+    <p>The project commissioned this interface against a local Kubernetes scenario rather than stopping at synthetic fixtures. At the reliance point, the claim-relevant rollout creation condition had become stable under an explicitly trust-scoped boundary while broader Deployment completion was still false.</p>
     <p>The archived run derived <span class="identifier">M = 1 POD_SLOT</span>. A server-normalized standalone Pod CREATE was separately qualified at <span class="identifier">Cₐ = 1 POD_SLOT</span>. The provider-blind consumer returned <span class="identifier">SUPPORTED</span>, the actual Pod CREATE succeeded, and broader Deployment completion arrived later.</p>
     <dl class="spec-grid">
       <dt>Quota at reliance</dt><dd>4 / 5</dd>
@@ -107,47 +92,41 @@ stable VIOLATED:   SUPPORTED iff Cₐ &lt; M</div>
       <dt>Broader Deployment complete at reliance</dt><dd>false</dd>
       <dt>Measured interval to broader closure</dt><dd>20.613487 seconds</dd>
     </dl>
-    <p>The 20.613487-second interval is one harness measurement from this recorded trace. It is not a production latency distribution or a claim that the profile speeds Kubernetes up by that amount.</p>
-
-    <h2>What the commissioning actually demonstrated</h2>
     <div class="code-block">operational evidence
         ↓
 future-boundary qualification
         ↓
 stability margin M
         ↓
-separately qualified action bound Cₐ
+qualified action bound Cₐ
         ↓
 provider-blind rely()
         ↓
 actual commit
         ↓
 later broader workflow closure</div>
-    <p>The useful result is the separation itself: in the recorded scenario, machine-consumable evidence supported a claim-specific reliance decision before workflow-wide completion. The project preserved the evidence, assumption, semantic, boundary, trust, and action-effect bindings needed to make that handoff reviewable.</p>
+    <p>The result is the separation demonstrated by that trace: machine-consumable evidence supported a claim-specific reliance decision before workflow-wide completion. The 20.613487-second interval is one harness measurement from this scenario, not a production latency distribution or a claim that the profile speeds Kubernetes up by that amount.</p>
 
-    <h2>Negative controls make the boundary clearer</h2>
-    <p>The recorded and counterfactual cases are useful because they show several superficially attractive shortcuts failing for different reasons.</p>
+    <h2>Controls that sharpen the result</h2>
+    <p>The recorded and counterfactual cases show why several tempting shortcuts are insufficient.</p>
     <dl class="spec-grid">
       <dt>Mutable hard bound</dt><dd><span class="identifier">REQUALIFY</span>. Current enforcement is not future stability when an admissible actor can relax the bound.</dd>
       <dt>Trust-profile mismatch</dt><dd><span class="identifier">NOT_APPLICABLE</span>. Matching arithmetic cannot override a relying party's rejected trust assumptions.</dd>
-      <dt>Replacement reserve</dt><dd><span class="identifier">REQUALIFY</span>. If an additional adverse replacement path is included, the effective margin falls from one slot to zero and the proposed one-slot action no longer fits.</dd>
+      <dt>Replacement reserve</dt><dd><span class="identifier">REQUALIFY</span>. Including one additional adverse replacement path reduces the effective margin from one slot to zero, so the proposed one-slot action no longer fits.</dd>
       <dt>Concurrent one-slot actions</dt><dd>Each can be <span class="identifier">SUPPORTED</span> semantically, while the authoritative quota still admits only one. Proof is not reservation.</dd>
     </dl>
 
-    <h2>How this differs from waiting for closure</h2>
-    <p>Broader closure asks whether the workflow has reached its own terminal condition. Reliance Before Closure asks whether a smaller, claim-specific decision boundary has already become good enough for a downstream machine to consume.</p>
-    <p>Waiting for closure remains valid when the narrower boundary cannot be qualified. The profile does not force early action. It gives a machine-readable way to distinguish cases where waiting is still necessary from cases where the evidence already supports a bounded reliance decision.</p>
+    <h2>Relationship to broader closure and neighboring systems</h2>
+    <p>Broader closure asks whether the workflow has reached its own terminal condition. Reliance Before Closure asks whether a smaller, claim-specific boundary has already become sufficient for a downstream machine. If that boundary cannot be qualified, waiting for broader closure remains a valid fallback. The profile does not force early action.</p>
+    <p>Runtime verification, relative information completeness, coordination-avoidance results, assume/guarantee reasoning, attestation architectures, safety filters, and action-governance systems already cover important neighboring ideas. Reliance Before Closure does not claim to have invented those foundations.</p>
+    <p>Its narrower engineering result is an executable handoff between heterogeneous operational evidence, an explicitly qualified unresolved-future boundary, a claim-specific stability result, a separately qualified action-effect bound, and a provider-blind relying party.</p>
 
-    <h2>How this differs from a safety filter</h2>
-    <p>Formal safety filters, runtime verification, relative information completeness, coordination-avoidance results, assume/guarantee reasoning, attestation architectures, and action-governance systems already cover important neighboring ideas. Reliance Before Closure does not claim to have invented those foundations.</p>
-    <p>Its narrower engineering contribution is the executable seam between heterogeneous operational evidence, an explicitly qualified unresolved-future boundary, a claim-specific stability result, a separately qualified action-effect bound, and a provider-blind relying party.</p>
-
-    <h2>The Inspector</h2>
+    <h2>Reliance Inspector</h2>
     <p>Reliance Inspector v0.4.0 exposes the recorded final commissioning case, recorded negative controls, and generated counterfactuals. It shows the decision trace, boundary status, evidence-backed exclusions, explicit trust assumptions, stability margin, action bound, identity diagnostics, timing, and nonclaims.</p>
     <p>The hosted surface is intentionally canonical-only. Full evidence ZIP verification and arbitrary semantic-object evaluation remain local capabilities of the archived v0.4.0 release. The hosted <span class="identifier">app.js</span>, styles, and canonical case data are frozen copies, while deployment-only navigation and scope disclosure remain separate.</p>
     <p><a href="/tools/reliance-inspector/">Open Reliance Inspector</a></p>
 
-    <h2>Three levels of reproducibility</h2>
+    <h2>Reproducibility</h2>
     <dl class="spec-grid">
       <dt>Recorded evidence</dt><dd>The frozen commissioning ZIP can be verified offline with Python 3 and no Kubernetes cluster. The verifier rechecks the archive manifest, boundary accounting, trust assumptions, raw Kubernetes objects, margin and action derivations, relying result, final quota state, quota-failure absence, and lead arithmetic.</dd>
       <dt>Semantic core</dt><dd>The zero-dependency Python consumer, canonical fixtures, conformance checks, and exhaustive integer oracle can be run independently. A TypeScript implementation is retained as a second implementation.</dd>
@@ -156,15 +135,15 @@ later broader workflow closure</div>
 
     <h2>Result</h2>
     <div class="callout">
-      <p><strong>Reliance Before Closure makes a narrower completion boundary consumable by another machine without pretending the broader workflow is finished.</strong> The relying party gets a bounded semantic result only after evidence, assumptions, claim identity, trust identity, stability, and action effect agree.</p>
+      <p><strong>Reliance Before Closure makes a narrower decision boundary consumable by another machine without pretending the broader workflow is finished.</strong> The relying party receives a bounded semantic result only after evidence, assumptions, claim identity, trust identity, stability, and action effect agree.</p>
     </div>
     <p>The recorded Kubernetes commissioning supplies an existence result for that architecture: one trust-scoped operational trace reached <span class="identifier">SUPPORTED</span>, committed the qualified action, and only later reached broader Deployment closure.</p>
 
-    <h2>Where the profile stops</h2>
+    <h2>Scope and trust boundary</h2>
     <p><span class="identifier">SUPPORTED</span> is not authorization, a reservation, a transaction, an admission decision, or a guarantee that a concurrent commit will succeed. The minimal reference also does not authenticate certificates or action bounds; verified authenticity is a caller-side precondition.</p>
-    <p>The Kubernetes result is one scenario-conditioned commissioning trace, not evidence of production prevalence or a universal early-action window. The positive boundary accepted explicit trust assumptions. Those assumptions remain part of the claim rather than being silently promoted to evidence.</p>
+    <p>The Kubernetes result is one scenario-conditioned commissioning trace, not evidence of production prevalence or a universal early-action window. Its positive boundary accepted explicit trust assumptions. Those assumptions remain part of the claim rather than being silently promoted to evidence.</p>
 
-    <h2>Frozen record</h2>
+    <h2>Frozen record and source materials</h2>
     <dl class="spec-grid">
       <dt>Semantic profile</dt><dd class="identifier">THRESHOLD_SLACK_V0</dd>
       <dt>Inspector</dt><dd>Reliance Inspector v0.4.0</dd>
@@ -175,8 +154,6 @@ later broader workflow closure</div>
       <dt>Canonical consumer</dt><dd>Zero-dependency Python</dd>
       <dt>Independent implementation</dt><dd>TypeScript</dd>
     </dl>
-
-    <h2>Research and source record</h2>
     <div class="reference-list">
       <a href="/research/technical-notes/2026-02/">RISU Technical Note 2026-02</a>
       <a href="/research/technical-notes/2026-02/RISU_Technical_Note_2026-02_Reliance_Before_Closure.pdf">Full Technical Note PDF</a>

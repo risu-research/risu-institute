@@ -19,7 +19,7 @@ test("every research entry title is a primary navigation link", async () => {
     ["Native++ v0.2", "/work/native-plus/"],
     ["ClosureProbe", "/work/closureprobe/"],
     ["Negative Result Warrant", "/tools/negative-result-warrant/"],
-    ["Projection Assurance", "/research/technical-notes/2026-04/"],
+    ["Projection Assurance", "/work/projection-assurance/"],
     ["OpenAPI→MCP Problem-Semantics Preservation Profile", "/work/problem-semantics/"],
     ["HTTP→MCP Method-Inference Soundness Profile", "/work/http-mcp-method-inference/"],
     ["Appeal", "/rels/appeal"],

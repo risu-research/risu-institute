@@ -55,7 +55,10 @@ test("NRW Inspector uses the current RISU shell without changing its frozen eval
     assert.ok(refreshCss.includes(expected), expected);
   }
   assert.ok(refreshJs.includes('recordedMode?.click()'));
-  assert.ok(refreshJs.includes('loadOrdinary?.click()'));
+  assert.equal(refreshJs.includes('loadOrdinary?.click()'), false);
+  for (const forbidden of [/\bfetch\s*\(/u, /\bXMLHttpRequest\b/u, /\bWebSocket\b/u, /\blocalStorage\b/u]) {
+    assert.doesNotMatch(refreshJs, forbidden);
+  }
 
   assert.ok(core.includes("WARRANTED_ZERO"));
   assert.ok(inspector.includes("inspectCapture"));

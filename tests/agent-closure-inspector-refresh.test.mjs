@@ -65,10 +65,10 @@ test("current surface keeps public canonical inspection separate from local priv
   assert.match(html, /id="capability-note"/u);
 });
 
-test("current Agent Closure route is primary while frozen publication bytes remain separately addressable", async () => {
+test("current Agent Closure surface is indexed while the frozen publication stays archival", async () => {
   const redirects = await read("public/_redirects");
   const sitemap = await read("public/sitemap.xml");
-  assert.match(redirects, /^\/tools\/agent-closure\/ \/tools\/agent-closure-inspector\/ 301$/mu);
+  assert.doesNotMatch(redirects, /\/tools\/agent-closure/u);
   assert.equal(sitemap.split("https://risuinstitute.org/tools/agent-closure-inspector/").length - 1, 1);
   assert.equal(sitemap.split("https://risuinstitute.org/tools/agent-closure/").length - 1, 0);
 });

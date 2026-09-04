@@ -25,8 +25,6 @@ test("hosted Reliance Inspector is canonical-public and Python-local", async () 
   assert.doesNotMatch(html, /https?:\/\/[^"']+\.js/u);
 });
 
-
-
 test("hosted boundary guard prevents static-host 405 responses from impersonating the local API", async () => {
   const guard = await text("hosted-guard.js");
   assert.match(guard, /\/api\/evaluate/u);
@@ -69,11 +67,11 @@ test("site security policy isolates the Reliance Inspector route", async () => {
   ]) assert.ok(block.includes(directive), directive);
 });
 
-test("tools directory exposes the Reliance Inspector as an instrument, not only a record", async () => {
+test("tools directory exposes the Reliance Inspector as an instrument", async () => {
   const html = await readFile(join(root, "public", "tools", "index.html"), "utf8");
-  const cardStart = html.indexOf("<h2 class=\"work-title\">Reliance Inspector</h2>");
+  const cardStart = html.indexOf('<article class="rv-other-card"><h3>Reliance Inspector</h3>');
   assert.notEqual(cardStart, -1);
   const card = html.slice(cardStart, html.indexOf("</article>", cardStart));
-  assert.match(card, /Open Inspector/u);
-  assert.match(card, /Frozen canonical cases/u);
+  assert.match(card, /Inspect evidence, assumptions, identities, and derivations behind a claim-specific relying decision\./u);
+  assert.match(card, /href="\/tools\/reliance-inspector\/">Open Inspector/u);
 });

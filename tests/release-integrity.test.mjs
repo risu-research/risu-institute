@@ -80,6 +80,7 @@ const productionPages = [
   "tools/index.html",
   "tools/consequence-closure/index.html",
   "tools/reliance-inspector/index.html",
+  "tools/agent-closure-inspector/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
   "work/problem-semantics/index.html",
@@ -276,6 +277,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/agent-closure/index.html",
     "tools/agent-closure/provenance.json",
     "tools/agent-closure/style.css",
+    "tools/agent-closure-inspector/index.html",
     "tools/consequence-closure/index.html",
     "tools/consequence-closure/inspector/app.js",
     "tools/consequence-closure/inspector/engine.js",
@@ -491,11 +493,15 @@ test("the Research URLs appear in the sitemap exactly once", async () => {
   assert.doesNotMatch(sitemap, /RISU_Technical_Note_2026-01_From_Revocation_to_Closure\.pdf/u);
 });
 
-test("the Agent Closure Inspector URL appears in the sitemap exactly once", async () => {
+test("the current Agent Closure Inspector URL appears in the sitemap exactly once", async () => {
   const sitemap = await readProject("public/sitemap.xml");
   assert.equal(
-    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure\/<\/loc>/gu)].length,
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure-inspector\/<\/loc>/gu)].length,
     1,
+  );
+  assert.doesNotMatch(
+    sitemap,
+    /<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure\/<\/loc>/u,
   );
 });
 
@@ -564,7 +570,7 @@ test("basic static HTML accessibility invariants hold", async () => {
   }
 });
 
-test("Cloudflare routing preserves the slashless semantic identity and custom 404", async () => {
+test("Cloudflare routing preserves canonical identities and the custom 404", async () => {
   const config = JSON.parse(await readProject("wrangler.jsonc"));
   const redirects = await readProject("public/_redirects");
 
@@ -575,7 +581,10 @@ test("Cloudflare routing preserves the slashless semantic identity and custom 40
   assert.deepEqual(config.routes, [
     { pattern: "risuinstitute.org", custom_domain: true },
   ]);
-  assert.equal(redirects.trim(), "/rels/appeal/ /rels/appeal 301");
+  assert.deepEqual(redirects.trim().split("\n"), [
+    "/rels/appeal/ /rels/appeal 301",
+    "/tools/agent-closure/ /tools/agent-closure-inspector/ 301",
+  ]);
 });
 
 test("sitemap, manifest, and release documents agree on the frozen identity", async () => {

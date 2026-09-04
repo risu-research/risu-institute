@@ -76,9 +76,14 @@ test("browser-local evaluator is pinned to the frozen engine and its published b
   assert.equal(provenance.upload_limit_bytes, 1024 * 1024);
   assert.equal(provenance.persistence, "none");
   assert.equal(provenance.network_evaluation_endpoint, false);
+  assert.equal(provenance.schema_validator_mode, "Ajv standalone precompiled at build time");
+  assert.equal(provenance.dynamic_code_generation, false);
   assert.match(provenance.equivalence_basis, /eight frozen canonical cases/u);
   assert.match(worker, /Frozen BAC engine a46456f028cd3dd1d386111b1faab890a26ae5e9/u);
   assert.match(worker, /Inspector presentation 07325dd1304cc3fe1acd86ce50596161581a1cdb/u);
+  assert.match(worker, /schema validator precompiled at build time/u);
+  assert.doesNotMatch(worker, /\bnew\s+Function\b/u);
+  assert.doesNotMatch(worker, /\beval\s*\(/u);
 });
 
 test("browser-local evaluator exactly replays all eight frozen boundary evaluations", async () => {
@@ -141,7 +146,7 @@ test("browser-local evaluator fails closed on malformed, oversized, and wrong-me
   assert.equal(wrongMedia.status, 415);
 });
 
-test("browser-local adapter has no network or persistence capability", async () => {
+test("browser-local adapter has no network, persistence, or dynamic-code capability", async () => {
   const worker = await read("public/tools/agent-closure-inspector/evaluator-worker.js");
   const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");
 
@@ -161,6 +166,8 @@ test("browser-local adapter has no network or persistence capability", async () 
       /\bsessionStorage\b/u,
       /\bindexedDB\b/u,
       /\bcaches\./u,
+      /\bnew\s+Function\b/u,
+      /\beval\s*\(/u,
     ]) assert.doesNotMatch(source, forbidden);
   }
   assert.doesNotMatch(worker, /\bfetch\s*\(/u);

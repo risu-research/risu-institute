@@ -186,7 +186,7 @@ test("tools index preserves the declared instrument boundaries", async () => {
   assert.ok(page.includes("The Workbench consumes RISU artifacts; it does not infer a new assurance claim from arbitrary JSON."));
   assert.ok(page.includes("Browser verified"));
   assert.ok(page.includes("Producer recorded"));
-  assert.ok(page.includes(repositoryUrl));
+  assert.ok(page.includes('href="/tools/reliance-inspector/">Open Inspector'));
 });
 
 test("sitemap includes the current publication, instrument, and work surfaces", async () => {

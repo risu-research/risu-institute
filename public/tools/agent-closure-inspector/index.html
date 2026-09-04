@@ -75,6 +75,7 @@ body.hosted-agent-closure .error-surface{margin:72px 0;padding:30px;border:1px s
 @media(max-width:760px){body.hosted-agent-closure main,body.hosted-agent-closure footer,.institutional-inner{width:min(calc(100% - 36px),1280px)}.institutional-inner{min-height:66px;align-items:flex-start;padding:17px 0;flex-direction:column;gap:12px}.institutional-nav{gap:15px;flex-wrap:wrap}.instrument-hero h1{font-size:clamp(3rem,16vw,4.7rem)}.closure-contract,.contrast-grid,body.hosted-agent-closure .case-grid{grid-template-columns:1fr}.closure-contract article,.closure-contract article:first-child,.closure-contract article:nth-child(3),.closure-contract article:last-child{padding:20px 0;border-right:0;border-top:1px solid var(--line-2)}.closure-contract article:first-child{border-top:0}.contrast-heading{grid-template-columns:1fr;gap:18px}.local-boundary{grid-template-columns:1fr}.local-actions{justify-content:flex-start}.local-actions .capability-note{text-align:left}.verdict-map-row{grid-template-columns:100px 1fr}body.hosted-agent-closure .verdict-strip{grid-template-columns:1fr;gap:24px;padding:23px}body.hosted-agent-closure .section-heading,body.hosted-agent-closure .inspector-heading{align-items:flex-start;flex-direction:column}.instrument-footer{grid-template-columns:1fr}.instrument-footer .footer-links{justify-content:flex-start}}
 </style>
 <script type="module" src="/tools/agent-closure/app.js"></script>
+<script type="module" src="/tools/agent-closure-inspector/browser-local.js"></script>
 </head>
 <body class="hosted-agent-closure">
 <header class="institutional-header">
@@ -135,11 +136,11 @@ body.hosted-agent-closure .error-surface{margin:72px 0;padding:30px;border:1px s
     </section>
 
     <section class="local-boundary" aria-label="Local evaluation boundary">
-      <div><p class="eyebrow">Private evidence</p><h2>Canonical cases are public. Arbitrary evidence stays local.</h2><p>The hosted site reads only the frozen generated corpus. The archived local Inspector can evaluate a conforming JSON evidence bundle in memory on literal <code>127.0.0.1</code> through the same frozen verifier path.</p></div>
+      <div><p class="eyebrow">Private evidence</p><h2>Public cases are hosted. Your evidence stays local.</h2><p>Choose a conforming JSON evidence bundle. A browser-targeted build from the frozen v0.3 verifier evaluates it in memory on this device. The file is not uploaded to RISU or persisted by the Inspector. For archival reproduction, the canonical Node verifier remains available through the local Inspector.</p></div>
       <div class="local-actions">
         <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>
         <input id="file-input" type="file" accept="application/json,.json" hidden>
-        <p class="capability-note" id="capability-note" aria-live="polite"></p>
+        <p class="capability-note" id="capability-note" aria-live="polite">Preparing browser-local evaluator.</p>
       </div>
     </section>
   </section>
@@ -205,7 +206,7 @@ body.hosted-agent-closure .error-surface{margin:72px 0;padding:30px;border:1px s
 
 <footer class="instrument-footer">
   <p>Hosted presentation over frozen Inspector v0.1 and Phase-1 engine v0.3. The frozen publication bytes remain preserved separately.</p>
-  <div class="footer-links"><a href="/work/bounded-agent-closure/">Research overview</a><a href="/research/technical-notes/2026-01/">Technical Note</a><a href="https://github.com/risu-research/bounded-agent-closure">Canonical repository</a><a href="/tools/agent-closure/provenance.json">Frozen provenance</a></div>
+  <div class="footer-links"><a href="/work/bounded-agent-closure/">Research overview</a><a href="/research/technical-notes/2026-01/">Technical Note</a><a href="https://github.com/risu-research/bounded-agent-closure">Canonical repository</a><a href="/tools/agent-closure/provenance.json">Frozen provenance</a><a href="/tools/agent-closure-inspector/evaluator-provenance.json">Browser evaluator provenance</a></div>
 </footer>
 </body>
 </html>

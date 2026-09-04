@@ -65,15 +65,20 @@ test("current surface reuses the frozen runtime and preserves every DOM hook it 
   }
 });
 
-test("current surface keeps public canonical inspection separate from local private evaluation", async () => {
+test("current surface makes private evidence usable without sending it to the site", async () => {
   const html = await read("public/tools/agent-closure-inspector/index.html");
-  assert.match(html, /Canonical cases are public\. Arbitrary evidence stays local\./u);
-  assert.match(html, /literal <code>127\.0\.0\.1<\/code>/u);
+  const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");
+  assert.match(html, /Public cases are hosted\. Your evidence stays local\./u);
+  assert.match(html, /The file is not uploaded to RISU or persisted by the Inspector\./u);
   assert.match(html, /id="open-file"[^>]*disabled/u);
   assert.match(html, /id="file-input"/u);
-  assert.match(html, /id="capability-note"/u);
+  assert.match(html, /browser-local\.js/u);
+  assert.match(html, /Browser evaluator provenance/u);
+  assert.match(bootstrap, /new Worker\(/u);
+  assert.match(bootstrap, /url\.pathname === "\/api\/evaluate"/u);
+  assert.match(bootstrap, /worker\.postMessage/u);
+  assert.doesNotMatch(bootstrap, /serviceWorker/u);
 });
-
 test("current Agent Closure route has an explicit same-origin, no-exfiltration security boundary", async () => {
   const headers = await read("public/_headers");
   const block = headerBlock(headers, "/tools/agent-closure-inspector/*");
@@ -85,6 +90,7 @@ test("current Agent Closure route has an explicit same-origin, no-exfiltration s
     "img-src 'self'",
     "font-src 'none'",
     "connect-src 'self'",
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",

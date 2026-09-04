@@ -211,6 +211,7 @@ test("the current Agent Closure Inspector route applies its hosted security boun
     "img-src 'self'",
     "font-src 'none'",
     "connect-src 'self'",
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
@@ -229,7 +230,7 @@ test("the current Agent Closure Inspector route applies its hosted security boun
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
-test("the hosted surface exposes no arbitrary evidence evaluation endpoint", async () => {
+test("the origin exposes no server-side arbitrary evidence evaluation endpoint", async () => {
   const response = await fetch(`${origin}/api/evaluate`, {
     method: "POST",
     headers: { "content-type": "application/json" },

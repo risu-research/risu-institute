@@ -16,6 +16,8 @@ const softwareDoi = "10.5281/zenodo.22037607";
 const repositoryUrl = "https://github.com/risu-research/reliance-before-closure";
 const nativePlusRecordUrl =
   "https://github.com/risu-research/risu-institute/tree/main/records/native-plus-v0.2";
+const methodInferenceRepoUrl =
+  "https://github.com/risu-research/http-mcp-method-inference-soundness-profile";
 const pdfPath =
   "research/technical-notes/2026-02/RISU_Technical_Note_2026-02_Reliance_Before_Closure.pdf";
 
@@ -108,11 +110,43 @@ test("Native++ opens a dedicated website record before the GitHub deep record", 
   assert.equal(record.includes("\u2014"), false, "Native++ public record contains an em dash");
 });
 
+test("HTTP to MCP method inference opens a dedicated explanatory profile page", async () => {
+  const work = await readPublic("work/index.html");
+  const profile = await readPublic("work/http-mcp-method-inference/index.html");
+
+  assert.equal(work.split('href="/work/http-mcp-method-inference/"').length - 1, 2);
+  for (const expected of [
+    '<link rel="canonical" href="https://risuinstitute.org/work/http-mcp-method-inference/">',
+    "The problem in plain language",
+    "The five-method claim budget",
+    "Why there are 40 states",
+    "Applicability comes first",
+    "Sound is not the same as maximal",
+    "Independent implementation witnesses",
+    "The blind witness annex",
+    "What the project established",
+    "What it does not establish",
+    "Freeze and reproducibility",
+    "14",
+    "26",
+    "API7 documented defaults",
+    "Infobip verified source defaults",
+    "Azure App Service documented defaults",
+    methodInferenceRepoUrl,
+  ]) assert.ok(profile.includes(expected), expected);
+
+  assert.ok(profile.includes("effect-faithful translation"));
+  assert.ok(profile.includes("Runtime dependency count is zero"));
+  assert.ok(profile.includes("not an official MCP"));
+  assert.equal(profile.includes("\u2014"), false, "method-inference public page contains an em dash");
+});
+
 test("institutional navigation distinguishes research, publications, tools, and about", async () => {
   const pages = [
     "index.html",
     "work/index.html",
     "work/native-plus/index.html",
+    "work/http-mcp-method-inference/index.html",
     "research/index.html",
     "research/technical-notes/index.html",
     "research/technical-notes/2026-03/index.html",
@@ -145,10 +179,11 @@ test("tools index preserves the declared instrument boundaries", async () => {
   assert.ok(page.includes(repositoryUrl));
 });
 
-test("sitemap includes the current publication, instrument, and Native++ surfaces", async () => {
+test("sitemap includes the current publication, instrument, and work surfaces", async () => {
   const sitemap = await readPublic("sitemap.xml");
   for (const url of [
     "https://risuinstitute.org/work/native-plus/",
+    "https://risuinstitute.org/work/http-mcp-method-inference/",
     "https://risuinstitute.org/research/technical-notes/2026-03/",
     "https://risuinstitute.org/research/technical-notes/2026-02/",
     "https://risuinstitute.org/tools/",

@@ -106,7 +106,7 @@ JustifiedGuarantees(HTTP method)</div>
     <p>Soundness asks whether the translator overclaims. <span class="identifier">PROFILE_MAXIMAL</span> asks a different question: among the sound states, does this one express the strongest Core representation the method can justify?</p>
     <p>Maximality is only a precision measure. MCP does not require it, and <span class="identifier">SOUND_NON_MAXIMAL</span> is not a failure. The profile is concerned first with unsupported guarantees, not with forcing every translator to claim as much as possible.</p>
 
-    <h2>How frozen implementation defaults compared</h2>
+    <h2>Comparison with reproduced defaults</h2>
     <p>The artifact also reproduced method-default mappings from three independent implementation sources and evaluated those specific mappings under the same Core.</p>
 
     <div class="code-block">Reproduced method-default layer         Sound methods   Unsupported active guarantees
@@ -117,16 +117,16 @@ Azure App Service documented defaults  2 / 5           4</div>
     <p>API7's documented defaults matched the profile-maximal mapping for all five methods. In the frozen Infobip mapping, the reproduced POST, PUT, and PATCH defaults asserted additive-only guarantees that the method alone did not justify. In the frozen Azure mapping, POST and PUT asserted additive-only guarantees, while PATCH asserted both additive-only and idempotent guarantees.</p>
     <p>These are scoped results for the pinned method-default mappings that were reproduced. They are not ratings of API7, Infobip, or Azure as products.</p>
 
-    <h2>What the 25-operation witness set added</h2>
+    <h2>A second check against real operations</h2>
     <p>The project kept a separate semantics-blind witness set so the method-level rule could also be checked against concrete, first-party-documented operations. The frozen set contains 25 method-stratified operations and eight unique operation-level evidence records. It is a witness set, not a prevalence sample.</p>
     <p>Six matched contradiction witnesses showed POST, PUT, and PATCH operations that edit, replace, or delete existing state. Those cases give concrete counterexamples to a universal method-only rule that these methods are non-destructive.</p>
-    <p>The same annex also contains one operation-specific additive-only POST supported by a DaniWeb record. A Jumpseller support record was version-mismatched and remained non-decisive. Across the eight unique evidence records, one changed the decision, six changed the reasoning only, and one was non-decisive. That result supported keeping the Core static while leaving operation-specific, proof-carrying exceptions as a separate experimental path.</p>
+    <p>The same annex also contains one operation-specific additive-only POST supported by a DaniWeb record. A Jumpseller support record was version-mismatched and remained non-decisive. Across the eight unique evidence records, one changed the decision, six changed the reasoning only, and one was non-decisive. The evidence favored keeping the Core static and treating operation-specific proof exceptions as a separate experiment.</p>
 
-    <h2>What the result shows</h2>
+    <h2>Result</h2>
     <div class="callout">
       <p><strong>Within this five-method profile,</strong> a translator that derives MCP tool hints from the HTTP method should not assert an active guarantee beyond what that method actually supports. The executable checker turns that boundary into a deterministic test.</p>
     </div>
-    <p>The same idea may be useful elsewhere, but this artifact establishes it only for the declared HTTP-to-MCP profile. It does not claim a general translation theory.</p>
+    <p>The result is limited to the declared five-method HTTP-to-MCP profile. It is not a general translation theory.</p>
 
     <h2>Where the profile stops</h2>
     <p>The checker answers one bounded question: assuming effect-faithful translation, do the method-derived annotations claim more than the method supports? Runtime behavior, tool safety, server honesty, HTTP compliance, and MCP server trustworthiness are outside that check. The profile also does not validate explicit operation-specific annotations, cover every HTTP method, or turn the frozen implementation comparisons into product-level judgments. The 25-operation annex is not an ecosystem prevalence estimate. Version 0.2.1 remains an experimental draft for public review, not an official MCP, IETF, OpenAPI, vendor, or standards-body profile.</p>

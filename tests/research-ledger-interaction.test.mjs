@@ -13,7 +13,7 @@ test("every research entry title is a primary navigation link", async () => {
   assert.equal(entries.length, 10);
 
   const expectedTitleLinks = [
-    ["Consequence Closure", "/research/technical-notes/2026-03/"],
+    ["Consequence Closure", "/work/consequence-closure/"],
     ["Reliance Before Closure", "/work/reliance-before-closure/"],
     ["Bounded Agent Closure", "/work/bounded-agent-closure/"],
     ["Native++ v0.2", "/work/native-plus/"],

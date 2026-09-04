@@ -1,0 +1,38 @@
+{
+  "artifact": "RISU Consequence Closure Inspector current hosted surface",
+  "surface_version": "2026-09-04.2",
+  "purpose": "Evolving browser-local presentation and interaction layer over the frozen Consequence Closure Inspector v0.5.0 and Core v0.1.0 semantics.",
+  "semantic_engine": {
+    "inspector": "0.5.0",
+    "core": "0.1.0",
+    "frozen_route": "/tools/consequence-closure/inspector/",
+    "software_doi": "10.5281/zenodo.22095595",
+    "technical_note_doi": "10.5281/zenodo.22095709"
+  },
+  "frozen_browser_sha256": {
+    "index.html": "3e2d7f4d6c9f631bc7b7c6a40c98b00635d82f7677f13c243e993f3ec35eef66",
+    "styles.css": "dd24b0f0cd84643a41c583c4348b22089de026b6bec7257740f014134eb7fe47",
+    "engine.js": "6264d591f1a54ca320a5e3951fc2767b2b8a93dec8c60e3c60c51a698206a472",
+    "samples.js": "141081b541847249d51266851e739513a821b55ad4fa7ee2efef151f40fb3b0d",
+    "app.js": "7c0f42f3e7d777af7be904d4b3980237d83b43899fff01ba753b9f33d6f1506c"
+  },
+  "current_surface_identity": "Git-tracked evolving presentation layer; semantic identity is anchored by the frozen browser hashes above.",
+  "execution": "ephemeral Web Worker",
+  "network_evaluation_endpoint": false,
+  "external_runtime_requests": false,
+  "persistence": "none",
+  "new_semantic_claims": false,
+  "presentation_capabilities": [
+    "decision-first reading order",
+    "exact inclusion-minimal family challenge navigation",
+    "certificate and removal-witness replay",
+    "interactive evidence-cut recomputation",
+    "model-relative Route inspection",
+    "assurance-boundary ladder",
+    "baseline, local-artifact, and recorded-contrast comparison with explicit comparison qualification",
+    "shareable reference-case and comparison deep links",
+    "progressive rendering of exact world and obligation families",
+    "deterministic canonical inspection-record integrity check"
+  ],
+  "claim_boundary": "The current hosted layer reorganizes and interrogates outputs from the frozen semantic engine. It does not modify the frozen Core, infer P0/P1/P2 from a loaded profile, promote model Routes into source-system Routes, authenticate external truth from a digest, treat a canonical record digest as a file-byte digest, or turn inspection-record integrity into semantic replay."
+}

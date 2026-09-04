@@ -41,3 +41,6 @@ jobs:
 
       - name: Run site checks
         run: pnpm check
+
+      - name: Run Consequence Closure Chromium gate
+        run: node tests/consequence-closure-current.browser.mjs

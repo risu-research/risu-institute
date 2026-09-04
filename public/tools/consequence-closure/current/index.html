@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f2f1ed">
+<title>Consequence Closure Inspector | Current hosted surface</title>
+<meta name="description" content="Current browser-local Consequence Closure Inspector powered by the frozen v0.5.0 semantic engine. Challenge materiality witnesses, obligation families, routes, boundaries, and comparison states without uploading evidence.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="instrument-shell">
+  <header class="topbar">
+    <a class="identity" href="/tools/consequence-closure/" aria-label="Consequence Closure overview">
+      <span class="risu-mark">RISU</span>
+      <span class="identity-copy"><strong>Consequence Closure Inspector</strong><small>Current hosted surface</small></span>
+    </a>
+    <div class="top-status">
+      <span class="local-state"><i></i>Browser local</span>
+      <span class="engine-state" id="engineState">Starting frozen engine</span>
+      <a class="quiet-link" href="/tools/consequence-closure/">Overview</a>
+    </div>
+  </header>
+
+  <div class="commandbar">
+    <button class="primary-action" id="openBtn" type="button" disabled>Open evidence</button>
+    <input id="fileInput" type="file" accept="application/json,.json" hidden>
+    <div class="record-identity" id="recordIdentity"><span>No record loaded</span></div>
+    <div class="command-actions">
+      <button class="quiet-button" id="resetBtn" type="button" disabled>Reset evidence</button>
+      <button class="quiet-button" id="exportBtn" type="button" disabled>Export record</button>
+    </div>
+  </div>
+
+  <nav class="modebar" aria-label="Inspector modes">
+    <button class="mode active" data-mode="decision" type="button" disabled>Decision</button>
+    <button class="mode" data-mode="challenge" type="button" disabled>Challenge</button>
+    <button class="mode" data-mode="route" type="button" disabled>Route</button>
+    <button class="mode" data-mode="boundary" type="button" disabled>Boundary</button>
+    <button class="mode" data-mode="compare" type="button">Compare</button>
+    <button class="mode" data-mode="source" type="button" disabled>Source</button>
+  </nav>
+
+  <main class="workspace" id="dropZone">
+    <section class="welcome active" id="welcomeView">
+      <div class="welcome-copy">
+        <p class="kicker">Consequence assurance at the action cut</p>
+        <h1>Turn an uncertain consequence into a result you can challenge.</h1>
+        <p class="welcome-lede">Open a semantic profile, authority trace, OAuth evidence record, Keycloak commissioning summary, or exported inspection record. The current surface keeps the frozen v0.5.0 semantics intact while making the counterexample, obligation certificate, route, boundary, and before-after transition easier to interrogate.</p>
+        <div class="welcome-actions">
+          <button class="large-action" id="welcomeOpenBtn" type="button" disabled>
+            <strong>Open local JSON evidence</strong>
+            <span>No upload, no account, no persistence</span>
+          </button>
+          <a class="secondary-action" href="/tools/consequence-closure/inspector/" target="_blank" rel="noopener">
+            <strong>Open frozen v0.5.0</strong>
+            <span>Exact archival browser bytes</span>
+          </a>
+        </div>
+      </div>
+
+      <aside class="welcome-ledger" aria-label="Assurance boundary">
+        <div class="ledger-row"><span>Semantic engine</span><strong>Inspector v0.5.0 · Core v0.1.0</strong></div>
+        <div class="ledger-row"><span>Execution</span><strong>Ephemeral Web Worker</strong></div>
+        <div class="ledger-row"><span>Evidence transport</span><strong>Browser memory only</strong></div>
+        <div class="ledger-row"><span>Runtime network</span><strong>None</strong></div>
+        <div class="ledger-row"><span>Current layer</span><strong>Presentation and interaction only</strong></div>
+      </aside>
+
+      <section class="reference-section" aria-labelledby="referenceTitle">
+        <div class="section-heading">
+          <div><p class="kicker">Reference records</p><h2 id="referenceTitle">Start with a real boundary contrast.</h2></div>
+          <p>Each record isolates a different reason that administrative state, operative effect, or source evidence can diverge.</p>
+        </div>
+        <div class="reference-grid">
+          <button class="reference-card" data-sample="authority-open" type="button"><span>OPEN</span><strong>Authority revocation</strong><small>One unresolved legacy capability path</small></button>
+          <button class="reference-card" data-sample="linux-admin" type="button"><span>CLOSED · UNSAFE</span><strong>Linux administrative</strong><small>Declared state changes, operative path survives</small></button>
+          <button class="reference-card" data-sample="linux-operative" type="button"><span>CLOSED · SAFE</span><strong>Linux operative seal</strong><small>Effect path is blocked at the measured cut</small></button>
+          <button class="reference-card" data-sample="oauth-live" type="button"><span>SAFE AT CUT</span><strong>OAuth paired control</strong><small>Target blocked, control remains operative</small></button>
+          <button class="reference-card" data-sample="oauth-stale" type="button"><span>UNSAFE</span><strong>OAuth split state</strong><small>Authority says inactive, resource still accepts</small></button>
+          <button class="reference-card" data-sample="keycloak" type="button"><span>FROZEN GATE PASS</span><strong>Keycloak 26.7.2</strong><small>Pinned runtime commissioning summary</small></button>
+        </div>
+      </section>
+    </section>
+
+    <section class="view" data-view="decision">
+      <div id="decisionView"></div>
+    </section>
+
+    <section class="view" data-view="challenge">
+      <div class="view-head"><div><p class="kicker">Challenge mode</p><h1>Attack the assurance claim.</h1></div><p>Inspect the materiality witness, switch among exact inclusion-minimal obligation families, replay each removal witness, then change the evidence cut and recompute the result.</p></div>
+      <div id="challengeView"></div>
+    </section>
+
+    <section class="view" data-view="route">
+      <div class="view-head"><div><p class="kicker">Closure route</p><h1>From semantic obligation to realizable change.</h1></div><p>A valid route uses only declared Establishments and closes every reachable leaf. Declared cost ranks routes only after semantic validity has been established.</p></div>
+      <div id="routeView"></div>
+    </section>
+
+    <section class="view" data-view="boundary">
+      <div class="view-head"><div><p class="kicker">Assurance boundary</p><h1>See exactly where the claim stops.</h1></div><p>Core exactness, source transfer, P0/P1/P2 preservation, cut adequacy, and commissioning evidence are different layers. The Inspector keeps them separate.</p></div>
+      <div id="boundaryView"></div>
+    </section>
+
+    <section class="view" data-view="compare">
+      <div class="view-head"><div><p class="kicker">Comparison</p><h1>Compare the consequence before and after the distinction changes.</h1></div><p>Use the baseline and current hypothetical cut, load a second local artifact, or open a recorded commissioning pair. Comparison is descriptive: each side is analyzed independently under its own declared boundary.</p></div>
+      <div id="compareView"></div>
+    </section>
+
+    <section class="view" data-view="source">
+      <div class="view-head"><div><p class="kicker">Source and provenance</p><h1>Follow the result back to the bytes and declaration.</h1></div><p>Content digests support identity and replay. They do not authenticate external truth. Source derivation and preservation claims remain explicit.</p></div>
+      <div id="sourceView"></div>
+    </section>
+
+    <div class="drop-overlay" id="dropOverlay"><div><strong>Drop JSON evidence</strong><span>The file is processed only in this browser session.</span></div></div>
+  </main>
+</div>
+
+<div class="busy" id="busy" hidden><div><span class="spinner"></span><strong id="busyLabel">Running exact analysis</strong></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/tools/consequence-closure/inspector/samples.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

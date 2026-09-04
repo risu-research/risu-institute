@@ -28,7 +28,7 @@ jobs:
         run: |
           pnpm add -D playwright@1.55.0 --lockfile=false
           pnpm exec playwright install --with-deps chromium
-      - name: Exercise real file-selection flow with zero evaluation network requests
+      - name: Diagnose and exercise real browser-local file flow
         shell: bash
         run: |
           set -euo pipefail
@@ -47,6 +47,10 @@ jobs:
             sleep 0.5
           done
           curl -fsS http://localhost:8787/tools/agent-closure-inspector/ >/dev/null
+          echo '--- worker headers ---'
+          curl -sS -D - -o /dev/null http://localhost:8787/tools/agent-closure-inspector/evaluator-worker.js
+          echo '--- bootstrap headers ---'
+          curl -sS -D - -o /dev/null http://localhost:8787/tools/agent-closure-inspector/browser-local.js
           cat > .tmp/e2e.mjs <<'NODE'
           import assert from 'node:assert/strict';
           import { chromium } from 'playwright';
@@ -54,19 +58,43 @@ jobs:
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage();
           const network = [];
+          const diagnostics = [];
+          page.on('console', (message) => diagnostics.push(`console ${message.type()}: ${message.text()}`));
+          page.on('pageerror', (error) => diagnostics.push(`pageerror: ${error.stack || error.message}`));
+          page.on('requestfailed', (request) => diagnostics.push(`requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`));
           page.on('request', (request) => {
             network.push({ url: request.url(), method: request.method(), postData: request.postData() });
           });
-
-          await page.goto('http://localhost:8787/tools/agent-closure-inspector/', { waitUntil: 'networkidle' });
-          await page.waitForFunction(() => {
-            const button = document.getElementById('open-file');
-            const note = document.getElementById('capability-note');
-            return button && !button.disabled && note?.textContent?.includes('Evaluated in this browser');
+          page.on('response', (response) => {
+            const path = new URL(response.url()).pathname;
+            if (path.endsWith('/browser-local.js') || path.endsWith('/evaluator-worker.js')) {
+              diagnostics.push(`response: ${response.status()} ${path} content-type=${response.headers()['content-type'] || ''}`);
+            }
           });
 
+          await page.goto('http://localhost:8787/tools/agent-closure-inspector/', { waitUntil: 'networkidle' });
+          await page.waitForTimeout(5000);
+          const state = await page.evaluate(() => ({
+            buttonDisabled: document.getElementById('open-file')?.disabled,
+            buttonText: document.getElementById('open-file')?.textContent,
+            capability: document.getElementById('capability-note')?.textContent,
+            privacy: document.getElementById('privacy-note')?.textContent,
+            workerType: typeof Worker,
+            fetchSource: String(window.fetch).slice(0, 220),
+            currentOrigin: window.location.origin,
+          }));
+          console.log('BROWSER STATE', JSON.stringify(state, null, 2));
+          console.log('BROWSER DIAGNOSTICS\n' + diagnostics.join('\n'));
+          console.log('RELEVANT NETWORK\n' + network.filter(({url}) => /agent-closure|api\/evaluate/.test(url)).map((x) => `${x.method} ${x.url}`).join('\n'));
+
+          const workerAsset = await page.request.get('http://localhost:8787/tools/agent-closure-inspector/evaluator-worker.js');
+          console.log('WORKER ASSET', workerAsset.status(), workerAsset.headers()['content-type'], (await workerAsset.text()).slice(0, 140));
+
+          assert.equal(state.workerType, 'function');
+          assert.equal(state.buttonDisabled, false, `button not enabled: ${JSON.stringify(state)}`);
+          assert.match(state.capability || '', /Evaluated in this browser/);
+
           const button = page.locator('#open-file');
-          assert.equal(await button.isEnabled(), true);
           const chooserPromise = page.waitForEvent('filechooser');
           await button.click();
           const chooser = await chooserPromise;
@@ -76,7 +104,7 @@ jobs:
             const inspector = document.getElementById('inspector');
             const verdict = document.getElementById('verdict-strip');
             return inspector && !inspector.classList.contains('hidden') && verdict?.textContent?.includes('INCOMPLETE');
-          });
+          }, null, { timeout: 10000 });
 
           const verdict = await page.locator('#verdict-strip').innerText();
           assert.match(verdict, /INCOMPLETE/);

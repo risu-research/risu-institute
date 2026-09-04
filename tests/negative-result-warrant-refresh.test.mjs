@@ -51,6 +51,30 @@ test("NRW Inspector uses the current RISU shell without changing its frozen eval
     '/tools/negative-result-warrant/inspector-refresh.js',
   ]) assert.ok(html.includes(expected), expected);
 
+  for (const id of [
+    "user-mode",
+    "recorded-mode",
+    "recorded-controls",
+    "load-q",
+    "load-q-prime",
+    "capture-form",
+    "evaluate-button",
+    "verdict-chip",
+    "verdict-live",
+    "diagnostics",
+    "supported-proposition",
+    "portable-json",
+    "warrant-json",
+    "import-form",
+    "import-json",
+    "revalidate-package",
+    "package-result",
+    "premise-form",
+    "premise-profile",
+    "verify-premise",
+    "premise-result",
+  ]) assert.ok(html.includes(`id="${id}"`), id);
+
   for (const expected of ["--tool-accent: #0b5f49", ".inspector-hero-grid", ".inspector-map", ".workspace-intro"]) {
     assert.ok(refreshCss.includes(expected), expected);
   }
@@ -62,6 +86,8 @@ test("NRW Inspector uses the current RISU shell without changing its frozen eval
 
   assert.ok(core.includes("WARRANTED_ZERO"));
   assert.ok(inspector.includes("inspectCapture"));
+  assert.ok(inspector.includes("decodePortableEvidence"));
+  assert.ok(inspector.includes("verifyPortablePremise"));
   assert.equal(html.includes("\u2014"), false, "NRW Inspector contains an em dash");
 });
 

@@ -58,6 +58,18 @@ test("hosted presentation explains the reliance contract before the case detail"
   assert.doesNotMatch(html, /\binvolv(?:e|es|ed|ing|ement)\b/iu);
 });
 
+test("hosted shell retains every literal DOM hook used by the frozen app", async () => {
+  const html = await text("index.html");
+  const app = await text("app.js");
+  const ids = new Set([...app.matchAll(/\$\("([^"]+)"\)/gu)].map((match) => match[1]));
+  assert.ok(ids.size > 20);
+  for (const id of ids) assert.ok(html.includes(`id="${id}"`), `missing frozen app hook: ${id}`);
+  for (const mode of ["cases", "verify", "evaluate"]) {
+    assert.ok(html.includes(`data-mode="${mode}"`), `missing mode button: ${mode}`);
+    assert.ok(html.includes(`id="mode-${mode}"`), `missing mode panel: ${mode}`);
+  }
+});
+
 test("hosted boundary guard prevents static-host 405 responses from impersonating the local API", async () => {
   const guard = await text("hosted-guard.js");
   assert.match(guard, /\/api\/evaluate/u);

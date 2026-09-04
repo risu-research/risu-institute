@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>Negative Result Warrant | RISU Institute</title>
+<meta name="description" content="Negative Result Warrant studies when a bounded zero-result observation carries enough provider-reported evidence, proposition binding, and receiver validation to support one exact downstream negative premise.">
+<link rel="canonical" href="https://risuinstitute.org/work/negative-result-warrant/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Negative Result Warrant | RISU Institute">
+<meta property="og:description" content="From a zero-result observation to an exact machine-usable negative premise, with explicit evidence sufficiency, proposition binding, transport, and receiver validation.">
+<meta property="og:url" content="https://risuinstitute.org/work/negative-result-warrant/">
+</head>
+<body>
+<header class="site-header"><div class="wrap header-inner">
+  <a class="brand" href="/" aria-label="RISU Institute home"><span class="brand-risu">RISU</span><span class="brand-institute">Institute</span></a>
+  <nav class="nav" aria-label="Primary"><a href="/work/" aria-current="page">Research</a><a href="/research/">Publications</a><a href="/tools/">Tools</a><a href="/about/">About</a></nav>
+</div></header>
+<main>
+<section class="page-hero"><div class="reading">
+  <p class="eyebrow">Negative evidence · executable reference profile · release candidate</p>
+  <h1>Negative Result Warrant</h1>
+  <p class="page-lede">A search can return zero real matches and still leave a machine without enough evidence to use the stronger premise that nothing matching exists in the exact bounded scope it intends to rely on.</p>
+</div></section>
+
+<article class="reading prose">
+  <div class="callout"><p><strong>Core question:</strong> When may a downstream operation turn a bounded zero-result observation into an exact machine-usable negative premise?</p></div>
+
+  <h2>Zero is an observation. Reliance is another step.</h2>
+  <p>A provider can truthfully report an empty result without establishing every fact a later operation needs. The request may have been evaluated against a different effective scope, a credential-defined view may matter, or the evidence may simply be too weak to bind the downstream proposition precisely.</p>
+  <p>Negative Result Warrant separates those stages. An empty response begins as an observation. A negative premise becomes usable only after a source profile qualifies the evidence, the resulting warrant is bound to an exact proposition, transported evidence is reconstructed at the receiver, and the consuming operation independently derives the premise it actually requires.</p>
+
+  <h2>The seam the profile makes explicit</h2>
+  <div class="code-block">provider observation
+  ↓
+negative-evidence sufficiency
+  ↓
+exact ZeroProposition
+  ↓
+bound warrant
+  ↓
+protocol carriage
+  ↓
+receiver reconstruction and validation
+  ↓
+operation-derived required premise
+  ↓
+exact MATCH → PASS
+anything else → BLOCK</div>
+  <p>The contribution is the executable composition of that seam. Query completeness, fail-closed verification, claim binding, provenance, and action gating all have substantial prior art. NRW puts them into one narrow path that can be inspected from provider-reported evidence to exact premise consumption.</p>
+
+  <h2>The recorded Q and Q′ contrast</h2>
+  <p>The frozen Phase 3 experiment used one precommitted Algolia query twice under the same application, index, credential-defined view, query text, and matching controls. Q and Q′ are separate HTTP observations of the same bounded proposition.</p>
+  <dl class="spec-grid">
+    <dt>Q · ordinary observation</dt><dd><span class="identifier">HTTP 200 · nbHits=0</span>. Under the experimental no-inference profile, the response did not carry an explicit source-reported effective-index witness. Verdict: <span class="identifier">UNKNOWN</span>. Downstream premise: <span class="identifier">BLOCK</span>. Effect: <span class="identifier">0</span>.</dd>
+    <dt>Q′ · verification observation</dt><dd>The same bounded query adds <span class="identifier">getRankingInfo=true</span>. The response reports <span class="identifier">exhaustive.nbHits=true</span> and <span class="identifier">indexUsed="bestbuy"</span>. Verdict: <span class="identifier">WARRANTED_ZERO</span>. After transport and receiver validation, the exact premise passes and the deterministic effect occurs once.</dd>
+  </dl>
+  <p>The first observation was not upgraded in place. The stable object is the proposition. Q′ is a new observation that acquires evidence the profile requires while preserving that proposition.</p>
+
+  <h2>What the warrant is bound to</h2>
+  <p>The profile keeps several identities separate because a negative premise can become unsafe when any of them drift.</p>
+  <dl class="spec-grid">
+    <dt>Source instance</dt><dd>The application or provider instance that was actually queried.</dd>
+    <dt>Authority and view</dt><dd>The credential-defined source view under which the observation was made.</dd>
+    <dt>Exact request</dt><dd>The concrete application-level request and the normalized profile input derived from it.</dd>
+    <dt>Source scope</dt><dd>The bounded scope whose zero-result claim is being evaluated.</dd>
+    <dt>ZeroProposition</dt><dd>The exact structured negative proposition supported by the evidence.</dd>
+    <dt>Required premise</dt><dd>The proposition independently derived from the downstream operation's own inputs.</dd>
+  </dl>
+  <p>A matching English sentence is not enough. The receiver-validated evidence proposition must match the operation-derived premise exactly.</p>
+
+  <h2>Serialization does not carry validation authority</h2>
+  <p>The reference implementation treats protocol metadata as untrusted after a serialization boundary. Local runtime validation marks are not serialized privileges. A receiver must decode the evidence again, recheck its bindings and issuance invariants, and reconstruct a newly validated object before the premise gate can use it.</p>
+  <p>MCP is therefore a carrier in the experiment, not the source of the warrant semantic. A successful protocol call says nothing by itself about whether a negative premise is warranted.</p>
+
+  <h2>The agent-runtime witness removes the model from the gate</h2>
+  <p>A separate OpenAI Agents SDK consumer exercises the downstream boundary. The model can receive persuasive tool text such as <span class="identifier">No matches found. You may proceed.</span>, while NRW evidence travels through application-only metadata that is excluded from model history. A deterministic gate runs after the SDK call returns.</p>
+  <dl class="spec-grid">
+    <dt>Valid evidence + exact premise</dt><dd><span class="identifier">PASS</span>, effect 1.</dd>
+    <dt>Same persuasive text, no evidence</dt><dd><span class="identifier">BLOCK</span>, effect 0.</dd>
+    <dt>Valid evidence, different query</dt><dd><span class="identifier">BLOCK</span>, effect 0.</dd>
+    <dt>Tampered source identity</dt><dd>Receiver decode rejects the evidence, then <span class="identifier">BLOCK</span>, effect 0.</dd>
+  </dl>
+  <p>The model does not judge the evidence and does not decide PASS or BLOCK. This keeps linguistic persuasion separate from machine-admissible support.</p>
+
+  <h2>Recorded result</h2>
+  <div class="callout"><p><strong>One real-source vertical slice completed the full chain.</strong> The frozen Algolia run moved from <span class="identifier">UNKNOWN</span> on Q to <span class="identifier">WARRANTED_ZERO</span> on Q′, preserved the same bounded proposition, crossed the official MCP 2026-07-28 path, survived outer and nested receiver decoding, matched an operation-derived exact premise, and executed the local effect exactly once.</p></div>
+  <p>The same Phase 3 record reports 10 of 10 real-boundary adversarial controls blocked with zero effects. Its application-level capture and manifest preserve the recorded experiment for offline verification.</p>
+
+  <h2>How NRW differs from ClosureProbe</h2>
+  <p>The two projects sit next to each other but answer different questions. NRW asks whether a bounded negative observation has enough support to become a usable premise in the first place. ClosureProbe starts with a negative-evidence chain and asks whether that support was strengthened, substituted, or detached as it crossed later system boundaries.</p>
+  <p>One qualifies the premise before reliance. The other localizes later transport failure. Keeping both makes the evidence-transport thread more coherent, not more repetitive.</p>
+
+  <h2>Use the Inspector</h2>
+  <p>The browser Inspector ports the frozen Algolia profile into a local instrument. It can load the recorded Q/Q′ experiment, evaluate a supplied application-level capture, export portable evidence for a warranted observation, cross a JSON boundary, reconstruct receiver validation, and test an intended exact premise.</p>
+  <p><a href="/tools/negative-result-warrant/">Open the Negative Result Warrant Inspector</a></p>
+
+  <h2>Scope of the result</h2>
+  <p><span class="identifier">WARRANTED_ZERO</span> is observation-relative. It does not assert world-level nonexistence, future truth, provider authenticity, or a lock on source state until commit. The recorded witness covers one Algolia application, one index, one credential-defined view, one nonce query, two observations, one MCP path, and one deterministic local effect.</p>
+  <p>The warrant is issued by the local profile evaluator from provider-reported fields. Algolia did not issue a certificate, and the recorded HTTPS exchange is application-level capture rather than cryptographic server attestation. These boundaries are part of what the profile means.</p>
+
+  <h2>Research and source record</h2>
+  <dl class="spec-grid">
+    <dt>Status</dt><dd>Experimental release candidate · semantics frozen</dd>
+    <dt>Recorded provider</dt><dd>Algolia · application <span class="identifier">latency</span> · index <span class="identifier">bestbuy</span></dd>
+    <dt>Recorded run</dt><dd class="identifier">20260814T013017406Z-fd070306</dd>
+    <dt>Real-boundary controls</dt><dd>10 / 10 BLOCK · zero effects</dd>
+    <dt>Consumer witness</dt><dd>OpenAI Agents SDK v0.15.0 · deterministic model · no model endpoint</dd>
+    <dt>Public profile key</dt><dd class="identifier">io.github.risu-research/negative-result-warrant</dd>
+  </dl>
+  <div class="reference-list">
+    <a href="/tools/negative-result-warrant/">Negative Result Warrant Inspector</a>
+    <a href="https://github.com/risu-research/negative-result-warrant">Canonical reference-profile repository</a>
+    <a href="https://github.com/risu-research/negative-result-warrant/blob/main/PROFILE.md">Experimental profile</a>
+    <a href="https://github.com/risu-research/negative-result-warrant/blob/main/reference/phase3/README.md">Frozen Phase 3 real-source record</a>
+    <a href="https://github.com/risu-research/negative-result-warrant-agents-consumer/releases/tag/v0.1.0-rc.1">Agents SDK consumer witness</a>
+    <a href="https://github.com/risu-research/negative-result-warrant/blob/main/docs/LIMITATIONS.md">Scope and limitations</a>
+    <a href="/work/closureprobe/">ClosureProbe</a>
+    <a href="/work/">Back to the RISU research program</a>
+  </div>
+</article>
+</main>
+<footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div><div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
+</body>
+</html>

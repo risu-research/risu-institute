@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>ClosureProbe | RISU Institute</title>
+<meta name="description" content="ClosureProbe is a bounded executable conformance system that traces whether a query-relative negative claim remains justified as evidence crosses observable system boundaries.">
+<link rel="canonical" href="https://risuinstitute.org/work/closureprobe/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ClosureProbe | RISU Institute">
+<meta property="og:description" content="An executable system for locating the first observed boundary where a negative-evidence claim loses, changes, or exceeds its support.">
+<meta property="og:url" content="https://risuinstitute.org/work/closureprobe/">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/">Tools</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Experimental conformance system · v0.1.0-rc3</p>
+      <h1>ClosureProbe</h1>
+      <p class="page-lede">A system may observe zero results and later say that nothing exists. ClosureProbe tests whether the evidence ever justified that stronger claim, and identifies the first observed boundary where the justification was lost or changed.</p>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <div class="callout">
+      <p><strong>Core idea:</strong> ClosureProbe does not decide whether nothing exists in the world. Given supplied evidence and an observable trace, it checks whether the system still had a receiver-anchored, exact-query basis for saying <span class="identifier">none</span> after the evidence crossed its own boundaries.</p>
+    </div>
+
+    <h2>The problem</h2>
+    <p>A zero is not always a negative answer. A search may return an empty page while another page remains. A final continuation page may be empty even though an earlier page contained a match. A request may have been denied, a shard may have failed, a source scope may have changed, or a downstream adapter may have discarded the signal that said the search was incomplete.</p>
+    <p>Those cases can look similar after enough translation. A client may see an empty array. A model may see “0 results.” A downstream workflow may turn that into “no record exists.” The important question is not only whether the final sentence is correct. It is whether the observed system had enough evidence to make that sentence at all.</p>
+
+    <h2>What ClosureProbe follows</h2>
+    <p>ClosureProbe treats a negative claim as an evidence chain rather than a bare boolean. The chain starts from supplied request, response, and grounding material that the receiver reconstructs through a pinned source profile. It then follows that state through the observable stages of a toolchain.</p>
+    <div class="code-block">source evidence
+      ↓
+adapter or wrapper
+      ↓
+protocol result
+      ↓
+client-retained state
+      ↓
+model-visible projection
+      ↓
+agent or downstream claim</div>
+    <p>At each stage, the analyzer asks whether the same negative conclusion is still tied to the same request, source context, scope, traversal, profile, and proposition. If not, it reports the earliest observed boundary where that chain stopped supporting the claim.</p>
+
+    <h2>A negative needs more than zero</h2>
+    <p>The profile keeps several evidence axes separate because one cannot stand in for another.</p>
+    <dl class="spec-grid">
+      <dt>Execution</dt><dd>Did the operation actually succeed, rather than fail, deny access, or remain unknown?</dd>
+      <dt>Cardinality</dt><dd>Was the observed result zero, nonzero, or unavailable?</dd>
+      <dt>Coverage</dt><dd>Was the relevant bounded search complete, partial, or unknown?</dd>
+      <dt>Continuation</dt><dd>Was traversal exhausted, or is more data still indicated?</dd>
+      <dt>Traversal</dt><dd>Does the evidence cover the root query, or only one segment or continuation page?</dd>
+      <dt>Scope</dt><dd>Is the observation bound to the exact declared scope?</dd>
+      <dt>Validation</dt><dd>Did a pinned source profile reconstruct the producer-specific signals?</dd>
+    </dl>
+    <p>A producer-local negative is licensed only when execution succeeded, cardinality is zero, coverage is complete, continuation is exhausted, traversal closes the root query, query and scope bindings are exact, and the observation passes the pinned producer profile. A downstream <span class="identifier">none</span> claim needs more: the evidence must also remain anchored and bound to the same source context and exact proposition.</p>
+
+    <h2>Why the last empty page is not enough</h2>
+    <p>Pagination is a simple example of the distinction ClosureProbe is designed to preserve. Suppose a Google Drive <span class="identifier">files.list</span> response is empty but carries a <span class="identifier">nextPageToken</span>. The current page has zero items, but the root query is still open. That is not licensed absence.</p>
+    <p>The opposite error can happen at the end of a traversal. A final continuation page may be empty and locally exhausted, while an earlier page contained a hit. Treating only that last segment as the whole query would erase the earlier evidence. ClosureProbe therefore distinguishes a complete root-to-final aggregate from a final segment viewed in isolation.</p>
+    <p>The frozen corpus tests both directions: an incomplete traversal must stay unlicensed, while a validated all-zero traversal can earn a bounded negative license.</p>
+
+    <h2>The receiver does not trust the trace at face value</h2>
+    <p>One of the main rc3 changes was to remove a self-certification gap at the root. A trace cannot begin with a field that merely says <span class="identifier">profile_validated</span>. It must carry <span class="identifier">rootEvidence</span>, and the receiver reconstructs the first observation from the supplied material using the exact installed profile and version.</p>
+    <p>The receiver recomputes canonical request and response digests, checks the declared source grounding, verifies proposition scope, and requires the reconstructed observation to match the first trace stage. If that chain cannot be rebuilt, the root is unanchored.</p>
+    <p>This distinction matters because provenance metadata is not evidence merely because a sender labels it as trusted. Legitimate new evidence can strengthen a later stage, but the receiver must reconstruct that evidence too.</p>
+
+    <h2>Four bindings keep the claim from drifting</h2>
+    <p>ClosureProbe independently binds four things that are easy to blur together:</p>
+    <ul>
+      <li><strong>Exact request:</strong> canonical JSON identity of the root query.</li>
+      <li><strong>Traversal:</strong> whether the observed material is the complete root query or only a segment.</li>
+      <li><strong>Source grounding:</strong> declared producer, instance, authority context, and proposition scope.</li>
+      <li><strong>Negative proposition:</strong> the exact subject, predicate, and scope of the asserted absence, bound again to the source context.</li>
+    </ul>
+    <p>This lets the analyzer distinguish a true preservation failure from a different problem such as a source-profile substitution, scope change, request mismatch, or proposition drift.</p>
+
+    <h2>What it can localize</h2>
+    <p>The normative analyzer reports distinct findings rather than collapsing every failure into one generic error. The rc3 profile includes:</p>
+    <ul>
+      <li><span class="identifier">unanchored_root_evidence</span></li>
+      <li><span class="identifier">grounding_binding_mismatch</span></li>
+      <li><span class="identifier">profile_binding_change</span></li>
+      <li><span class="identifier">guard_signal_loss</span></li>
+      <li><span class="identifier">dangerous_mutation</span></li>
+      <li><span class="identifier">unsupported_upgrade</span></li>
+      <li><span class="identifier">query_binding_mismatch</span></li>
+      <li><span class="identifier">claim_binding_missing</span> or <span class="identifier">claim_binding_mismatch</span></li>
+      <li><span class="identifier">unverified_evidence_introduction</span></li>
+      <li><span class="identifier">unlicensed_negative</span></li>
+    </ul>
+    <p>The point is not the vocabulary itself. The useful output is the boundary: where did a chain that was previously anchored become weaker, different, or unjustifiably stronger?</p>
+
+    <h2>Producer-specific semantics</h2>
+    <p>Completeness means different things for different systems, so rc3 does not pretend that one generic “empty” rule is enough. The frozen release ships five producer-specific profiles plus one controlled generic contract.</p>
+    <div class="code-block">Google Drive files.list     pageToken-linked root traversal; incompleteSearch
+DynamoDB Query            ExclusiveStartKey-linked aggregate
+Elasticsearch search      exact local-cluster totals and shard completion
+GraphQL Relay              forward root traversal; first / after / hasNextPage
+Microsoft Graph delta      complete nextLink chain through deltaLink
+Generic enumeration        explicit controlled traversal contract</div>
+    <p>Unsupported or ambiguous producer states fail closed. Elasticsearch is deliberately restricted to local-cluster semantics in this profile, and Microsoft Graph traversal links must satisfy the declared safe URL shape before they are accepted as part of a complete round.</p>
+
+    <h2>How this differs from Negative Result Warrant</h2>
+    <p>These two RISU projects are adjacent, but they answer different questions. Negative Result Warrant asks what evidence is sufficient for a bounded zero observation to become a usable negative premise. ClosureProbe asks what happens <em>after that kind of evidence starts moving</em>: did the basis survive the adapter, protocol, client, model-facing projection, and final claim?</p>
+    <p>In that sense, one qualifies a negative premise and the other tests its transport. ClosureProbe is useful precisely where a locally reasonable observation can become an unjustified downstream conclusion without any single component obviously “failing.”</p>
+
+    <h2>Frozen adversarial record</h2>
+    <p>The v0.1.0-rc3 release freezes a 50-case corpus: 37 producer-profile observations and 13 cross-boundary traces. The published evidence reproduces all 50 expected assessments.</p>
+    <dl class="spec-grid">
+      <dt>Frozen corpus</dt><dd>50 deterministic adversarial and control cases</dd>
+      <dt>Published corpus result</dt><dd>50 passed · 0 failed</dd>
+      <dt>Observation cases</dt><dd>37</dd>
+      <dt>Cross-boundary traces</dt><dd>13</dd>
+      <dt>Implementation and integration tests</dt><dd>33</dd>
+      <dt>Controlled protocol check</dt><dd>Official MCP 2.0.0 client/server packages over stdio</dd>
+    </dl>
+    <p>Adversarial cases include forged root anchoring, source-scope drift, profile substitution, skipped cross-cluster search, malformed Microsoft Graph traversal links, denied or failed execution, continued results, segment-only evidence, and favorable guard mutation. Positive controls include exact complete zeros, validated multi-page aggregates, ordinary weakening, and legitimate receiver-reconstructed evidence upgrades.</p>
+    <p>The 50 of 50 result is a conformance result for the frozen artifact. It is not an error rate for external clients or a claim that arbitrary agent pipelines preserve negative evidence.</p>
+
+    <h2>What rc3 hardened</h2>
+    <p>The release candidate is the third step in an adversarial hardening sequence. rc2 had already stopped a sender from self-authorizing a downstream evidence upgrade. rc3 moved the trust root one step earlier and required the receiver to reconstruct the trace root itself.</p>
+    <p>It also added explicit <span class="identifier">evidenceAnchored</span> propagation, machine-readable source context, context-bound proposition binding, separate findings for grounding drift and profile substitution, fail-closed Elasticsearch scope, and stricter Microsoft Graph traversal validation. These changes narrow what the system is willing to call a supported negative rather than expanding the claim.</p>
+
+    <h2>Result</h2>
+    <div class="callout">
+      <p><strong>ClosureProbe turns a negative claim from a terminal string into an auditable evidence path.</strong> Within its declared profiles and supplied observable traces, it can determine whether the exact bounded negative remained anchored and identify the first observed boundary where that support was lost, substituted, mutated, or exceeded.</p>
+    </div>
+    <p>The stronger contribution is not the familiar statement that absence requires adequate search. It is the executable composition: producer-specific closure semantics, receiver reconstruction, independent bindings, anchor propagation, and first-boundary localization in one falsifiable system.</p>
+
+    <h2>Where the system stops</h2>
+    <p>ClosureProbe analyzes supplied observable traces. It does not automatically intercept hidden transforms, prove that the producer told the truth, authenticate the declared authority context, establish freshness beyond the supplied observation, infer semantic equivalence between different queries, or prove world-level nonexistence. It does not certify legal compliance, security, eligibility, medical correctness, or the safety of a downstream action.</p>
+    <p>A hidden boundary is a visibility limit, not an implicit pass. Canonical JSON digests establish normalized identity of supplied material, not byte-level authenticity or chain of custody. Those properties require separate evidence such as signatures, authenticated logs, timestamps, or retained transport artifacts.</p>
+
+    <h2>Frozen release record</h2>
+    <dl class="spec-grid">
+      <dt>Release</dt><dd>v0.1.0-rc3</dd>
+      <dt>Status</dt><dd>Experimental pre-release</dd>
+      <dt>Profile</dt><dd>ClosureProbe Profile v0.3</dd>
+      <dt>Release commit</dt><dd class="identifier">12fae2c0cb0909a43f487323fb00e7372b1f3377</dd>
+      <dt>Source archive SHA-256</dt><dd class="identifier">e0e8a2e0f2958accf090d595e233189a7def1906a29477019966c0a3e256a44a</dd>
+      <dt>Git bundle SHA-256</dt><dd class="identifier">a6d0acdae171a1eee4d83f0be417431178507fbecc99a4fd2f94656f329b0e97</dd>
+    </dl>
+
+    <h2>Source record</h2>
+    <div class="reference-list">
+      <a href="https://github.com/risu-research/closureprobe/releases/tag/v0.1.0-rc3">Frozen release v0.1.0-rc3</a>
+      <a href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/PROFILE.md">Normative profile</a>
+      <a href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/CLAIMS.md">Claim boundary</a>
+      <a href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/INTEROPERABILITY.md">Interoperability protocol</a>
+      <a href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/LIMITATIONS.md">Limitations</a>
+      <a href="https://github.com/risu-research/closureprobe/blob/v0.1.0-rc3/evidence/results.json">Frozen corpus results</a>
+      <a href="https://github.com/risu-research/closureprobe">Canonical repository</a>
+      <a href="/work/">Back to the RISU research program</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+  </div>
+</footer>
+</body>
+</html>

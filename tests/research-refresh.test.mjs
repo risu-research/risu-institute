@@ -76,9 +76,12 @@ test("the research program is ordered by current threads and latest work", async
   ]) assert.ok(work.includes(thread));
 });
 
-test("Native++ is exposed as a frozen experimental record, not a numbered publication", async () => {
+test("Native++ is exposed as a website-native frozen record, not a numbered publication", async () => {
   const work = await readPublic("work/index.html");
-  assert.equal(work.split(nativePlusRecordUrl).length - 1, 1);
+  assert.equal(work.split(nativePlusRecordUrl).length - 1, 2);
+  assert.ok(work.includes('<h3><a href="#native-plus-v0-2">Native++ v0.2</a></h3>'));
+  assert.ok(work.includes('<a href="#native-plus-v0-2">Read the full experimental record →</a>'));
+  assert.ok(work.includes('<section class="thread-section" id="native-plus-v0-2">'));
   assert.ok(work.includes("Evidence qualification · frozen experimental record"));
   assert.ok(work.includes("not evidence of cross-provider semantic-labor amortization"));
   assert.ok(!work.includes("RISU Technical Note 2026-05"));

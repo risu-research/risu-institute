@@ -1,6 +1,6 @@
 {
   "artifact": "RISU Agent Closure Browser-Local Evaluator",
-  "purpose": "Browser-local transport adapter for the frozen BAC verifier. No server-side evidence endpoint is deployed.",
+  "purpose": "Ephemeral Web Worker adapter for the frozen BAC verifier. Private evidence is passed by browser memory message, not HTTP.",
   "engine_commit": "a46456f028cd3dd1d386111b1faab890a26ae5e9",
   "inspector_commit": "07325dd1304cc3fe1acd86ce50596161581a1cdb",
   "verifier_source_sha256": "b23d20c7f26a162d3588fab1e49372d0b5ec68a0953a3f71bc7670ec0245eaa6",
@@ -10,5 +10,8 @@
   "noble_hashes_version": "1.8.0",
   "esbuild_version": "0.25.9",
   "upload_limit_bytes": 1048576,
-  "worker_sha256": "4d30df2c83dbac1e37310f6d05548692d1c2fb5c678b5b236773b4342d05cbdb"
+  "persistence": "none",
+  "network_evaluation_endpoint": false,
+  "equivalence_basis": "All eight frozen canonical cases are replayed against this browser evaluator in site CI.",
+  "worker_sha256": "e8fffa946a3957adb79ce8c0671aadead98c115f2aa52327fc3dce1c3df80094"
 }

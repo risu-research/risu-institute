@@ -1918,10 +1918,10 @@
         if (def.async && !schemaEnv.$async)
           throw new Error("async keyword in sync schema");
       }
-      function useKeyword(gen, keyword, result) {
-        if (result === void 0)
+      function useKeyword(gen, keyword, result2) {
+        if (result2 === void 0)
           throw new Error(`keyword "${keyword}" failed to compile`);
-        return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1.stringify)(result) });
+        return gen.scopeValue("keyword", typeof result2 == "function" ? { ref: result2 } : { ref: result2, code: (0, codegen_1.stringify)(result2) });
       }
       function validSchemaType(schema2, schemaType, allowUndefined = false) {
         return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema2) : st === "object" ? schema2 && typeof schema2 == "object" && !Array.isArray(schema2) : typeof schema2 == st || allowUndefined && typeof schema2 == "undefined");
@@ -7779,13 +7779,9 @@
 
   // .tmp/bac-engine/src/canonicalize-browser.mjs
   function canonicalize(value) {
-    if (Array.isArray(value)) {
-      return value.map(canonicalize);
-    }
+    if (Array.isArray(value)) return value.map(canonicalize);
     if (value !== null && typeof value === "object") {
-      return Object.fromEntries(
-        Object.keys(value).sort().map((key) => [key, canonicalize(value[key])])
-      );
+      return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalize(value[key])]));
     }
     return value;
   }
@@ -8839,37 +8835,36 @@
 
   // .tmp/browser-build/entry.mjs
   var MAX_BODY_BYTES = 1024 * 1024;
-  var JSON_HEADERS = Object.freeze({ "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-  function jsonResponse(status, value) {
-    return new Response(JSON.stringify(value), { status, headers: JSON_HEADERS });
+  function result(status, body) {
+    return { status, body };
   }
-  async function evaluateRequest(request) {
-    const contentType = String(request.headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
-    if (request.method !== "POST") {
-      return jsonResponse(405, { runner_state: "REQUEST_ERROR", error: { code: "METHOD_NOT_ALLOWED" } });
+  function evaluateRequest({ method, contentType, raw }) {
+    if (method !== "POST") return result(405, { runner_state: "REQUEST_ERROR", error: { code: "METHOD_NOT_ALLOWED" } });
+    if (String(contentType ?? "").split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+      return result(415, { runner_state: "REQUEST_ERROR", error: { code: "UNSUPPORTED_MEDIA_TYPE" } });
     }
-    if (contentType !== "application/json") {
-      return jsonResponse(415, { runner_state: "REQUEST_ERROR", error: { code: "UNSUPPORTED_MEDIA_TYPE" } });
-    }
-    const bytes = new Uint8Array(await request.arrayBuffer());
-    if (bytes.byteLength > MAX_BODY_BYTES) {
+    if (new TextEncoder().encode(String(raw ?? "")).byteLength > MAX_BODY_BYTES) {
       const message = "Request body exceeds 1 MiB.";
-      return jsonResponse(413, { runner_state: "PARSE_ERROR", presentation: presentParseError("REQUEST_BODY_TOO_LARGE", message) });
+      return result(413, { runner_state: "PARSE_ERROR", presentation: presentParseError("REQUEST_BODY_TOO_LARGE", message) });
     }
     let bundle;
     try {
-      bundle = JSON.parse(new TextDecoder().decode(bytes));
+      bundle = JSON.parse(String(raw ?? ""));
     } catch (error) {
-      return jsonResponse(400, { runner_state: "PARSE_ERROR", presentation: presentParseError("MALFORMED_JSON", error.message) });
+      return result(400, { runner_state: "PARSE_ERROR", presentation: presentParseError("MALFORMED_JSON", error.message) });
     }
     const evaluation = verifyClosure(bundle);
-    return jsonResponse(200, { evaluation, presentation: presentEvaluation(bundle, evaluation) });
+    return result(200, { evaluation, presentation: presentEvaluation(bundle, evaluation) });
   }
-  self.addEventListener("install", (event) => event.waitUntil(self.skipWaiting()));
-  self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
-  self.addEventListener("fetch", (event) => {
-    const url = new URL(event.request.url);
-    if (url.origin !== self.location.origin || url.pathname !== "/api/evaluate") return;
-    event.respondWith(evaluateRequest(event.request));
+  self.addEventListener("message", (event) => {
+    const message = event.data ?? {};
+    if (message.type !== "evaluate" || typeof message.id !== "string") return;
+    try {
+      const response = evaluateRequest(message.request ?? {});
+      self.postMessage({ type: "result", id: message.id, ...response });
+    } catch {
+      self.postMessage({ type: "result", id: message.id, status: 500, body: { runner_state: "REQUEST_ERROR", error: { code: "INTERNAL_WORKER_ERROR" } } });
+    }
   });
+  self.postMessage({ type: "ready" });
 })();

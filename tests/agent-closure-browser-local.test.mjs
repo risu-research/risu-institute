@@ -151,9 +151,16 @@ test("browser-local adapter has no network, persistence, or dynamic-code capabil
   const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");
 
   assert.match(bootstrap, /const nativeFetch = window\.fetch\.bind\(window\);/u);
+  assert.match(bootstrap, /const MAX_EVIDENCE_BYTES = 1024 \* 1024;/u);
   assert.match(bootstrap, /url\.pathname === "\/api\/evaluate"/u);
   assert.match(bootstrap, /return nativeFetch\(input, init\);/u);
   assert.match(bootstrap, /worker\.postMessage\(\{ type: "evaluate", id, request \}\);/u);
+  assert.match(bootstrap, /mode = "browser-local";/u);
+  assert.match(bootstrap, /mode = "fallback";/u);
+  assert.match(bootstrap, /worker\.addEventListener\("messageerror"/u);
+  assert.match(bootstrap, /event\.stopImmediatePropagation\(\);/u);
+  assert.match(bootstrap, /file\.size <= MAX_EVIDENCE_BYTES/u);
+  assert.match(bootstrap, /No evidence was sent to the site\./u);
   assert.doesNotMatch(bootstrap, /serviceWorker/u);
 
   for (const source of [worker, bootstrap]) {

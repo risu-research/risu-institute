@@ -63,6 +63,7 @@ const technicalNotePdfUrl = `https://risuinstitute.org/${technicalNotePdf}`;
 const productionPages = [
   "index.html",
   "work/index.html",
+  "work/native-plus/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
   "research/technical-notes/2026-03/index.html",
@@ -290,6 +291,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/reliance-inspector/styles.css",
     "work/appeal-interoperability/index.html",
     "work/index.html",
+    "work/native-plus/index.html",
     "work/problem-semantics/index.html",
   ];
   const discovered = (await listFiles(publicRoot)).map(publicRelative).sort();
@@ -581,6 +583,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/problem-semantics\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/native-plus\/<\/loc>/gu)].length,
     1,
   );
 

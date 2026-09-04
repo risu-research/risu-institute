@@ -63,6 +63,7 @@ const technicalNotePdfUrl = `https://risuinstitute.org/${technicalNotePdf}`;
 const productionPages = [
   "index.html",
   "work/index.html",
+  "work/bounded-agent-closure/index.html",
   "work/native-plus/index.html",
   "work/closureprobe/index.html",
   "work/http-mcp-method-inference/index.html",
@@ -293,6 +294,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/reliance-inspector/provenance.json",
     "tools/reliance-inspector/styles.css",
     "work/appeal-interoperability/index.html",
+    "work/bounded-agent-closure/index.html",
     "work/closureprobe/index.html",
     "work/http-mcp-method-inference/index.html",
     "work/index.html",
@@ -436,21 +438,20 @@ test("the Agent Closure Inspector is canonical-only and retains frozen provenanc
   });
 });
 
-test("the Bounded Agent Closure research card retains its intended links in order", async () => {
+test("the Bounded Agent Closure research card routes through the website overview", async () => {
   const work = await readProject("public/work/index.html");
+  const overviewHref = 'href="/work/bounded-agent-closure/"';
   const noteHref = 'href="/research/technical-notes/2026-01/"';
   const inspectorHref = 'href="/tools/agent-closure/"';
   const softwareHref = 'href="https://doi.org/10.5281/zenodo.22005419"';
-  const repositoryHref = 'href="https://github.com/risu-research/bounded-agent-closure"';
-  const specificationHref = 'href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md"';
 
-  for (const href of [noteHref, inspectorHref, softwareHref, repositoryHref, specificationHref]) {
+  assert.equal(work.split(overviewHref).length - 1, 2, overviewHref);
+  for (const href of [noteHref, inspectorHref, softwareHref]) {
     assert.equal(work.split(href).length - 1, 1, href);
   }
+  assert.ok(work.indexOf(overviewHref) < work.indexOf(noteHref));
   assert.ok(work.indexOf(noteHref) < work.indexOf(inspectorHref));
   assert.ok(work.indexOf(inspectorHref) < work.indexOf(softwareHref));
-  assert.ok(work.indexOf(softwareHref) < work.indexOf(repositoryHref));
-  assert.ok(work.indexOf(repositoryHref) < work.indexOf(specificationHref));
 });
 
 test("the homepage features Projection Assurance and its published records", async () => {
@@ -588,6 +589,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/problem-semantics\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/bounded-agent-closure\/<\/loc>/gu)].length,
     1,
   );
 

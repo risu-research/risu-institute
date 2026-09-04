@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { dirname, extname, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, extname, join, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -84,85 +85,196 @@ function startServer() {
   });
 }
 
-function dumpDom(chrome, url) {
-  return new Promise((resolveRun, reject) => {
-    const child = spawn(chrome, [
-      '--headless=new',
-      '--no-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--hide-scrollbars',
-      '--enable-logging=stderr',
-      '--log-level=0',
-      '--virtual-time-budget=8000',
-      '--dump-dom',
-      url,
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      reject(new Error(`Chrome timed out for ${url}\n${stderr}`));
-    }, 30000);
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
+function sleep(ms) {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+async function startChrome(chrome) {
+  assert.equal(typeof WebSocket, 'function', 'Node 22 WebSocket support is required for the CDP browser gate');
+  const profile = await mkdtemp(join(tmpdir(), 'risu-cc-chrome-'));
+  const child = spawn(chrome, [
+    '--headless=new',
+    '--no-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--hide-scrollbars',
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=0',
+    `--user-data-dir=${profile}`,
+    'about:blank',
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  child.stderr.setEncoding('utf8');
+  let stderr = '';
+  const websocketUrl = await new Promise((resolveWs, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Chrome DevTools endpoint did not start.\n${stderr}`)), 15000);
     child.once('error', (error) => {
       clearTimeout(timer);
       reject(error);
     });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+      const match = stderr.match(/DevTools listening on (ws:\/\/[^\s]+)/u);
+      if (match) {
+        clearTimeout(timer);
+        resolveWs(match[1]);
+      }
+    });
     child.once('close', (code) => {
       clearTimeout(timer);
-      if (code !== 0) {
-        reject(new Error(`Chrome exited ${code} for ${url}\n${stderr}`));
-        return;
-      }
-      resolveRun({ dom: stdout, logs: stderr });
+      reject(new Error(`Chrome exited before DevTools became available (${code}).\n${stderr}`));
     });
   });
+  const parsed = new URL(websocketUrl);
+  return {
+    child,
+    profile,
+    httpOrigin: `http://${parsed.host}`,
+    stderr: () => stderr,
+  };
 }
 
-function assertRuntime(run, url) {
-  assert.match(run.dom, /data-cc-app="started"/u, `app did not start at ${url}\n${run.logs}`);
-  assert.match(run.dom, /data-cc-engine="ready"/u, `worker did not become ready at ${url}\n${run.logs}`);
+class CdpClient {
+  constructor(url) {
+    this.url = url;
+    this.ws = null;
+    this.seq = 0;
+    this.pending = new Map();
+    this.events = [];
+  }
+
+  async open() {
+    this.ws = new WebSocket(this.url);
+    await new Promise((resolveOpen, reject) => {
+      const timer = setTimeout(() => reject(new Error(`CDP WebSocket open timed out: ${this.url}`)), 10000);
+      this.ws.addEventListener('open', () => {
+        clearTimeout(timer);
+        resolveOpen();
+      }, { once: true });
+      this.ws.addEventListener('error', () => {
+        clearTimeout(timer);
+        reject(new Error(`CDP WebSocket failed: ${this.url}`));
+      }, { once: true });
+    });
+    this.ws.addEventListener('message', (event) => {
+      const message = JSON.parse(String(event.data));
+      if (message.id) {
+        const item = this.pending.get(message.id);
+        if (!item) return;
+        this.pending.delete(message.id);
+        if (message.error) item.reject(new Error(`${item.method}: ${message.error.message}`));
+        else item.resolve(message.result || {});
+        return;
+      }
+      this.events.push(message);
+    });
+  }
+
+  send(method, params = {}) {
+    return new Promise((resolveSend, reject) => {
+      const id = ++this.seq;
+      this.pending.set(id, { resolve: resolveSend, reject, method });
+      this.ws.send(JSON.stringify({ id, method, params }));
+    });
+  }
+
+  close() {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.close();
+  }
+}
+
+async function openPage(chromeState, url) {
+  const response = await fetch(`${chromeState.httpOrigin}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' });
+  if (!response.ok) throw new Error(`Unable to create Chrome target for ${url}: ${response.status} ${await response.text()}`);
+  const target = await response.json();
+  const client = new CdpClient(target.webSocketDebuggerUrl);
+  await client.open();
+  await client.send('Runtime.enable');
+  await client.send('Page.enable');
+  await client.send('Log.enable');
+  return { client, target };
+}
+
+async function snapshot(client) {
+  const expression = `({
+    app: document.documentElement?.dataset?.ccApp || null,
+    engine: document.documentElement?.dataset?.ccEngine || null,
+    text: document.body?.innerText || '',
+    html: document.documentElement?.outerHTML || ''
+  })`;
+  const result = await client.send('Runtime.evaluate', { expression, returnByValue: true });
+  return result.result?.value || { app: null, engine: null, text: '', html: '' };
+}
+
+async function waitForPage(chromeState, url, expectedText, timeoutMs = 15000) {
+  const { client, target } = await openPage(chromeState, url);
+  const deadline = Date.now() + timeoutMs;
+  let last = null;
+  try {
+    while (Date.now() < deadline) {
+      last = await snapshot(client);
+      if (last.app === 'started' && last.engine === 'ready' && last.text.includes(expectedText)) return { ...last, events: client.events };
+      if (last.engine === 'error') break;
+      await sleep(100);
+    }
+    const runtimeErrors = client.events.filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Log.entryAdded');
+    throw new Error([
+      `Chrome page did not reach the expected state for ${url}`,
+      `Expected text: ${expectedText}`,
+      `Lifecycle: app=${last?.app || 'missing'} engine=${last?.engine || 'missing'}`,
+      `Runtime events: ${JSON.stringify(runtimeErrors, null, 2)}`,
+      `Chrome stderr: ${chromeState.stderr()}`,
+      `DOM: ${last?.html || 'unavailable'}`,
+    ].join('\n'));
+  } finally {
+    client.close();
+    if (target?.id) await fetch(`${chromeState.httpOrigin}/json/close/${encodeURIComponent(target.id)}`).catch(() => {});
+  }
 }
 
 const chrome = await chromeBinary();
 const { server, origin } = await startServer();
+const chromeState = await startChrome(chrome);
 
 try {
-  const decisionUrl = `${origin}/tools/consequence-closure/current/?case=authority-open`;
-  const decision = await dumpDom(chrome, decisionUrl);
-  assertRuntime(decision, decisionUrl);
-  assert.match(decision.dom, /The current evidence still permits different specified consequences\./u);
-  assert.match(decision.dom, /Inspector 0\.5\.0 · Core 0\.1\.0/u);
+  const decision = await waitForPage(
+    chromeState,
+    `${origin}/tools/consequence-closure/current/?case=authority-open`,
+    'The current evidence still permits different specified consequences.',
+  );
+  assert.equal(decision.app, 'started');
+  assert.equal(decision.engine, 'ready');
+  assert.match(decision.text, /Inspector 0\.5\.0 · Core 0\.1\.0/u);
 
-  const challengeUrl = `${origin}/tools/consequence-closure/current/?case=authority-open&view=challenge`;
-  const challenge = await dumpDom(chrome, challengeUrl);
-  assertRuntime(challenge, challengeUrl);
-  assert.match(challenge.dom, /Replayable certificate/u);
-  assert.match(challenge.dom, />SUFFICIENT</u);
-  assert.match(challenge.dom, />INCLUSION MINIMAL</u);
-  assert.match(challenge.dom, /Remove it and/u);
+  const challenge = await waitForPage(
+    chromeState,
+    `${origin}/tools/consequence-closure/current/?case=authority-open&view=challenge`,
+    'Replayable certificate',
+  );
+  assert.match(challenge.text, /SUFFICIENT/u);
+  assert.match(challenge.text, /INCLUSION MINIMAL/u);
+  assert.match(challenge.text, /Remove it and/u);
 
-  const linuxUrl = `${origin}/tools/consequence-closure/current/?compare=linux&view=compare`;
-  const linux = await dumpDom(chrome, linuxUrl);
-  assertRuntime(linux, linuxUrl);
-  assert.match(linux.dom, /Administrative declaration and operative enforcement/u);
-  assert.match(linux.dom, /CLOSED · UNSAFE/u);
-  assert.match(linux.dom, /CLOSED · SAFE/u);
-  assert.match(linux.dom, /Recorded operating-system contrast\./u);
+  const linux = await waitForPage(
+    chromeState,
+    `${origin}/tools/consequence-closure/current/?compare=linux&view=compare`,
+    'Administrative declaration and operative enforcement',
+  );
+  assert.match(linux.text, /CLOSED · UNSAFE/u);
+  assert.match(linux.text, /CLOSED · SAFE/u);
+  assert.match(linux.text, /Recorded operating-system contrast\./u);
 
-  const oauthUrl = `${origin}/tools/consequence-closure/current/?compare=oauth&view=compare`;
-  const oauth = await dumpDom(chrome, oauthUrl);
-  assertRuntime(oauth, oauthUrl);
-  assert.match(oauth.dom, /Qualified live path and authority-resource split state/u);
-  assert.match(oauth.dom, /SAFE AT CUT/u);
-  assert.match(oauth.dom, /AUTHORITY_RESOURCE_SPLIT_BRAIN/u);
-  assert.match(oauth.dom, /Recorded OAuth commissioning contrast\./u);
+  const oauth = await waitForPage(
+    chromeState,
+    `${origin}/tools/consequence-closure/current/?compare=oauth&view=compare`,
+    'Qualified live path and authority-resource split state',
+  );
+  assert.match(oauth.text, /SAFE AT CUT/u);
+  assert.match(oauth.text, /AUTHORITY_RESOURCE_SPLIT_BRAIN/u);
+  assert.match(oauth.text, /Recorded OAuth commissioning contrast\./u);
 
   console.log('Consequence Closure Chromium gate: PASS');
 } finally {
+  chromeState.child.kill('SIGTERM');
   await new Promise((resolveClose) => server.close(resolveClose));
+  await rm(chromeState.profile, { recursive: true, force: true });
 }

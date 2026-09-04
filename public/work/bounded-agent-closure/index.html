@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>Bounded Agent Closure | RISU Institute</title>
+<meta name="description" content="Bounded Agent Closure is a deterministic verifier for deciding whether the consequences attributable to a retiring autonomous agent have reached a terminal, stable state under declared evidence contracts.">
+<link rel="canonical" href="https://risuinstitute.org/work/bounded-agent-closure/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Bounded Agent Closure | RISU Institute">
+<meta property="og:description" content="A deterministic evidence verifier for the gap between disabling an autonomous agent and establishing that its attributable consequences are actually closed.">
+<meta property="og:url" content="https://risuinstitute.org/work/bounded-agent-closure/">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/">Tools</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Agent decommissioning · deterministic verifier · v0.3.1</p>
+      <h1>Bounded Agent Closure</h1>
+      <p class="page-lede">Disabling an autonomous agent stops future authority. It does not prove that work the agent already started, delegated, promised, transferred, or left behind has reached a terminal state.</p>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <div class="callout">
+      <p><strong>Core idea:</strong> Bounded Agent Closure asks a separate question after authority has been blocked: have the consequences attributable to this retiring agent reached allowed terminal dispositions, with enough evidence and stability to say so?</p>
+    </div>
+
+    <h2>The gap after shutdown</h2>
+    <p>Imagine an agent that delegated a job, created a purchase commitment, produced an audit record, and handed a customer case to a successor. Its credentials can be revoked in one moment, but those four consequences do not share one closure condition.</p>
+    <p>The delegated job may need to disappear or become inert. The commitment must be settled. The audit record may be meant to remain. The customer case may stay active under the successor. Treating all of them as “closed” because the root agent was disabled is too weak. Requiring all of them to be deleted is wrong in the other direction.</p>
+    <p>BAC makes that gap explicit. Authority cessation is an input premise. Operational closure is a later evidence claim.</p>
+
+    <h2>Closure belongs to the retiring principal</h2>
+    <p>The verifier is principal-relative. It does not ask whether every object in the world has stopped existing. It asks whether every in-scope consequence still attributable to the retiring root has reached the postcondition assigned to that root.</p>
+    <p>This is why object survival and agent closure can diverge. A transferred case may remain active after responsibility has moved to an accepted successor. A retained audit artifact may remain present because retention itself is the intended terminal state. At the same time, a hidden descendant job can keep the retiring root open even if the root object looks clean.</p>
+
+    <h2>The consequence cone</h2>
+    <p>BAC follows evidence-backed lineage outward from the retiring root. The only lineage relation in the frozen profile is <span class="identifier">DERIVED_FROM</span>. Every residual reachable from the root belongs to that root's closure cone, including descendants several edges away.</p>
+    <div class="code-block">retiring agent
+      ↓
+  delegation
+      ↓
+ scheduled job
+      ↓
+   retry job</div>
+    <p>A consequence does not escape merely because the immediate child is already terminal. The transitive chain matters. In the canonical Transitive Zombie case, the delegation itself is gone, but a schedule derived from it remains <span class="identifier">ACTIVE</span> and <span class="identifier">LIVE</span>. The verdict is therefore <span class="identifier">INCOMPLETE</span>.</p>
+
+    <h2>Five dispositions, not one cleanup rule</h2>
+    <p>Each residual declares how it is supposed to finish. BAC then derives terminality from the observed postcondition rather than from an action report or a generic “done” flag.</p>
+    <dl class="spec-grid">
+      <dt>EXTINGUISH</dt><dd>The old-root linkage has ended, and the consequence is absent or present without a live effect.</dd>
+      <dt>SETTLE</dt><dd>The commitment is settled, inert, and no longer linked to the retiring root.</dd>
+      <dt>TRANSFER</dt><dd>The old-root linkage has ended, a distinct successor is named, and that successor has accepted the transfer. The object may remain active.</dd>
+      <dt>RETAIN</dt><dd>The object remains present by design, but it is inert and its linkage to the retiring root has ended.</dd>
+      <dt>NONE</dt><dd>No terminal disposition has been supplied. It is nonterminal by definition.</dd>
+    </dl>
+    <p>This makes closure stricter than a shutdown flag and more accurate than deletion. The verifier checks whether each consequence reached the right ending, not whether every consequence reached the same ending.</p>
+
+    <h2>Two opposite errors</h2>
+    <p>BAC is designed to reject premature closure without turning closure into “everything must disappear.” Two frozen cases show the distinction clearly.</p>
+    <p><strong>False Success:</strong> a cancellation operation reports <span class="identifier">SUCCESS</span>, but the observed schedule is still present, active, and live-linked to the retiring agent. The action report is metadata. It cannot override the postcondition. BAC returns <span class="identifier">INCOMPLETE</span>.</p>
+    <p><strong>Successor Transfer:</strong> a customer case is still present and active, but its old-root linkage has ended, a distinct successor is named, and transfer acceptance is <span class="identifier">ACCEPTED</span>. BAC returns <span class="identifier">CLOSED</span>.</p>
+    <p>The same verifier therefore blocks both naive rules: “the API said success, so we are done” and “the object is still active, so closure is impossible.”</p>
+
+    <h2>Silence is not closure</h2>
+    <p>A clean-looking graph is not enough if the evidence surface is incomplete. Every profile domain is either covered by declared sources or explicitly marked not applicable with evidence. Covered sources must report both source coverage and attribution coverage.</p>
+    <p>If a required source cannot establish what it covers, the verifier does not convert that absence of visibility into a positive result. The canonical Missing Coverage case has no known surviving residual, but the source reports coverage as unavailable. BAC returns <span class="identifier">UNKNOWN</span>, not <span class="identifier">CLOSED</span>.</p>
+    <p>This distinction is deliberate: a known live consequence is a blocker; missing evidence is uncertainty. The final verdict keeps those states separate.</p>
+
+    <h2>Fresh evidence matters</h2>
+    <p>Every reachable consequence must be freshly observed in a scan that supports closure. BAC does not carry a stale terminal state forward simply because the object looked safe earlier.</p>
+    <p>Sources also declare how observation stability can be justified. A <span class="identifier">MONOTONIC_BARRIER</span> source must show that observation progressed through a captured barrier. A <span class="identifier">BOUNDED_LAG</span> source must wait out its declared visibility lag. An <span class="identifier">UNBOUNDED</span> source cannot qualify a scan for <span class="identifier">CLOSED</span>.</p>
+    <p>The verifier does not invent these source guarantees. Adapters must supply them under explicit source contracts, which keeps the trust boundary visible.</p>
+
+    <h2>One clean scan is not enough</h2>
+    <p>A system can look closed for a moment and reveal another consequence immediately afterward. BAC therefore processes the whole scan sequence and requires the final two qualifying scans to agree on the closure-relevant semantic state.</p>
+    <p>The Fixed-Point Wind-Down case shows why. Early in the sequence, a schedule appears to terminate, but a derived retry job later enters the cone. Only after that retry is extinguished and the final semantic state qualifies again does the case become <span class="identifier">CLOSED</span>.</p>
+    <p>The comparison uses a SHA-256 semantic signature that includes closure-relevant state and lineage while excluding incidental evidence transport details such as scan IDs and timestamps. Equality across the final qualifying pair is a bounded convergence claim, not a promise that the system can never change again.</p>
+
+    <h2>What a scan must establish</h2>
+    <p>A scan can support closure only when every required gate is satisfied:</p>
+    <ul>
+      <li>the scan occurs after declared quiescence and new-business authority remains blocked;</li>
+      <li>every required source has complete coverage and complete attribution;</li>
+      <li>each source satisfies its declared stability contract;</li>
+      <li>every residual in the consequence cone is freshly observed; and</li>
+      <li>every reachable residual is terminal under its own disposition.</li>
+    </ul>
+    <p>The final pair must then qualify with the same semantic signature, plus any required bounded-lag confirmation window.</p>
+
+    <h2>Four evidence domains</h2>
+    <p>The frozen profile <span class="identifier">RISU_AGENT_CLOSURE_V0</span> fixes exactly four domains. Keeping them separate prevents one kind of evidence from standing in for another.</p>
+    <dl class="spec-grid">
+      <dt>AUTHORITY</dt><dd>Delegation and other authority consequences attributable to the retiring root.</dd>
+      <dt>EXECUTION</dt><dd>Jobs, schedules, retries, or other execution that may still be active.</dd>
+      <dt>COMMITMENT</dt><dd>Obligations that must reach a declared settlement state.</dd>
+      <dt>OPERATIONAL_STATE</dt><dd>Other retained, transferred, or extinguished state that remains relevant to closure.</dd>
+    </dl>
+
+    <h2>Verdicts are deliberately different</h2>
+    <dl class="spec-grid">
+      <dt>CLOSED</dt><dd>Bounded closure is established within the declared profile and source contracts. Only this verdict carries a certificate.</dd>
+      <dt>INCOMPLETE</dt><dd>A known blocker or unstable final semantic state prevents closure.</dd>
+      <dt>UNKNOWN</dt><dd>The available evidence, source stability, or required confirmation is insufficient to establish closure.</dd>
+      <dt>VALIDATION_ERROR</dt><dd>The evidence bundle is malformed or logically impossible. No closure verdict is issued.</dd>
+    </dl>
+    <p>The exact positive certificate says: <span class="identifier">CLOSED within RISU_AGENT_CLOSURE_V0 and the declared source contracts.</span></p>
+
+    <h2>The eight boundary cases</h2>
+    <p>The frozen corpus is small on purpose. Each case isolates a different failure mode or legitimate terminal state.</p>
+    <dl class="spec-grid">
+      <dt>C1 Direct Zombie</dt><dd><span class="identifier">INCOMPLETE</span>. A directly reachable execution remains active.</dd>
+      <dt>C2 Transitive Zombie</dt><dd><span class="identifier">INCOMPLETE</span>. A surviving descendant remains reachable through transitive lineage.</dd>
+      <dt>C3 Pending Commitment</dt><dd><span class="identifier">INCOMPLETE</span>. An unsettled commitment keeps the retiring root open.</dd>
+      <dt>C4 Retained Evidence</dt><dd><span class="identifier">CLOSED</span>. Retained state can be terminal when it is present, inert, and detached from the old root.</dd>
+      <dt>C5 Successor Transfer</dt><dd><span class="identifier">CLOSED</span>. Accepted transfer can end old-root responsibility while successor activity continues.</dd>
+      <dt>C6 Missing Coverage</dt><dd><span class="identifier">UNKNOWN</span>. Missing source coverage is uncertainty, not evidence of closure.</dd>
+      <dt>C7 False Success</dt><dd><span class="identifier">INCOMPLETE</span>. A successful cancel report cannot defeat an observed active postcondition.</dd>
+      <dt>C8 Fixed-Point Wind-Down</dt><dd><span class="identifier">CLOSED</span>. Stable final-pair confirmation is required after late consequences stop appearing.</dd>
+    </dl>
+
+    <h2>Where BAC sits</h2>
+    <p>Authorization revocation, distributed termination, resource finalization, and task lifecycle systems each answer useful completion questions about the objects they govern. BAC does not replace them. It consumes facts from those layers as evidence for a different verification object: the retiring principal and the consequences attributable to it.</p>
+    <p>This is the architectural reason the verifier starts after authority quiescence. An authorization system can establish that new work is no longer permitted. Execution systems can report task state. Commitment systems can report settlement. Transfer records can report successor acceptance. BAC asks whether those local facts, taken together under explicit coverage and stability contracts, justify one bounded closure claim about the retiring agent.</p>
+
+    <h2>The Inspector</h2>
+    <p>The Agent Closure Inspector is a debugger for the same verifier, not a second implementation of the semantics. It exposes the consequence lineage, engine reasons, scan and convergence timeline, source scope, trust assumptions, received evidence, and the closure certificate when one exists.</p>
+    <p>The hosted Inspector is intentionally limited to the eight canonical generated evaluations. Local mode can open an arbitrary conforming evidence bundle on literal <span class="identifier">127.0.0.1</span>, evaluates it through the frozen <span class="identifier">verifyClosure()</span> path, holds the uploaded evidence in memory, and sends it to no external service.</p>
+    <p><a href="/tools/agent-closure/">Open the Agent Closure Inspector</a></p>
+
+    <h2>Result</h2>
+    <div class="callout">
+      <p><strong>BAC turns agent retirement from an administrative event into a bounded evidence claim about attributable consequences.</strong> It can reject a disabled agent whose consequences remain live, accept a retiring agent whose responsibility has been validly transferred or retained, distinguish missing evidence from known failure, and require stable confirmation before issuing <span class="identifier">CLOSED</span>.</p>
+    </div>
+    <p>The contribution is the executable composition: principal-relative transitive attribution, disposition-specific terminality, explicit evidence coverage, source-specific stability, fresh re-observation, and final-pair semantic convergence in one deterministic verifier.</p>
+
+    <h2>Where the verifier stops</h2>
+    <p>BAC starts at the evidence-bundle boundary. It does not discover live-system evidence by itself, revoke credentials, cancel jobs, settle commitments, transfer responsibility, or perform cleanup. No live-runtime adapter is part of the frozen v0.3 line.</p>
+    <p>The verifier trusts declared adapter assertions where the underlying source must establish coverage, attribution, quiescence, timing, and stability. Its digests bind the evaluated semantic state, scope, and evidence bundle for audit; they do not authenticate the truth of the underlying observations. Those limits are part of the meaning of <span class="identifier">CLOSED</span>, not footnotes added afterward.</p>
+
+    <h2>Frozen record</h2>
+    <dl class="spec-grid">
+      <dt>Recommended software</dt><dd>Bounded Agent Closure v0.3.1</dd>
+      <dt>Semantic profile</dt><dd class="identifier">RISU_AGENT_CLOSURE_V0</dd>
+      <dt>Normative specification</dt><dd>Frozen v0.3</dd>
+      <dt>Phase-1 engine freeze</dt><dd class="identifier">a46456f028cd3dd1d386111b1faab890a26ae5e9</dd>
+      <dt>Inspector freeze</dt><dd class="identifier">07325dd1304cc3fe1acd86ce50596161581a1cdb</dd>
+      <dt>Canonical corpus</dt><dd>8 boundary cases</dd>
+      <dt>v0.3.1 release verification</dt><dd>75 tests · 75 passed · 0 failed on Node.js 22</dd>
+      <dt>Runtime</dt><dd>Deterministic · no LLM calls · no runtime network dependency</dd>
+      <dt>Technical Note DOI</dt><dd class="identifier">10.5281/zenodo.22005109</dd>
+      <dt>Software DOI</dt><dd class="identifier">10.5281/zenodo.22005419</dd>
+    </dl>
+    <p>v0.3.1 is a maintenance release. The frozen closure semantics, canonical cases, engine freeze, and Inspector freeze are unchanged from the v0.3 semantic line.</p>
+
+    <h2>Research and source record</h2>
+    <div class="reference-list">
+      <a href="/research/technical-notes/2026-01/">RISU Technical Note 2026-01</a>
+      <a href="/research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf">Full Technical Note PDF</a>
+      <a href="/tools/agent-closure/">Agent Closure Inspector</a>
+      <a href="https://doi.org/10.5281/zenodo.22005109">Technical Note archival record</a>
+      <a href="https://doi.org/10.5281/zenodo.22005419">Bounded Agent Closure v0.3.1 software archive</a>
+      <a href="https://github.com/risu-research/bounded-agent-closure/blob/main/SPEC.md">Normative specification</a>
+      <a href="https://github.com/risu-research/bounded-agent-closure/releases/tag/v0.3.1">v0.3.1 release record</a>
+      <a href="https://github.com/risu-research/bounded-agent-closure">Canonical repository</a>
+      <a href="/work/">Back to the RISU research program</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+  </div>
+</footer>
+</body>
+</html>

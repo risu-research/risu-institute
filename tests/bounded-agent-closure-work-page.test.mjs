@@ -11,7 +11,7 @@ const readPublic = (path) => readFile(join(publicRoot, path), "utf8");
 const overviewPath = "work/bounded-agent-closure/index.html";
 const overviewUrl = "https://risuinstitute.org/work/bounded-agent-closure/";
 const noteUrl = "/research/technical-notes/2026-01/";
-const inspectorUrl = "/tools/agent-closure/";
+const inspectorUrl = "/tools/agent-closure-inspector/";
 const repositoryUrl = "https://github.com/risu-research/bounded-agent-closure";
 
 test("Bounded Agent Closure has a website-first conceptual overview", async () => {

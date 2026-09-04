@@ -3,66 +3,219 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f3f0e8">
+<meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/tools/reliance-inspector/styles.css">
-<link rel="stylesheet" href="/tools/reliance-inspector/hosted.css">
-<title>Reliance Inspector — RISU Institute</title>
-<meta name="description" content="Public canonical-case surface for Reliance Inspector v0.4.0. Inspect frozen recorded and counterfactual Reliance Before Closure cases in-browser; evidence verification and semantic-object evaluation remain local-only.">
+<link rel="stylesheet" href="/tools/reliance-inspector/hosted.css?v=20260904-v2">
+<title>Reliance Inspector | RISU Institute</title>
+<meta name="description" content="Inspect why a claim-specific machine decision can become evidence-qualified for reliance before the broader workflow has finished. Public canonical cases from Reliance Inspector v0.4.0.">
 <link rel="canonical" href="https://risuinstitute.org/tools/reliance-inspector/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Reliance Inspector — RISU Institute">
-<meta property="og:description" content="Inspect frozen Reliance Before Closure canonical cases in-browser. Local verification and semantic evaluation remain in the archived Python release.">
+<meta property="og:title" content="Reliance Inspector | RISU Institute">
+<meta property="og:description" content="A public canonical-case instrument for inspecting future-boundary evidence, claim stability, qualified action effects, relying identity, and machine reliance before broader workflow closure.">
 <meta property="og:url" content="https://risuinstitute.org/tools/reliance-inspector/">
 </head>
-<body>
-<div class="hosted-bar">
-  <a class="hosted-brand" href="/">RISU Institute</a>
+<body class="hosted-surface">
+<header class="hosted-bar">
+  <a class="hosted-brand" href="/" aria-label="RISU Institute home"><span>RISU</span><small>Institute</small></a>
   <nav aria-label="Primary">
     <a href="/work/">Research</a>
     <a href="/research/">Publications</a>
     <a href="/tools/" aria-current="page">Tools</a>
     <a href="/about/">About</a>
   </nav>
-</div>
-<main class="shell">
-<header class="topbar">
-  <div>
-    <div class="eyebrow">RELIANCE BEFORE CLOSURE</div>
-    <h1>Reliance Inspector</h1>
-    <p>Inspect evidence, boundary qualification, stability margin, action effect, and relying applicability using the frozen semantic core.</p>
-  </div>
-  <div class="mode-badge"><strong>PUBLIC CANONICAL MODE</strong><span>v0.4.0 · frozen case data</span></div>
 </header>
-<section class="hosted-notice" aria-label="Hosted scope">
-  <div><strong>Hosted scope</strong><span>Recorded and counterfactual canonical cases are inspectable entirely in-browser from the frozen v0.4.0 case data.</span></div>
-  <div><strong>Local-only boundary</strong><span>Evidence-bundle verification and semantic-object evaluation require the archived loopback server and frozen Python consumer. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Download Windows portable →</a> · <a href="https://doi.org/10.5281/zenodo.22037607">Archived v0.4.0 →</a> · <a href="https://github.com/risu-research/reliance-before-closure">Source →</a></span></div>
-</section>
-<noscript><div class="warning">Canonical case inspection requires JavaScript. No remote service or model is used.</div></noscript>
-<nav class="mode-tabs" aria-label="Inspector modes">
-  <button class="mode active" data-mode="cases">Canonical cases</button>
-  <button class="mode" data-mode="verify">Inspect evidence <span class="local-tag">local</span></button>
-  <button class="mode" data-mode="evaluate">Evaluate objects <span class="local-tag">local</span></button>
-</nav>
-<section id="mode-cases" class="mode-panel active"><div class="layout"><aside class="rail"><div class="rail-head">Recorded and counterfactual</div><div id="case-list"></div></aside><article class="workspace">
-<header class="case-header"><div><div class="meta-line"><span id="provenance" class="provenance"></span><span id="source-hash-short" class="hash"></span></div><h2 id="title"></h2><p id="provenance-detail" class="subtle"></p></div><div id="verdict" class="result-chip"></div></header>
-<section class="instrument"><div class="section-label">Decision trace</div><div id="decision-trace" class="trace"></div></section>
-<section id="timeline-card" class="instrument"><div class="section-label">Recorded timing</div><div class="timeline-track"><div class="timeline-line"></div><div class="tick reliance-tick"></div><div class="tick closure-tick"></div></div><div class="timeline-values"><div><strong id="reliance-time"></strong><span>reliance point</span></div><div class="center"><strong id="lead-time"></strong><span>measured lead</span></div><div class="right"><strong id="closure-time"></strong><span>broader closure</span></div></div></section>
-<section class="metrics"><div><span>Boundary</span><strong id="boundary"></strong><small id="trust-conditioned"></small></div><div><span>Stability margin M</span><strong id="margin"></strong><small id="unit1"></small></div><div><span>Action bound Cₐ</span><strong id="action-bound"></strong><small id="unit2"></small></div><div><span>Reason</span><strong id="reason-code" class="reason"></strong><small>frozen consumer</small></div></section>
-<section class="instrument"><div class="section-label">Interpretation</div><p id="interpretation" class="interpretation"></p><div id="fact-grid" class="fact-table"></div></section>
-<section class="split"><div class="instrument"><div class="section-label">Evidence-backed exclusions</div><div id="exclusions"></div></div><div class="instrument"><div class="section-label">Explicit trust assumptions</div><div id="assumptions"></div></div></section>
-<section class="nonclaim-bar"><strong>Does not imply</strong><div id="nonclaims"></div></section><details class="raw"><summary>Inspect immutable case JSON</summary><pre id="raw-json"></pre></details>
-</article></div></section>
-<section id="mode-verify" class="mode-panel"><div class="tool-intro"><div class="eyebrow">LOCAL EVIDENCE INSPECTION</div><h2>Verify and inspect an evidence bundle</h2><p>Run the frozen offline verifier, inspect the reconstructed decision record, and export a deterministic verification record. The ZIP remains on this machine.</p></div>
-<div id="verify-static-warning" class="warning hidden">This hosted surface intentionally exposes no verification endpoint. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Download the Windows portable full Inspector</a>, or use the <a href="https://doi.org/10.5281/zenodo.22037607">archived Python release</a>.</div><label class="dropzone"><input id="evidence-file" type="file" accept=".zip,application/zip"><strong>Choose a compatible recorded evidence ZIP</strong><span id="chosen-file">No file selected</span></label><div class="tool-actions"><button id="verify-button" class="primary">Verify and inspect</button></div><div id="verify-error" class="error-box hidden"></div>
-<section id="verify-record" class="hidden"><div class="record-head"><div><div class="eyebrow">VERIFICATION RECORD</div><h3 id="verify-status"></h3></div><button id="download-verify-record" class="secondary">Download record JSON</button></div>
-<div class="record-grid"><div class="record-cell"><span>Evidence SHA-256</span><code id="evidence-sha"></code></div><div class="record-cell"><span>Manifest entries</span><strong id="manifest-count"></strong></div><div class="record-cell"><span>Boundary</span><strong id="verify-boundary"></strong><small id="verify-trust"></small></div><div class="record-cell"><span>Applicability</span><strong id="verify-applicability"></strong><small id="verify-reason"></small></div><div class="record-cell"><span>Margin</span><strong id="verify-margin"></strong><small id="verify-unit"></small></div><div class="record-cell"><span>Action bound</span><strong id="verify-action"></strong><small id="verify-action-unit"></small></div><div class="record-cell"><span>Quota at reliance</span><strong id="verify-quota-reliance"></strong></div><div class="record-cell"><span>Final quota</span><strong id="verify-quota-final"></strong></div><div class="record-cell"><span>Measured lead</span><strong id="verify-lead"></strong><small>runner monotonic clock</small></div></div>
-<section class="instrument"><div class="section-label">Boundary basis</div><div class="scope-line"><span>Inventory qualification</span><strong id="inventory-qualification"></strong></div><div class="split compact"><div><div class="subsection-label">Evidence-backed exclusions</div><div id="verify-exclusions"></div></div><div><div class="subsection-label">Explicit trust assumptions</div><div id="verify-assumptions"></div></div></div></section>
-<section class="instrument"><div class="section-label">Derivation record</div><div id="derivation-table" class="fact-table"></div></section><section class="instrument"><div class="section-label">Reproducibility fingerprint</div><div id="fingerprint-table" class="fact-table"></div></section><details class="raw"><summary>Frozen verifier output</summary><pre id="verify-raw"></pre></details></section></section>
-<section id="mode-evaluate" class="mode-panel"><div class="tool-intro"><div class="eyebrow">SEMANTIC OBJECT EVALUATION</div><h2>Evaluate verified semantic objects</h2><p>Evaluate a certificate, action bound, and relying context with the frozen Python consumer. The record includes exact identity diagnostics and a canonical input digest.</p></div><div class="precondition"><strong>Precondition</strong><span>This mode does not verify signatures, issuers, authenticity, or transport integrity. The supplied semantic objects must already have been verified upstream.</span></div><div id="eval-static-warning" class="warning hidden">This hosted surface intentionally exposes no semantic-evaluation endpoint. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Download the Windows portable full Inspector</a>, or use the <a href="https://doi.org/10.5281/zenodo.22037607">archived Python release</a>.</div>
-<div class="input-row"><label class="file-button"><input id="semantic-file" type="file" accept=".json,application/json">Load JSON file</label><button id="load-example" class="secondary">Load final-case objects</button></div><textarea id="eval-json" spellcheck="false" aria-label="Semantic object bundle"></textarea><div class="tool-actions"><button id="evaluate-button" class="primary">Evaluate with frozen rely()</button></div><div id="evaluate-error" class="error-box hidden"></div>
-<section id="evaluate-record" class="hidden"><div class="record-head"><div><div class="eyebrow">EVALUATION RECORD</div><h3 id="eval-applicability"></h3><p id="eval-reason" class="subtle"></p></div><button id="download-eval-record" class="secondary">Download record JSON</button></div><div class="record-grid three"><div class="record-cell"><span>Input SHA-256</span><code id="eval-input-sha"></code></div><div class="record-cell"><span>Semantic core SHA-256</span><code id="eval-core-sha"></code></div><div class="record-cell"><span>Non-inference</span><strong>no authorization, no reservation, no commit guarantee</strong></div></div><section class="instrument"><div class="section-label">Identity diagnostics</div><div id="identity-table" class="identity-table"></div></section></section></section>
-<footer><span>Reliance Inspector v0.4.0 · hosted canonical surface</span><span><a href="/tools/reliance-inspector/provenance.json">Deployment provenance</a> · <a href="https://doi.org/10.5281/zenodo.22037607">Frozen software record</a></span></footer>
+
+<main class="shell">
+  <section class="instrument-hero" aria-labelledby="inspector-title">
+    <div class="hero-copy">
+      <div class="eyebrow">RELIANCE BEFORE CLOSURE · FROZEN INSTRUMENT v0.4.0</div>
+      <h1 id="inspector-title">Reliance Inspector</h1>
+      <p class="hero-lede">A workflow can still be open after one decision has become stable enough to rely on.</p>
+      <p class="hero-support">Reliance Inspector shows the evidence, assumptions, semantic identities, stability margin, and action bound behind that narrower decision. It lets you inspect why a relying result is <strong>SUPPORTED</strong>, why it must be <strong>REQUALIFY</strong>, or why matching numbers still become <strong>NOT_APPLICABLE</strong>.</p>
+      <div class="hero-actions">
+        <a class="hero-action primary-action" href="#case-library">Inspect published cases</a>
+        <a class="hero-action" href="/work/reliance-before-closure/">Read the research overview</a>
+        <a class="hero-action" href="https://doi.org/10.5281/zenodo.22037607">Frozen software record</a>
+      </div>
+    </div>
+
+    <aside class="hero-example" aria-label="Recorded commissioning example">
+      <div class="example-kicker">Recorded commissioning example</div>
+      <div class="example-state"><span>Broader workflow</span><strong>Still open</strong><small>Deployment completion was false at the reliance point</small></div>
+      <div class="example-state"><span>Claim-specific verdict</span><strong>Stable</strong><small>Qualified future boundary under the accepted trust profile</small></div>
+      <div class="example-pair">
+        <div><span>Margin M</span><strong>1</strong><small>POD_SLOT</small></div>
+        <div><span>Action Cₐ</span><strong>1</strong><small>POD_SLOT</small></div>
+      </div>
+      <div class="example-result"><span>Relying result</span><strong>SUPPORTED</strong><small>20.613487 s before broader closure in this recorded trace</small></div>
+    </aside>
+  </section>
+
+  <section class="decision-contract" aria-label="Reliance decision contract">
+    <article><span>01</span><h2>Future boundary</h2><p>Which unresolved paths are still admissible, which are excluded by evidence, and which remain explicit trust assumptions?</p></article>
+    <article><span>02</span><h2>Verdict stability</h2><p>Across that qualified future boundary, how much can the claim move before its verdict changes?</p></article>
+    <article><span>03</span><h2>Action effect</h2><p>How much can the proposed action itself worsen the same claim, including qualified post-action expansion?</p></article>
+    <article><span>04</span><h2>Relying identity</h2><p>Do the certificate, action bound, and relying party agree on the exact claim, unit, boundary, profile, and trust identity?</p></article>
+  </section>
+
+  <section class="formula-band" aria-label="Provider-blind relying rule">
+    <div>
+      <span class="formula-label">Provider-blind seam</span>
+      <strong>qualified boundary + stable claim + qualified action + exact identity</strong>
+    </div>
+    <span class="formula-arrow" aria-hidden="true">→</span>
+    <div class="formula-core"><code>rely()</code></div>
+    <span class="formula-arrow" aria-hidden="true">→</span>
+    <div class="formula-outcomes"><strong>SUPPORTED</strong><strong>REQUALIFY</strong><strong>NOT_APPLICABLE</strong></div>
+    <p><strong>SUPPORTED means semantic applicability, not permission.</strong> It does not infer authorization, reserve capacity, or guarantee a concurrent commit.</p>
+  </section>
+
+  <section class="hosted-notice" aria-label="Hosted scope">
+    <div>
+      <strong>PUBLIC CANONICAL MODE</strong>
+      <span>Recorded commissioning evidence, negative controls, and counterfactual cases are inspectable in-browser from the frozen v0.4.0 case data.</span>
+    </div>
+    <div>
+      <strong>Local verification boundary</strong>
+      <span>Evidence-bundle verification and semantic-object evaluation require the archived loopback server and frozen Python consumer. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Windows portable</a> · <a href="https://doi.org/10.5281/zenodo.22037607">Archived v0.4.0</a> · <a href="https://github.com/risu-research/reliance-before-closure">Source</a></span>
+    </div>
+  </section>
+
+  <noscript><div class="warning">Canonical case inspection requires JavaScript. No remote service or model is used.</div></noscript>
+
+  <nav class="mode-tabs" aria-label="Inspector modes">
+    <button class="mode active" data-mode="cases"><span>Published cases</span><small>browser</small></button>
+    <button class="mode" data-mode="verify"><span>Evidence verification</span><small>local release</small></button>
+    <button class="mode" data-mode="evaluate"><span>Semantic evaluation</span><small>local release</small></button>
+  </nav>
+
+  <section id="mode-cases" class="mode-panel active">
+    <div class="layout" id="case-library">
+      <aside class="rail case-library">
+        <div class="rail-head">Case library</div>
+        <p class="rail-intro">Recorded evidence and counterfactual controls that expose different failure boundaries, not just favorable outcomes.</p>
+        <div id="case-list"></div>
+        <div class="rail-note"><strong>Read the verdict with its boundary.</strong><span>The same arithmetic can change meaning when future paths or trust identities change.</span></div>
+      </aside>
+
+      <article class="workspace">
+        <header class="case-header">
+          <div class="case-heading">
+            <div class="case-kicker">Selected canonical case</div>
+            <div class="meta-line"><span id="provenance" class="provenance"></span><span id="source-hash-short" class="hash"></span></div>
+            <h2 id="title"></h2>
+            <p id="provenance-detail" class="subtle"></p>
+          </div>
+          <div class="verdict-stack">
+            <span>Relying result</span>
+            <div id="verdict" class="result-chip"></div>
+            <small>semantic applicability</small>
+          </div>
+        </header>
+
+        <section class="instrument decision-trace-card">
+          <div class="section-heading-row"><div><div class="section-label">Decision trace</div><h3>Why this result follows</h3></div><p>Each stage answers a different question. No later stage repairs an unqualified earlier one.</p></div>
+          <div id="decision-trace" class="trace"></div>
+        </section>
+
+        <section id="timeline-card" class="instrument timeline-card">
+          <div class="section-heading-row"><div><div class="section-label">Recorded timing</div><h3>Claim-specific reliance before broader closure</h3></div><p>The interval is one commissioning measurement, not a performance average.</p></div>
+          <div class="timeline-track"><div class="timeline-line"></div><div class="tick reliance-tick"></div><div class="tick closure-tick"></div></div>
+          <div class="timeline-values">
+            <div><strong id="reliance-time"></strong><span>reliance point</span></div>
+            <div class="center"><strong id="lead-time"></strong><span>measured interval</span></div>
+            <div class="right"><strong id="closure-time"></strong><span>broader closure</span></div>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Case decision metrics">
+          <div><span>Boundary status</span><strong id="boundary"></strong><small id="trust-conditioned"></small></div>
+          <div><span>Stability margin M</span><strong id="margin"></strong><small id="unit1"></small></div>
+          <div><span>Action bound Cₐ</span><strong id="action-bound"></strong><small id="unit2"></small></div>
+          <div><span>Reason code</span><strong id="reason-code" class="reason"></strong><small>frozen consumer</small></div>
+        </section>
+
+        <section class="instrument interpretation-card">
+          <div class="section-label">Interpretation</div>
+          <p id="interpretation" class="interpretation"></p>
+          <div class="section-subhead">Observed facts</div>
+          <div id="fact-grid" class="fact-table"></div>
+        </section>
+
+        <section class="split evidence-split">
+          <div class="instrument evidence-card">
+            <div class="section-label">Evidence-backed exclusions</div>
+            <p class="section-intro">Paths removed by recorded evidence rather than assumption.</p>
+            <div id="exclusions"></div>
+          </div>
+          <div class="instrument trust-card">
+            <div class="section-label">Explicit trust assumptions</div>
+            <p class="section-intro">Accepted conditions that remain part of the claim boundary and are not promoted into evidence.</p>
+            <div id="assumptions"></div>
+          </div>
+        </section>
+
+        <section class="nonclaim-bar"><strong>What this result does not establish</strong><div id="nonclaims"></div></section>
+        <details class="raw"><summary>Inspect immutable canonical case JSON</summary><pre id="raw-json"></pre></details>
+      </article>
+    </div>
+  </section>
+
+  <section id="mode-verify" class="mode-panel local-mode-panel">
+    <div class="local-mode-shell">
+      <div class="tool-intro">
+        <div class="eyebrow">LOCAL EVIDENCE VERIFICATION</div>
+        <h2>Reconstruct the decision from an evidence bundle</h2>
+        <p>The full local release verifies a compatible recorded evidence ZIP, rebuilds the claim-specific boundary and derivations, and emits a deterministic verification record. The public website deliberately does not receive or process that bundle.</p>
+      </div>
+      <div class="local-capability-grid">
+        <article><span>01</span><strong>Archive integrity</strong><p>Recheck the evidence manifest and bundle identity.</p></article>
+        <article><span>02</span><strong>Boundary basis</strong><p>Separate evidenced exclusions from explicit trust assumptions.</p></article>
+        <article><span>03</span><strong>Derivation</strong><p>Reconstruct the margin, qualified action bound, and relying result.</p></article>
+        <article><span>04</span><strong>Fingerprint</strong><p>Emit exact evidence, verifier, and semantic-core identities.</p></article>
+      </div>
+      <div id="verify-static-warning" class="warning hidden">This hosted surface intentionally exposes no verification endpoint. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Open the Windows portable full Inspector</a>, or use the <a href="https://doi.org/10.5281/zenodo.22037607">archived Python release</a>.</div>
+      <div class="local-actions"><a class="hero-action primary-action" href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Windows portable</a><a class="hero-action" href="https://doi.org/10.5281/zenodo.22037607">Frozen archive</a><a class="hero-action" href="https://github.com/risu-research/reliance-before-closure">Source and verifier</a></div>
+    </div>
+
+    <div class="hosted-local-controls" aria-hidden="true">
+      <label class="dropzone"><input id="evidence-file" type="file" accept=".zip,application/zip"><strong>Choose a compatible recorded evidence ZIP</strong><span id="chosen-file">No file selected</span></label>
+      <div class="tool-actions"><button id="verify-button" class="primary">Verify and inspect</button></div><div id="verify-error" class="error-box hidden"></div>
+      <section id="verify-record" class="hidden"><div class="record-head"><div><div class="eyebrow">VERIFICATION RECORD</div><h3 id="verify-status"></h3></div><button id="download-verify-record" class="secondary">Download record JSON</button></div>
+      <div class="record-grid"><div class="record-cell"><span>Evidence SHA-256</span><code id="evidence-sha"></code></div><div class="record-cell"><span>Manifest entries</span><strong id="manifest-count"></strong></div><div class="record-cell"><span>Boundary</span><strong id="verify-boundary"></strong><small id="verify-trust"></small></div><div class="record-cell"><span>Applicability</span><strong id="verify-applicability"></strong><small id="verify-reason"></small></div><div class="record-cell"><span>Margin</span><strong id="verify-margin"></strong><small id="verify-unit"></small></div><div class="record-cell"><span>Action bound</span><strong id="verify-action"></strong><small id="verify-action-unit"></small></div><div class="record-cell"><span>Quota at reliance</span><strong id="verify-quota-reliance"></strong></div><div class="record-cell"><span>Final quota</span><strong id="verify-quota-final"></strong></div><div class="record-cell"><span>Measured lead</span><strong id="verify-lead"></strong><small>runner monotonic clock</small></div></div>
+      <section class="instrument"><div class="section-label">Boundary basis</div><div class="scope-line"><span>Inventory qualification</span><strong id="inventory-qualification"></strong></div><div class="split compact"><div><div class="subsection-label">Evidence-backed exclusions</div><div id="verify-exclusions"></div></div><div><div class="subsection-label">Explicit trust assumptions</div><div id="verify-assumptions"></div></div></div></section>
+      <section class="instrument"><div class="section-label">Derivation record</div><div id="derivation-table" class="fact-table"></div></section><section class="instrument"><div class="section-label">Reproducibility fingerprint</div><div id="fingerprint-table" class="fact-table"></div></section><details class="raw"><summary>Frozen verifier output</summary><pre id="verify-raw"></pre></details></section>
+    </div>
+  </section>
+
+  <section id="mode-evaluate" class="mode-panel local-mode-panel">
+    <div class="local-mode-shell">
+      <div class="tool-intro">
+        <div class="eyebrow">LOCAL SEMANTIC EVALUATION</div>
+        <h2>Ask whether already-verified semantic objects apply</h2>
+        <p>The local evaluator consumes a stability certificate, qualified action bound, and relying context. It requires exact semantic and trust identity before applying the frozen threshold-slack rule.</p>
+      </div>
+      <div class="precondition"><strong>Precondition</strong><span>This mode does not verify signatures, issuers, authenticity, or transport integrity. The supplied semantic objects must already have been verified upstream.</span></div>
+      <div class="local-capability-grid three">
+        <article><span>01</span><strong>Exact identity</strong><p>Claim, profile, unit, boundary, and trust identity must match.</p></article>
+        <article><span>02</span><strong>Applicability rule</strong><p>For stable SATISFIED, support requires Cₐ ≤ M. The VIOLATED case uses the strict bound.</p></article>
+        <article><span>03</span><strong>Narrow output</strong><p>Return SUPPORTED, REQUALIFY, or NOT_APPLICABLE without inferring authorization or reservation.</p></article>
+      </div>
+      <div id="eval-static-warning" class="warning hidden">This hosted surface intentionally exposes no semantic-evaluation endpoint. <a href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Open the Windows portable full Inspector</a>, or use the <a href="https://doi.org/10.5281/zenodo.22037607">archived Python release</a>.</div>
+      <div class="local-actions"><a class="hero-action primary-action" href="https://github.com/risu-research/reliance-before-closure/releases/download/inspector-v0.4.0-windows-portable-1/Reliance-Inspector-v0.4.0-windows-x64.exe">Windows portable</a><a class="hero-action" href="https://github.com/risu-research/reliance-before-closure/blob/main/SPEC.md">Read the relying specification</a></div>
+    </div>
+
+    <div class="hosted-local-controls" aria-hidden="true">
+      <div class="input-row"><label class="file-button"><input id="semantic-file" type="file" accept=".json,application/json">Load JSON file</label><button id="load-example" class="secondary">Load final-case objects</button></div><textarea id="eval-json" spellcheck="false" aria-label="Semantic object bundle"></textarea><div class="tool-actions"><button id="evaluate-button" class="primary">Evaluate with frozen rely()</button></div><div id="evaluate-error" class="error-box hidden"></div>
+      <section id="evaluate-record" class="hidden"><div class="record-head"><div><div class="eyebrow">EVALUATION RECORD</div><h3 id="eval-applicability"></h3><p id="eval-reason" class="subtle"></p></div><button id="download-eval-record" class="secondary">Download record JSON</button></div><div class="record-grid three"><div class="record-cell"><span>Input SHA-256</span><code id="eval-input-sha"></code></div><div class="record-cell"><span>Semantic core SHA-256</span><code id="eval-core-sha"></code></div><div class="record-cell"><span>Non-inference</span><strong>no authorization, no reservation, no commit guarantee</strong></div></div><section class="instrument"><div class="section-label">Identity diagnostics</div><div id="identity-table" class="identity-table"></div></section></section>
+    </div>
+  </section>
+
+  <footer>
+    <span>Reliance Inspector v0.4.0 · public canonical surface</span>
+    <span><a href="/tools/reliance-inspector/provenance.json">Deployment provenance</a> · <a href="https://doi.org/10.5281/zenodo.22037607">Frozen software record</a> · <a href="/work/reliance-before-closure/">Research overview</a></span>
+  </footer>
 </main>
 <script src="/tools/reliance-inspector/hosted-guard.js"></script>
 <script src="/tools/reliance-inspector/app.js"></script>

@@ -17,6 +17,7 @@ jobs:
         with:
           ref: agent-closure-browser-local
       - name: Apply exact browser-local UI and regression patches
+        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -35,25 +36,27 @@ jobs:
               '<script type="module" src="/tools/agent-closure/app.js"></script>\n<script type="module" src="/tools/agent-closure-inspector/browser-local.js"></script>',
           )
 
-          replace_once(
-              "public/tools/agent-closure-inspector/index.html",
-              '''    <section class="local-boundary" aria-label="Local evaluation boundary">
-      <div><p class="eyebrow">Private evidence</p><h2>Canonical cases are public. Arbitrary evidence stays local.</h2><p>The hosted site reads only the frozen generated corpus. The archived local Inspector can evaluate a conforming JSON evidence bundle in memory on literal <code>127.0.0.1</code> through the same frozen verifier path.</p></div>
-      <div class="local-actions">
-        <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>
-        <input id="file-input" type="file" accept="application/json,.json" hidden>
-        <p class="capability-note" id="capability-note" aria-live="polite"></p>
-      </div>
-    </section>''',
-              '''    <section class="local-boundary" aria-label="Local evaluation boundary">
-      <div><p class="eyebrow">Private evidence</p><h2>Public cases are hosted. Your evidence stays local.</h2><p>Choose a conforming JSON evidence bundle. A browser-targeted build from the frozen v0.3 verifier evaluates it in memory on this device. The file is not uploaded to RISU or persisted by the Inspector. For archival reproduction, the canonical Node verifier remains available through the local Inspector.</p></div>
-      <div class="local-actions">
-        <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>
-        <input id="file-input" type="file" accept="application/json,.json" hidden>
-        <p class="capability-note" id="capability-note" aria-live="polite">Preparing browser-local evaluator.</p>
-      </div>
-    </section>''',
+          old_section = (
+              '    <section class="local-boundary" aria-label="Local evaluation boundary">\n'
+              '      <div><p class="eyebrow">Private evidence</p><h2>Canonical cases are public. Arbitrary evidence stays local.</h2><p>The hosted site reads only the frozen generated corpus. The archived local Inspector can evaluate a conforming JSON evidence bundle in memory on literal <code>127.0.0.1</code> through the same frozen verifier path.</p></div>\n'
+              '      <div class="local-actions">\n'
+              '        <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>\n'
+              '        <input id="file-input" type="file" accept="application/json,.json" hidden>\n'
+              '        <p class="capability-note" id="capability-note" aria-live="polite"></p>\n'
+              '      </div>\n'
+              '    </section>'
           )
+          new_section = (
+              '    <section class="local-boundary" aria-label="Local evaluation boundary">\n'
+              '      <div><p class="eyebrow">Private evidence</p><h2>Public cases are hosted. Your evidence stays local.</h2><p>Choose a conforming JSON evidence bundle. A browser-targeted build from the frozen v0.3 verifier evaluates it in memory on this device. The file is not uploaded to RISU or persisted by the Inspector. For archival reproduction, the canonical Node verifier remains available through the local Inspector.</p></div>\n'
+              '      <div class="local-actions">\n'
+              '        <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>\n'
+              '        <input id="file-input" type="file" accept="application/json,.json" hidden>\n'
+              '        <p class="capability-note" id="capability-note" aria-live="polite">Preparing browser-local evaluator.</p>\n'
+              '      </div>\n'
+              '    </section>'
+          )
+          replace_once("public/tools/agent-closure-inspector/index.html", old_section, new_section)
 
           replace_once(
               "public/tools/agent-closure-inspector/index.html",
@@ -75,33 +78,29 @@ jobs:
 
           refresh = Path("tests/agent-closure-inspector-refresh.test.mjs")
           text = refresh.read_text(encoding="utf-8")
-          old_test = '''test("current surface keeps public canonical inspection separate from local private evaluation", async () => {
-  const html = await read("public/tools/agent-closure-inspector/index.html");
-  assert.match(html, /Canonical cases are public\\. Arbitrary evidence stays local\\./u);
-  assert.match(html, /literal <code>127\\.0\\.0\\.1<\\/code>/u);
-  assert.match(html, /id="open-file"[^>]*disabled/u);
-  assert.match(html, /id="file-input"/u);
-  assert.match(html, /id="capability-note"/u);
-});'''
-          new_test = '''test("current surface makes private evidence usable without sending it to the site", async () => {
-  const html = await read("public/tools/agent-closure-inspector/index.html");
-  const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");
-  assert.match(html, /Public cases are hosted\\. Your evidence stays local\\./u);
-  assert.match(html, /The file is not uploaded to RISU or persisted by the Inspector\\./u);
-  assert.match(html, /id="open-file"[^>]*disabled/u);
-  assert.match(html, /id="file-input"/u);
-  assert.match(html, /browser-local\\.js/u);
-  assert.match(html, /Browser evaluator provenance/u);
-  assert.match(bootstrap, /new Worker\\(/u);
-  assert.match(bootstrap, /url\\.pathname === "\\/api\\/evaluate"/u);
-  assert.match(bootstrap, /worker\\.postMessage/u);
-  assert.doesNotMatch(bootstrap, /serviceWorker/u);
-});'''
-          if text.count(old_test) != 1:
-              raise SystemExit("Agent Closure private-evidence test changed unexpectedly")
-          text = text.replace(old_test, new_test)
-          current_test = 'test("current Agent Closure route has an explicit same-origin, no-exfiltration security boundary"'
-          start = text.index(current_test)
+          start_marker = 'test("current surface keeps public canonical inspection separate from local private evaluation", async () => {'
+          end_marker = '\ntest("current Agent Closure route has an explicit same-origin, no-exfiltration security boundary"'
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          replacement = (
+              'test("current surface makes private evidence usable without sending it to the site", async () => {\n'
+              '  const html = await read("public/tools/agent-closure-inspector/index.html");\n'
+              '  const bootstrap = await read("public/tools/agent-closure-inspector/browser-local.js");\n'
+              '  assert.match(html, /Public cases are hosted\\. Your evidence stays local\\./u);\n'
+              '  assert.match(html, /The file is not uploaded to RISU or persisted by the Inspector\\./u);\n'
+              '  assert.match(html, /id="open-file"[^>]*disabled/u);\n'
+              '  assert.match(html, /id="file-input"/u);\n'
+              '  assert.match(html, /browser-local\\.js/u);\n'
+              '  assert.match(html, /Browser evaluator provenance/u);\n'
+              '  assert.match(bootstrap, /new Worker\\(/u);\n'
+              '  assert.match(bootstrap, /url\\.pathname === "\\/api\\/evaluate"/u);\n'
+              '  assert.match(bootstrap, /worker\\.postMessage/u);\n'
+              '  assert.doesNotMatch(bootstrap, /serviceWorker/u);\n'
+              '});\n'
+          )
+          text = text[:start] + replacement + text[end + 1:]
+          current_marker = 'test("current Agent Closure route has an explicit same-origin, no-exfiltration security boundary"'
+          start = text.index(current_marker)
           end = text.index('\ntest("current Agent Closure surface is indexed', start)
           block = text[start:end]
           needle = '    "connect-src \'self\'",\n    "object-src \'none\'",'
@@ -113,19 +112,22 @@ jobs:
           release = Path("tests/release-integrity.test.mjs")
           text = release.read_text(encoding="utf-8")
           old = '    "tools/agent-closure-inspector/index.html",\n'
-          new = ('    "tools/agent-closure-inspector/browser-local.js",\n'
-                 '    "tools/agent-closure-inspector/evaluator-provenance.json",\n'
-                 '    "tools/agent-closure-inspector/evaluator-worker.js",\n'
-                 '    "tools/agent-closure-inspector/index.html",\n')
+          new = (
+              '    "tools/agent-closure-inspector/browser-local.js",\n'
+              '    "tools/agent-closure-inspector/evaluator-provenance.json",\n'
+              '    "tools/agent-closure-inspector/evaluator-worker.js",\n'
+              '    "tools/agent-closure-inspector/index.html",\n'
+          )
           if text.count(old) != 1:
               raise SystemExit("public allowlist Agent Closure insertion point changed")
           release.write_text(text.replace(old, new), encoding="utf-8")
 
           runtime = Path("tests/runtime-smoke.test.mjs")
           text = runtime.read_text(encoding="utf-8")
-          current_test = 'test("the current Agent Closure Inspector route applies its hosted security boundary"'
-          start = text.index(current_test)
-          end = text.index('\ntest("the hosted surface exposes no arbitrary evidence evaluation endpoint"', start)
+          start_marker = 'test("the current Agent Closure Inspector route applies its hosted security boundary"'
+          end_marker = '\ntest("the hosted surface exposes no arbitrary evidence evaluation endpoint"'
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
           block = text[start:end]
           needle = '    "connect-src \'self\'",\n    "object-src \'none\'",'
           if block.count(needle) != 1:

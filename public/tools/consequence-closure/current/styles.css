@@ -78,3 +78,29 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @media(max-width:680px){.topbar{height:auto;min-height:62px;padding:10px 16px}.top-status{gap:8px}.top-status .quiet-link{display:none}.commandbar{top:62px;padding:8px 16px;flex-wrap:wrap}.record-identity{order:3;flex-basis:100%}.modebar{top:129px;padding:0 12px}.workspace{padding:25px 14px 50px}.welcome h1{font-size:3.1rem}.welcome-actions{display:grid}.large-action,.secondary-action{min-width:0}.reference-grid{grid-template-columns:1fr}.section-heading h2{font-size:2.35rem}.decision-main,.decision-side{padding:22px}.metric-row{grid-template-columns:1fr}.two-up{gap:12px}.witness-pair{grid-template-columns:1fr}.versus{height:24px}.evidence-controls{grid-template-columns:1fr}.assurance-row{grid-template-columns:1fr;gap:5px}.compare-diff-row{grid-template-columns:1fr;gap:5px}.compare-arrow{text-align:left}.kv-row{grid-template-columns:1fr;gap:4px}.drop-overlay{inset:177px 0 0}}
 
 .space-top{margin-top:18px}.more-button{margin-top:12px}
+
+/* Editorial spacing pass: keep dense evidence readable without turning the instrument into a dashboard. */
+@media(min-width:981px){
+  .welcome{grid-template-columns:minmax(0,1fr) minmax(360px,420px);gap:clamp(52px,5vw,82px)}
+  .welcome-ledger{width:100%;max-width:420px;justify-self:end;background:transparent;border-top:2px solid var(--ink);padding:0}
+  .ledger-row{grid-template-columns:minmax(118px,.8fr) minmax(0,1.2fr);gap:24px;padding:15px 16px;align-items:center}
+  .ledger-row strong{line-height:1.36;padding-right:4px}
+  .decision-side{padding:28px 30px}
+  .assurance-row{grid-template-columns:176px 136px minmax(0,1fr);gap:22px;padding:17px 20px}
+  .kv-row{grid-template-columns:168px minmax(0,1fr);gap:20px;padding:13px 18px}
+  .compare-card{padding:24px 26px}
+  .compare-diff{padding:22px 24px}
+  .compare-diff-row{grid-template-columns:170px minmax(0,1fr) 38px minmax(0,1fr);gap:16px;padding:12px 0}
+}
+@media(min-width:981px) and (max-width:1180px){
+  .welcome{grid-template-columns:minmax(0,1fr) minmax(330px,380px);gap:42px}
+  .ledger-row{grid-template-columns:116px minmax(0,1fr);gap:18px;padding:14px 14px}
+}
+@media(max-width:980px){
+  .welcome-ledger{background:transparent;border-top:2px solid var(--ink);padding:0}
+  .ledger-row{grid-template-columns:150px minmax(0,1fr);gap:20px;padding:14px 12px}
+}
+@media(max-width:680px){
+  .ledger-row{grid-template-columns:1fr;gap:4px;padding:13px 8px}
+  .ledger-row strong{line-height:1.4}
+}

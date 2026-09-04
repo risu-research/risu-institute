@@ -92,6 +92,8 @@ function dumpDom(chrome, url) {
       '--disable-gpu',
       '--disable-dev-shm-usage',
       '--hide-scrollbars',
+      '--enable-logging=stderr',
+      '--log-level=0',
       '--virtual-time-budget=8000',
       '--dump-dom',
       url,
@@ -116,36 +118,49 @@ function dumpDom(chrome, url) {
         reject(new Error(`Chrome exited ${code} for ${url}\n${stderr}`));
         return;
       }
-      resolveRun(stdout);
+      resolveRun({ dom: stdout, logs: stderr });
     });
   });
+}
+
+function assertRuntime(run, url) {
+  assert.match(run.dom, /data-cc-app="started"/u, `app did not start at ${url}\n${run.logs}`);
+  assert.match(run.dom, /data-cc-engine="ready"/u, `worker did not become ready at ${url}\n${run.logs}`);
 }
 
 const chrome = await chromeBinary();
 const { server, origin } = await startServer();
 
 try {
-  const decision = await dumpDom(chrome, `${origin}/tools/consequence-closure/current/?case=authority-open`);
-  assert.match(decision, /The current evidence still permits different specified consequences\./u);
-  assert.match(decision, /Inspector 0\.5\.0 · Core 0\.1\.0/u);
+  const decisionUrl = `${origin}/tools/consequence-closure/current/?case=authority-open`;
+  const decision = await dumpDom(chrome, decisionUrl);
+  assertRuntime(decision, decisionUrl);
+  assert.match(decision.dom, /The current evidence still permits different specified consequences\./u);
+  assert.match(decision.dom, /Inspector 0\.5\.0 · Core 0\.1\.0/u);
 
-  const challenge = await dumpDom(chrome, `${origin}/tools/consequence-closure/current/?case=authority-open&view=challenge`);
-  assert.match(challenge, /Replayable certificate/u);
-  assert.match(challenge, />SUFFICIENT</u);
-  assert.match(challenge, />INCLUSION MINIMAL</u);
-  assert.match(challenge, /Remove it and/u);
+  const challengeUrl = `${origin}/tools/consequence-closure/current/?case=authority-open&view=challenge`;
+  const challenge = await dumpDom(chrome, challengeUrl);
+  assertRuntime(challenge, challengeUrl);
+  assert.match(challenge.dom, /Replayable certificate/u);
+  assert.match(challenge.dom, />SUFFICIENT</u);
+  assert.match(challenge.dom, />INCLUSION MINIMAL</u);
+  assert.match(challenge.dom, /Remove it and/u);
 
-  const linux = await dumpDom(chrome, `${origin}/tools/consequence-closure/current/?compare=linux&view=compare`);
-  assert.match(linux, /Administrative declaration and operative enforcement/u);
-  assert.match(linux, /CLOSED · UNSAFE/u);
-  assert.match(linux, /CLOSED · SAFE/u);
-  assert.match(linux, /Recorded operating-system contrast\./u);
+  const linuxUrl = `${origin}/tools/consequence-closure/current/?compare=linux&view=compare`;
+  const linux = await dumpDom(chrome, linuxUrl);
+  assertRuntime(linux, linuxUrl);
+  assert.match(linux.dom, /Administrative declaration and operative enforcement/u);
+  assert.match(linux.dom, /CLOSED · UNSAFE/u);
+  assert.match(linux.dom, /CLOSED · SAFE/u);
+  assert.match(linux.dom, /Recorded operating-system contrast\./u);
 
-  const oauth = await dumpDom(chrome, `${origin}/tools/consequence-closure/current/?compare=oauth&view=compare`);
-  assert.match(oauth, /Qualified live path and authority-resource split state/u);
-  assert.match(oauth, /SAFE AT CUT/u);
-  assert.match(oauth, /AUTHORITY_RESOURCE_SPLIT_BRAIN/u);
-  assert.match(oauth, /Recorded OAuth commissioning contrast\./u);
+  const oauthUrl = `${origin}/tools/consequence-closure/current/?compare=oauth&view=compare`;
+  const oauth = await dumpDom(chrome, oauthUrl);
+  assertRuntime(oauth, oauthUrl);
+  assert.match(oauth.dom, /Qualified live path and authority-resource split state/u);
+  assert.match(oauth.dom, /SAFE AT CUT/u);
+  assert.match(oauth.dom, /AUTHORITY_RESOURCE_SPLIT_BRAIN/u);
+  assert.match(oauth.dom, /Recorded OAuth commissioning contrast\./u);
 
   console.log('Consequence Closure Chromium gate: PASS');
 } finally {

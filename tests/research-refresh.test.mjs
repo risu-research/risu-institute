@@ -76,21 +76,43 @@ test("the research program is ordered by current threads and latest work", async
   ]) assert.ok(work.includes(thread));
 });
 
-test("Native++ is exposed as a website-native frozen record, not a numbered publication", async () => {
+test("Native++ opens a dedicated website record before the GitHub deep record", async () => {
   const work = await readPublic("work/index.html");
-  assert.equal(work.split(nativePlusRecordUrl).length - 1, 2);
-  assert.ok(work.includes('<h3><a href="#native-plus-v0-2">Native++ v0.2</a></h3>'));
-  assert.ok(work.includes('<a href="#native-plus-v0-2">Read the full experimental record →</a>'));
-  assert.ok(work.includes('<section class="thread-section" id="native-plus-v0-2">'));
-  assert.ok(work.includes("Evidence qualification · frozen experimental record"));
-  assert.ok(work.includes("not evidence of cross-provider semantic-labor amortization"));
-  assert.ok(!work.includes("RISU Technical Note 2026-05"));
+  const record = await readPublic("work/native-plus/index.html");
+
+  assert.equal(work.split('href="/work/native-plus/"').length - 1, 2);
+  assert.equal(work.split(nativePlusRecordUrl).length - 1, 1);
+  assert.ok(!work.includes('id="native-plus-v0-2"'));
+
+  for (const expected of [
+    '<link rel="canonical" href="https://risuinstitute.org/work/native-plus/">',
+    "The idea in plain language",
+    "What changed in the evidence path",
+    "Two checks, not one",
+    "Primary result",
+    "Negative controls",
+    "What the result means",
+    "What the result does not mean",
+    "Why the failed runs matter",
+    "Frozen evidence anchors",
+    nativePlusRecordUrl,
+    "33809187591",
+    "455184caf716751148b7c9c2a372b66084dcaa30",
+    "a65d2e79590f99cff0efa83de283075f54c69135d00487caa5d1c305ee0aaa8b",
+    "b3c2242bdfc11d9bdf653f1de2491297174e41da1d4f63b05d230e0a5e852f96",
+  ]) assert.ok(record.includes(expected), expected);
+
+  assert.ok(record.includes("PASS, within a narrow scope"));
+  assert.ok(record.includes("cross-provider semantic-labor amortization"));
+  assert.ok(!record.includes("RISU Technical Note 2026-05"));
+  assert.equal(record.includes("\u2014"), false, "Native++ public record contains an em dash");
 });
 
 test("institutional navigation distinguishes research, publications, tools, and about", async () => {
   const pages = [
     "index.html",
     "work/index.html",
+    "work/native-plus/index.html",
     "research/index.html",
     "research/technical-notes/index.html",
     "research/technical-notes/2026-03/index.html",
@@ -123,9 +145,10 @@ test("tools index preserves the declared instrument boundaries", async () => {
   assert.ok(page.includes(repositoryUrl));
 });
 
-test("sitemap includes the current publication and instrument surfaces", async () => {
+test("sitemap includes the current publication, instrument, and Native++ surfaces", async () => {
   const sitemap = await readPublic("sitemap.xml");
   for (const url of [
+    "https://risuinstitute.org/work/native-plus/",
     "https://risuinstitute.org/research/technical-notes/2026-03/",
     "https://risuinstitute.org/research/technical-notes/2026-02/",
     "https://risuinstitute.org/tools/",

@@ -40,6 +40,7 @@ test("ClosureProbe has a website-first research record with the frozen rc3 ancho
     "13",
     "33",
     "Official MCP 2.0.0 client/server packages over stdio",
+    "Deterministic · no LLM judge",
     "12fae2c0cb0909a43f487323fb00e7372b1f3377",
     "e0e8a2e0f2958accf090d595e233189a7def1906a29477019966c0a3e256a44a",
     "a6d0acdae171a1eee4d83f0be417431178507fbecc99a4fd2f94656f329b0e97",

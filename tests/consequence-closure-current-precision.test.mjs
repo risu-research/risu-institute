@@ -51,6 +51,15 @@ test('current provenance distinguishes frozen semantic identity from evolving pr
   assert.match(provenance.claim_boundary, /canonical record digest as a file-byte digest/u);
 });
 
+test('the research-software landing stays canonical while the current execution route stays non-indexed', async () => {
+  const landing = await read('public/tools/consequence-closure/index.html');
+  const current = await read('public/tools/consequence-closure/current/index.html');
+  const headers = await read('public/_headers');
+  assert.match(landing, /<link rel="canonical" href="https:\/\/risuinstitute\.org\/tools\/consequence-closure\/">/u);
+  assert.doesNotMatch(current, /<link rel="canonical"/u);
+  assert.match(headers, /\/tools\/consequence-closure\/current\/\*[\s\S]*?X-Robots-Tag: noindex, nofollow/u);
+});
+
 test('the permanent browser gate runs the frozen worker under strict CSP', async () => {
   const browser = await read('tests/consequence-closure-current.browser.mjs');
   for (const expected of [

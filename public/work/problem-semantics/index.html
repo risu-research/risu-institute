@@ -1,24 +1,20 @@
 <!doctype html>
 <html lang="en">
 <head>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f3f0e8">
+<meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css">
-
-<title>OpenAPI→MCP Problem Semantics — RISU Institute</title>
-<meta name="description" content="A bounded experimental record testing whether RFC 9457 Problem Details semantics remain machine-addressable across OpenAPI-to-MCP translation.">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>OpenAPI to MCP Problem Semantics | RISU Institute</title>
+<meta name="description" content="A bounded experimental profile testing whether RFC 9457 Problem Details remain machine-addressable when OpenAPI-described APIs are translated into MCP tools.">
 <link rel="canonical" href="https://risuinstitute.org/work/problem-semantics/">
-
 <meta property="og:type" content="article">
-<meta property="og:title" content="OpenAPI→MCP Problem Semantics — RISU Institute">
-<meta property="og:description" content="A bounded conformance experiment on preservation of RFC 9457 Problem Details semantics across OpenAPI-to-MCP translation.">
+<meta property="og:title" content="OpenAPI to MCP Problem Semantics | RISU Institute">
+<meta property="og:description" content="A 12-case experiment on whether machine-readable Problem Details survive OpenAPI-to-MCP translation without silent semantic loss or unsupported gain.">
 <meta property="og:url" content="https://risuinstitute.org/work/problem-semantics/">
 </head>
 <body>
-
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="/" aria-label="RISU Institute home">
@@ -37,54 +33,41 @@
 <main>
   <section class="page-hero">
     <div class="reading">
-      <p class="eyebrow">Experimental record · 2026</p>
-      <h1>Preserving problem semantics across OpenAPI→MCP translation.</h1>
-      <p class="page-lede">
-        When an HTTP API already exposes RFC 9457 Problem Details as machine-readable error semantics, does an OpenAPI→MCP translation preserve that meaning at the MCP boundary?
-      </p>
+      <p class="eyebrow">Experimental profile · v0.1.0-rc1</p>
+      <h1>Preserving Problem Details across OpenAPI→MCP translation</h1>
+      <p class="page-lede">An API can return much more than an error code and a sentence. This project asks whether that machine-readable error meaning survives when an OpenAPI-described operation becomes an MCP tool.</p>
     </div>
   </section>
 
   <article class="reading prose">
-
-    <h2>Question</h2>
-
-    <p>
-      Translation can preserve the fact that an operation failed while still losing the machine-readable meaning of that failure. A target may even expose structured error data without preserving the source Problem Details object.
-    </p>
-
-    <p>
-      This experiment therefore asks a narrower question than whether MCP supports errors:
-    </p>
-
     <div class="callout">
-      <p><strong>Does source error meaning remain deterministically machine-recoverable after OpenAPI→MCP translation?</strong></p>
+      <p><strong>Frozen result:</strong> all 11 in-scope cases were classified as LOSS for each of three tested translation architectures. A constructive mapping over the tested official MCP 2026-07-28 client/server path preserved all 11, and a fresh-install RC1 reproduction produced the same preserving result.</p>
     </div>
 
-    <h2>Invariant</h2>
+    <h2>What is being preserved?</h2>
+    <p>HTTP status codes are useful, but they do not fully describe an application error. RFC 9457 Problem Details gives an API a standard machine-readable object for carrying the identity of a problem, a particular occurrence, human-facing text, an optional body status, and application-specific extension data.</p>
+    <p>Those distinctions can matter to software. Two failures may share the same HTTP status but represent different problem types. An <span class="identifier">instance</span> can identify one occurrence. Nested extensions can carry validation details. The HTTP response might report 502 while the Problem Details body contains <span class="identifier">status: 503</span>. Human text may be localized while the machine identity remains the same.</p>
+    <p>If translation keeps only “the call failed,” or places the original object inside diagnostic prose that software must read heuristically, the error has not been preserved in the sense tested here. The profile requires the source semantics to remain deterministically recoverable by a machine without natural-language interpretation.</p>
 
+    <h2>The rule</h2>
     <p class="definition">No silent loss + no unsupported gain.</p>
+    <p>A representation may change on the way to MCP. Exact source bytes do not need to survive. What matters is that the semantics exercised by the profile remain machine-addressable and that the translator does not add machine claims the source did not support.</p>
+    <p>The rule is carrier-neutral. Structured content, metadata, an explicitly typed embedded serialization, or another unambiguous machine carrier can qualify. JSON-looking text in an error message does not qualify merely because a person or an LLM could reconstruct it.</p>
 
-    <p>
-      A source semantic must remain deterministically machine-recoverable at the target boundary. Translation may change representation, but it must not silently demote machine-readable semantics into diagnostic prose or manufacture unsupported machine claims.
-    </p>
-
-    <p>
-      The profile is representation-neutral. It does not require one particular MCP carrier, and exact source bytes need not survive if the exercised source data model remains machine-addressable.
-    </p>
-
-    <h2>Frozen profile</h2>
-
-    <p>
-      The experiment freezes a 12-case corpus around RFC 9457 behaviors that matter to machine consumers. The cases exercise explicit and default problem type identity, occurrence identity, media-type gating, scalar and nested extensions, unknown future extensions, localized human text, separation of observed HTTP status from body status, and negative controls against prose mining and unsupported retryability inference.
-    </p>
-
-    <p>
-      One case is intentionally outside the profile because it uses ordinary <span class="identifier">application/json</span> rather than <span class="identifier">application/problem+json</span>. The remaining 11 cases are evaluated by the same frozen carrier-neutral adapter and oracle.
-    </p>
+    <h2>The frozen 12-case profile</h2>
+    <p>The corpus was fixed around distinctions that matter to machine consumers of Problem Details. It checks:</p>
+    <ul>
+      <li>explicit problem type identity and the RFC 9457 <span class="identifier">about:blank</span> default when <span class="identifier">type</span> is absent;</li>
+      <li>different problem types that share the same HTTP status;</li>
+      <li><span class="identifier">instance</span> occurrence identity;</li>
+      <li>scalar, nested, and unknown future extension members, including structure and cardinality;</li>
+      <li>stable machine identity when human-facing text is localized;</li>
+      <li>the distinction between observed HTTP status and a <span class="identifier">status</span> member inside the Problem Details body;</li>
+      <li>negative controls against mining human prose into retryability or other unsupported machine claims.</li>
+    </ul>
+    <p>One case uses ordinary <span class="identifier">application/json</span> rather than <span class="identifier">application/problem+json</span> and is intentionally outside the profile. The other 11 cases are evaluated by the same frozen carrier-neutral adapter and oracle.</p>
 
     <h2>Results</h2>
-
     <div class="code-block">Target / control                                      Preserved   Loss   Invented   N/A
 
 FastMCP 3.4.7                                              0        11        0       1
@@ -92,135 +75,69 @@ CNOE openapi-mcp-codegen                                   0        11        0 
 nihal1294/openapi-to-mcp                                   0        11        0       1
 Constructive reference over MCP 2026-07-28 wire           11         0        0       1
 RC1 fresh-install reproduction                            11         0        0       1</div>
+    <p>The three translator targets reached the same bounded verdict pattern, but the loss occurred in different places.</p>
 
-    <p>
-      The three tested translation architectures reproduced the same bounded semantic-loss class, but not through one identical defect.
-    </p>
-
-    <h2>Three observed loss mechanisms</h2>
-
+    <h2>Where the tested translations lost meaning</h2>
     <h3>FastMCP 3.4.7</h3>
-
-    <p>
-      On the tested official-package path, a 200 JSON success from the same generated tool remained machine-addressable as structured content. The non-2xx RFC 9457 Problem Details response, however, was parsed and then exposed through diagnostic error text without a machine-addressable Problem Details carrier recognized by the frozen profile.
-    </p>
+    <p>On the tested official-package path, a 200 JSON success from the generated tool remained available as structured content. The non-2xx Problem Details response was parsed, but the source Problem Details object reached the MCP side only through diagnostic error text, with no accepted machine-addressable carrier for the profile to recover.</p>
 
     <h3>CNOE openapi-mcp-codegen</h3>
-
-    <p>
-      The generated API client retained the upstream non-2xx JSON under an internal <span class="identifier">details</span> field. The generated MCP tool then discarded those details and returned a generic structured error before the MCP result boundary.
-    </p>
-
-    <p>
-      This is a distinct OpenAPI→MCP translation architecture, but its generated server uses FastMCP as a runtime dependency. The observed loss was localized in generated translation code before that runtime boundary, so this experiment does not describe the two as completely independent MCP runtime implementations.
-    </p>
+    <p>The frozen target was pinned at commit <span class="identifier">d0d9e1d848c5705d9bfb1f58a82a7e653c9c85c2</span>. Its generated API client retained the upstream non-2xx JSON internally under <span class="identifier">details</span>. The generated MCP tool then discarded those details and returned a generic structured error before the MCP result boundary.</p>
+    <p>The generated server uses FastMCP as a runtime dependency, so these are not presented as two completely independent MCP runtimes. The CNOE loss observed here was localized earlier, in generated translation code before that runtime boundary.</p>
 
     <h3>nihal1294/openapi-to-mcp</h3>
+    <p>The frozen target was pinned at commit <span class="identifier">e5fbb3524384f7dd3367cec3b02b7982cddac614</span>. It exposed richer structured error metadata, but the source Problem Details semantics exercised by the profile still could not be recovered through the accepted machine carriers. Structured target errors, by themselves, were therefore not enough.</p>
+    <p>A non-standard top-level <span class="identifier">meta.error.retryable=true</span> also appeared in P12. The frozen claim ledger records it as an adjacent finding rather than an oracle <span class="identifier">INVENTED</span> verdict.</p>
 
-    <p>
-      This target emitted richer structured error metadata, yet the source Problem Details semantics exercised by the profile were still not recoverable through the accepted machine carriers.
-    </p>
+    <h2>A preserving translation</h2>
+    <p>The constructive reference tested a different question: was the loss unavoidable because the tested MCP carrier could not represent these semantics?</p>
+    <p>The reference carried the Problem Details object as an explicitly typed <span class="identifier">application/problem+json</span> embedded MCP resource and kept observed HTTP transport facts separately in namespaced metadata. That preserved, among other distinctions, an observed HTTP 502 alongside a Problem Details body reporting 503. It also avoided inventing retryability when the source supplied no accepted basis for it.</p>
+    <p>Across an official MCP 2026-07-28 TypeScript client/server stdio path, the same corpus, adapter, and oracle produced 11 PRESERVED, 0 LOSS, 0 INVENTED, and 1 NOT_APPLICABLE. A text-only version of the same Problem Details object remained LOSS, which served as a negative control against treating diagnostic text as machine-addressable preservation.</p>
 
-    <div class="callout">
-      <p><strong>Structured target errors are not, by themselves, semantic preservation.</strong></p>
-    </div>
+    <h2>Fresh-install reproduction</h2>
+    <p>RC1 repeated the constructive path from a fresh exact-lock dependency materialization and rebuild. It began without prior <span class="identifier">node_modules</span> or compiled output, used a new empty npm cache, started fresh fixture, server, and client processes, negotiated MCP <span class="identifier">2026-07-28</span>, and again produced 11 PRESERVED, 0 LOSS, 0 INVENTED, and 1 NOT_APPLICABLE. The text-only demotion control remained LOSS.</p>
+    <p>The fresh run strengthens reproducibility of that constructive existence result. It is not another sampled translator and does not turn one clean-room reproduction into a cross-platform or multi-laboratory result.</p>
 
-    <h2>Constructive control</h2>
-
-    <p>
-      A non-normative reference mapping tested whether the observed loss could instead be explained by an inability of the tested MCP carrier capacity to represent the exercised semantics.
-    </p>
-
-    <p>
-      The reference carried the Problem Details object as an explicitly typed <span class="identifier">application/problem+json</span> embedded MCP resource and separately retained observed HTTP transport facts in namespaced metadata. The mapping preserved the distinction between an observed HTTP 502 and a Problem Details body reporting status 503, and it introduced no retryability claim when the source supplied none.
-    </p>
-
-    <p>
-      Across an official MCP 2026-07-28 TypeScript client/server stdio protocol path, the same frozen corpus, adapter, and oracle produced 11 PRESERVED, 0 LOSS, 0 INVENTED, and 1 NOT_APPLICABLE.
-    </p>
-
-    <p>
-      A text-only demotion of the same Problem Details object remained LOSS, providing a negative control against treating JSON-looking diagnostic text as machine-addressable preservation.
-    </p>
-
-    <h2>Clean-room reproduction</h2>
-
-    <p>
-      RC1 repeated the constructive control from a fresh exact-lock dependency materialization and rebuild. The run began without prior <span class="identifier">node_modules</span> or compiled output, used a new empty npm cache, started fresh fixture, server, and client processes, negotiated MCP <span class="identifier">2026-07-28</span>, and again produced 11 PRESERVED, 0 LOSS, 0 INVENTED, and 1 NOT_APPLICABLE.
-    </p>
-
-    <p>
-      This strengthens reproducibility of the constructive existence proof. It does not add a fourth translator target and does not establish cross-platform, multi-laboratory, or ecosystem-wide reproducibility.
-    </p>
-
-    <h2>Strongest supported conclusion</h2>
-
+    <h2>Result</h2>
     <div class="callout">
       <p><strong>For the frozen profile tested here, semantic loss is not forced by the tested MCP carrier capacity.</strong></p>
     </div>
+    <p>The constructive control shows that the exercised RFC 9457 semantics can cross the tested official MCP protocol boundary while remaining machine-addressable. The losses observed in the three translator targets therefore are not explained by an inability of that tested MCP data model and SDK path to carry the same semantics.</p>
 
-    <p>
-      The constructive control shows that the same exercised RFC 9457 semantics can cross the tested official MCP protocol boundary while remaining machine-addressable. The losses observed in the three tested translators are therefore not explained by an inability of that tested MCP data model and SDK path to carry those semantics.
-    </p>
+    <h2>Where the profile stops</h2>
+    <p>This is a bounded conformance experiment, not a survey of the entire OpenAPI-to-MCP ecosystem. The 12 cases do not exhaust RFC 9457, the three translator targets are not a statistical sample, and the reference mapping does not make EmbeddedResource the only valid preservation strategy. The experiment does not show that MCP cannot carry structured errors, certify every retry policy, establish downstream user harm or agent misbehavior, or define an accepted MCP, IETF, or industry standard.</p>
 
-    <h2>What this does not establish</h2>
-
-    <ul>
-      <li>that all OpenAPI→MCP converters lose RFC 9457 semantics;</li>
-      <li>that the three tested translators statistically represent the ecosystem;</li>
-      <li>that MCP cannot carry structured errors;</li>
-      <li>that an embedded resource is the only conforming preservation strategy;</li>
-      <li>that the 12-case corpus completely covers RFC 9457;</li>
-      <li>that every inferred retryability claim is semantically invalid;</li>
-      <li>that this profile is an accepted MCP, IETF, or industry standard;</li>
-      <li>that these experiments alone establish downstream user harm or agent misbehavior.</li>
-    </ul>
-
-    <h2>Reproducible artifact</h2>
-
-    <p>
-      The frozen release candidate is archived independently of this explanatory website. The GitHub repository contains the executable profile, conformance corpus, oracle, evidence summaries, constructive reference, clean-room provenance, claim ledger, and release verifier.
-    </p>
-
+    <h2>Frozen record and reproducibility</h2>
+    <p>The archived release candidate is fixed independently of this website page. Its repository contains the normative experimental profile, frozen corpus and oracle, immutable evidence assets, constructive reference, clean-room provenance, claim ledger, and dependency-free release verifier.</p>
+    <p>The release can be checked with <span class="identifier">python3 verify_release.py</span>. The verifier uses only the Python standard library and checks the frozen semantic core, result summaries, clean-room provenance, evidence-derived process topology, ledger count, and public-source manifest.</p>
     <dl class="spec-grid">
-      <dt>Version</dt>
-      <dd>v0.1.0-rc1</dd>
-
-      <dt>Release commit</dt>
-      <dd class="identifier">07bcc4d7b13402c120fb26d28a35f1af5a271f61</dd>
-
-      <dt>Version DOI</dt>
-      <dd class="identifier">10.5281/zenodo.21911147</dd>
-
-      <dt>All-versions DOI</dt>
-      <dd class="identifier">10.5281/zenodo.21911146</dd>
-
-      <dt>Release ZIP SHA-256</dt>
-      <dd class="identifier">f1a7dbddbeecb1cee1cdc84f34ff89b99c653267a10cfb51ebc8bfdf4df9b158</dd>
-
-      <dt>Status</dt>
-      <dd>Experimental release candidate</dd>
+      <dt>Version</dt><dd>v0.1.0-rc1</dd>
+      <dt>Release commit</dt><dd class="identifier">07bcc4d7b13402c120fb26d28a35f1af5a271f61</dd>
+      <dt>Version DOI</dt><dd class="identifier">10.5281/zenodo.21911147</dd>
+      <dt>All-versions DOI</dt><dd class="identifier">10.5281/zenodo.21911146</dd>
+      <dt>Release ZIP SHA-256</dt><dd class="identifier">f1a7dbddbeecb1cee1cdc84f34ff89b99c653267a10cfb51ebc8bfdf4df9b158</dd>
+      <dt>Status</dt><dd>Experimental release candidate</dd>
     </dl>
 
-    <h2>Artifacts</h2>
-
+    <h2>Source record</h2>
     <div class="reference-list">
+      <a href="https://github.com/risu-research/openapi-mcp-problem-semantics/releases/tag/v0.1.0-rc1">Frozen release v0.1.0-rc1</a>
+      <a href="https://github.com/risu-research/openapi-mcp-problem-semantics/blob/main/profile/PROFILE.md">Normative experimental profile</a>
+      <a href="https://github.com/risu-research/openapi-mcp-problem-semantics/blob/main/profile/CLAIM_LEDGER.md">Claim ledger</a>
+      <a href="https://github.com/risu-research/openapi-mcp-problem-semantics/blob/main/verify_release.py">Release verifier</a>
       <a href="https://github.com/risu-research/openapi-mcp-problem-semantics">Canonical GitHub repository</a>
-      <a href="https://github.com/risu-research/openapi-mcp-problem-semantics/releases/tag/v0.1.0-rc1">GitHub release v0.1.0-rc1</a>
       <a href="https://doi.org/10.5281/zenodo.21911147">Archived v0.1.0-rc1 record</a>
       <a href="https://doi.org/10.5281/zenodo.21911146">All-versions DOI</a>
-      <a href="/work/">RISU research program</a>
+      <a href="/work/">Back to the RISU research program</a>
     </div>
-
   </article>
 </main>
 
 <footer class="site-footer">
   <div class="wrap footer-inner">
-    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC.</div>
-    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+    <div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
   </div>
 </footer>
-
 </body>
 </html>

@@ -1,0 +1,64 @@
+name: Temporary Agent Closure Copy Sync
+
+on:
+  push:
+    branches:
+      - agent-closure-browser-local-copy-sync
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent-closure-browser-local-copy-sync
+      - name: Sync public capability copy and regression test
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          page = Path('public/work/bounded-agent-closure/index.html')
+          text = page.read_text(encoding='utf-8')
+          old = '''    <p>The hosted Inspector is intentionally limited to the eight canonical generated evaluations. Local mode can open an arbitrary conforming evidence bundle on literal <span class="identifier">127.0.0.1</span>, evaluates it through the frozen <span class="identifier">verifyClosure()</span> path, holds the uploaded evidence in memory, and sends it to no external service.</p>
+    <p><a href="/tools/agent-closure-inspector/">Open the Agent Closure Inspector</a></p>'''
+          new = '''    <p>The current RISU-hosted Inspector keeps the eight canonical generated evaluations available and can also open an arbitrary conforming JSON evidence bundle directly in the browser. A browser-targeted build from the frozen v0.3 verifier runs in an ephemeral Web Worker. The selected evidence is passed to the evaluator in browser memory, is not uploaded to RISU, and is not persisted by the Inspector. The origin exposes no server-side evidence-evaluation endpoint. The canonical loopback Inspector remains the archival fallback when browser-local evaluation is unavailable.</p>
+    <p><a href="/tools/agent-closure-inspector/">Open the Agent Closure Inspector</a> · <a href="/tools/agent-closure-inspector/evaluator-provenance.json">Browser evaluator provenance</a></p>'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one BAC Inspector capability paragraph, found {text.count(old)}')
+          page.write_text(text.replace(old, new), encoding='utf-8')
+
+          test = Path('tests/bounded-agent-closure-work-page.test.mjs')
+          text = test.read_text(encoding='utf-8')
+          needle = '''    noteUrl,
+    inspectorUrl,
+    repositoryUrl,'''
+          replacement = '''    noteUrl,
+    inspectorUrl,
+    "/tools/agent-closure-inspector/evaluator-provenance.json",
+    "browser-targeted build from the frozen v0.3 verifier",
+    "not uploaded to RISU",
+    "no server-side evidence-evaluation endpoint",
+    repositoryUrl,'''
+          if text.count(needle) != 1:
+              raise SystemExit(f'expected one BAC test insertion point, found {text.count(needle)}')
+          text = text.replace(needle, replacement)
+          needle2 = '''  assert.match(page, /BAC puts principal-relative transitive attribution/iu);
+'''
+          replacement2 = '''  assert.match(page, /BAC puts principal-relative transitive attribution/iu);
+  assert.doesNotMatch(page, /hosted Inspector is intentionally limited to the eight canonical generated evaluations/iu);
+'''
+          if text.count(needle2) != 1:
+              raise SystemExit(f'expected one BAC stale-copy assertion point, found {text.count(needle2)}')
+          test.write_text(text.replace(needle2, replacement2), encoding='utf-8')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/work/bounded-agent-closure/index.html tests/bounded-agent-closure-work-page.test.mjs
+          git diff --cached --check
+          git commit -m "Sync Agent Closure browser-local capability copy"
+          git push origin HEAD:agent-closure-browser-local-copy-sync

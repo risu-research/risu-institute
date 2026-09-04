@@ -24,26 +24,19 @@ test("Reliance Before Closure has a website-first conceptual overview", async ()
   for (const expected of [
     `<link rel="canonical" href="${overviewUrl}">`,
     "The gap before closure",
-    "One claim, not the whole workflow",
-    "Four obligations have to line up",
-    "Evidence and assumptions stay different",
-    "A current bound is not automatically a stable bound",
-    "The stability margin",
-    "The action is qualified separately",
-    "The provider-blind relying function",
-    "Matching numbers are not enough",
-    "SUPPORTED is not permission and not a reservation",
+    "The relying object is smaller than the workflow",
+    "From operational evidence to a relying decision",
+    "Current truth is not future stability",
+    "Matching numbers still may not apply",
+    "SUPPORTED is not permission or reservation",
     "The Kubernetes commissioning",
-    "What the commissioning actually demonstrated",
-    "Negative controls make the boundary clearer",
-    "How this differs from waiting for closure",
-    "How this differs from a safety filter",
-    "The Inspector",
-    "Three levels of reproducibility",
+    "Controls that sharpen the result",
+    "Relationship to broader closure and neighboring systems",
+    "Reliance Inspector",
+    "Reproducibility",
     "Result",
-    "Where the profile stops",
-    "Frozen record",
-    "Research and source record",
+    "Scope and trust boundary",
+    "Frozen record and source materials",
     "THRESHOLD_SLACK_V0",
     "M = 1 POD_SLOT",
     "Cₐ = 1 POD_SLOT",
@@ -63,9 +56,10 @@ test("Reliance Before Closure has a website-first conceptual overview", async ()
   ]) assert.ok(page.includes(expected), expected);
 
   assert.match(page, /workflow completion from decision readiness/iu);
-  assert.match(page, /Current enforcement answers what is true now/iu);
+  assert.match(page, /Current enforcement answers what is true at the snapshot/iu);
   assert.match(page, /arithmetic fits/iu);
   assert.match(page, /authoritative Kubernetes quota admitted one action and rejected the other/iu);
+  assert.match(page, /The arithmetic is simple by design/iu);
   assert.match(page, /not a production latency distribution/iu);
   assert.match(page, /not authorization, a reservation, a transaction/iu);
 

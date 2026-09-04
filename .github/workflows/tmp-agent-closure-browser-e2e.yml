@@ -1,0 +1,97 @@
+name: Temporary Agent Closure Browser E2E
+
+on:
+  push:
+    branches:
+      - agent-closure-browser-local
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent-closure-browser-local
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install temporary Chromium harness
+        run: |
+          pnpm add -D playwright@1.55.0 --lockfile=false
+          pnpm exec playwright install --with-deps chromium
+      - name: Exercise real file-selection flow with zero evaluation network requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          node <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const artifact = JSON.parse(readFileSync('public/tools/agent-closure/cases/c7-false-success.json', 'utf8'));
+          writeFileSync('.tmp/c7-bundle.json', JSON.stringify(artifact.bundle, null, 2) + '\n');
+          NODE
+          pnpm exec wrangler dev --ip 127.0.0.1 --port 8787 >.tmp/wrangler.log 2>&1 &
+          echo $! > .tmp/wrangler.pid
+          cleanup() { kill "$(cat .tmp/wrangler.pid)" 2>/dev/null || true; }
+          trap cleanup EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://localhost:8787/tools/agent-closure-inspector/ >/dev/null; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://localhost:8787/tools/agent-closure-inspector/ >/dev/null
+          cat > .tmp/e2e.mjs <<'NODE'
+          import assert from 'node:assert/strict';
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage();
+          const network = [];
+          page.on('request', (request) => {
+            network.push({ url: request.url(), method: request.method(), postData: request.postData() });
+          });
+
+          await page.goto('http://localhost:8787/tools/agent-closure-inspector/', { waitUntil: 'networkidle' });
+          await page.waitForFunction(() => {
+            const button = document.getElementById('open-file');
+            const note = document.getElementById('capability-note');
+            return button && !button.disabled && note?.textContent?.includes('Evaluated in this browser');
+          });
+
+          const button = page.locator('#open-file');
+          assert.equal(await button.isEnabled(), true);
+          const chooserPromise = page.waitForEvent('filechooser');
+          await button.click();
+          const chooser = await chooserPromise;
+          await chooser.setFiles('.tmp/c7-bundle.json');
+
+          await page.waitForFunction(() => {
+            const inspector = document.getElementById('inspector');
+            const verdict = document.getElementById('verdict-strip');
+            return inspector && !inspector.classList.contains('hidden') && verdict?.textContent?.includes('INCOMPLETE');
+          });
+
+          const verdict = await page.locator('#verdict-strip').innerText();
+          assert.match(verdict, /INCOMPLETE/);
+          assert.match(await page.locator('#privacy-note').innerText(), /Evidence stays on this device/);
+
+          const evaluationRequests = network.filter(({ url }) => new URL(url).pathname === '/api/evaluate');
+          assert.deepEqual(evaluationRequests, []);
+
+          const direct = await page.request.post('http://localhost:8787/api/evaluate', {
+            headers: { 'content-type': 'application/json' },
+            data: {},
+          });
+          assert.ok([404, 405].includes(direct.status()), `unexpected origin API status ${direct.status()}`);
+
+          console.log('E2E PASS: button enabled, file chooser opened, C7 rendered INCOMPLETE, /api/evaluate network requests = 0.');
+          await browser.close();
+          NODE
+          node .tmp/e2e.mjs

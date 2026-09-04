@@ -39,9 +39,9 @@ test("2026-02 publication page exposes the published scholarly record", async ()
 });
 
 
-test("Reliance Before Closure surfaces link to the substantive canonical repository", async () => {
+test("Reliance Before Closure deeper surfaces link to the substantive canonical repository", async () => {
   for (const page of [
-    "work/index.html",
+    "work/reliance-before-closure/index.html",
     "research/technical-notes/2026-02/index.html",
     "tools/reliance-inspector/index.html",
   ]) {
@@ -151,7 +151,10 @@ test("institutional navigation distinguishes research, publications, tools, and 
   const pages = [
     "index.html",
     "work/index.html",
+    "work/reliance-before-closure/index.html",
+    "work/bounded-agent-closure/index.html",
     "work/native-plus/index.html",
+    "work/closureprobe/index.html",
     "work/http-mcp-method-inference/index.html",
     "research/index.html",
     "research/technical-notes/index.html",
@@ -188,7 +191,10 @@ test("tools index preserves the declared instrument boundaries", async () => {
 test("sitemap includes the current publication, instrument, and work surfaces", async () => {
   const sitemap = await readPublic("sitemap.xml");
   for (const url of [
+    "https://risuinstitute.org/work/reliance-before-closure/",
+    "https://risuinstitute.org/work/bounded-agent-closure/",
     "https://risuinstitute.org/work/native-plus/",
+    "https://risuinstitute.org/work/closureprobe/",
     "https://risuinstitute.org/work/http-mcp-method-inference/",
     "https://risuinstitute.org/research/technical-notes/2026-03/",
     "https://risuinstitute.org/research/technical-notes/2026-02/",

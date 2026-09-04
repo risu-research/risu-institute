@@ -64,6 +64,7 @@ const productionPages = [
   "index.html",
   "work/index.html",
   "work/native-plus/index.html",
+  "work/closureprobe/index.html",
   "work/http-mcp-method-inference/index.html",
   "research/index.html",
   "research/technical-notes/index.html",
@@ -241,6 +242,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "_redirects",
     "about/index.html",
     "assets/favicon.svg",
+    "assets/research-ledger.css",
     "assets/style.css",
     "index.html",
     "rels/appeal.html",
@@ -291,6 +293,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "tools/reliance-inspector/provenance.json",
     "tools/reliance-inspector/styles.css",
     "work/appeal-interoperability/index.html",
+    "work/closureprobe/index.html",
     "work/http-mcp-method-inference/index.html",
     "work/index.html",
     "work/native-plus/index.html",
@@ -590,6 +593,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/native-plus\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/closureprobe\/<\/loc>/gu)].length,
     1,
   );
 

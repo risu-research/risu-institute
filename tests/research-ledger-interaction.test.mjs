@@ -17,7 +17,7 @@ test("every research entry title is a primary navigation link", async () => {
     ["Reliance Before Closure", "/research/technical-notes/2026-02/"],
     ["Bounded Agent Closure", "/research/technical-notes/2026-01/"],
     ["Native++ v0.2", "/work/native-plus/"],
-    ["ClosureProbe", "https://github.com/risu-research/closureprobe/releases/tag/v0.1.0-rc3"],
+    ["ClosureProbe", "/work/closureprobe/"],
     ["Negative Result Warrant", "/tools/negative-result-warrant/"],
     ["Projection Assurance", "/research/technical-notes/2026-04/"],
     ["OpenAPI→MCP Problem-Semantics Preservation Profile", "/work/problem-semantics/"],

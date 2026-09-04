@@ -1,0 +1,29 @@
+name: Temporary Consequence Closure Runtime State
+on:
+  push:
+    branches:
+      - consequence-closure-current-inspector
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: consequence-closure-current-inspector
+      - name: Add runtime lifecycle markers
+        run: |
+          python -c 'from pathlib import Path; p=Path("public/tools/consequence-closure/current/app.js"); t=p.read_text(); t=t.replace("const REFERENCE_META = {", "document.documentElement.dataset.ccApp = '\''started'\'';\ndocument.documentElement.dataset.ccEngine = '\''idle'\'';\n\nconst REFERENCE_META = {", 1); t=t.replace("function startWorker() {\n  try {", "function startWorker() {\n  document.documentElement.dataset.ccEngine = '\''starting'\'';\n  try {", 1); t=t.replace("    state.workerReady = false;\n    $('\''#engineState'\'').textContent = '\''Worker unavailable'\'';", "    state.workerReady = false;\n    document.documentElement.dataset.ccEngine = '\''error'\'';\n    $('\''#engineState'\'').textContent = '\''Worker unavailable'\'';", 1); t=t.replace("      state.workerReady = true;\n      $('\''#engineState'\'').textContent", "      state.workerReady = true;\n      document.documentElement.dataset.ccEngine = '\''ready'\'';\n      $('\''#engineState'\'').textContent", 1); t=t.replace("    state.workerReady = false;\n    $('\''#engineState'\'').textContent = '\''Worker stopped'\'';", "    state.workerReady = false;\n    document.documentElement.dataset.ccEngine = '\''error'\'';\n    $('\''#engineState'\'').textContent = '\''Worker stopped'\'';", 1); p.write_text(t)'
+          node --check public/tools/consequence-closure/current/app.js
+          node --check public/tools/consequence-closure/current/worker.js
+      - name: Commit clean runtime markers
+        run: |
+          rm .github/workflows/tmp-cc-runtime-state.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/tools/consequence-closure/current/app.js .github/workflows/tmp-cc-runtime-state.yml
+          git diff --cached --check
+          git commit -m "Expose Consequence Closure runtime lifecycle"
+          git push origin HEAD:consequence-closure-current-inspector

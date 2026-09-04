@@ -63,6 +63,7 @@ const technicalNotePdfUrl = `https://risuinstitute.org/${technicalNotePdf}`;
 const productionPages = [
   "index.html",
   "work/index.html",
+  "work/consequence-closure/index.html",
   "work/reliance-before-closure/index.html",
   "work/bounded-agent-closure/index.html",
   "work/native-plus/index.html",
@@ -297,6 +298,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "work/appeal-interoperability/index.html",
     "work/bounded-agent-closure/index.html",
     "work/closureprobe/index.html",
+    "work/consequence-closure/index.html",
     "work/http-mcp-method-inference/index.html",
     "work/index.html",
     "work/native-plus/index.html",
@@ -591,6 +593,11 @@ test("sitemap, manifest, and release documents agree on the frozen identity", as
 
   assert.equal(
     [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/problem-semantics\/<\/loc>/gu)].length,
+    1,
+  );
+
+  assert.equal(
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/work\/consequence-closure\/<\/loc>/gu)].length,
     1,
   );
 

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>Consequence Closure | RISU Institute</title>
+<meta name="description" content="Consequence Closure is a carrier-neutral assurance framework for determining what can still change the consequence of a machine action at a declared action cut, what semantic distinctions are sufficient to determine it, and what declared steps can establish closure.">
+<link rel="canonical" href="https://risuinstitute.org/work/consequence-closure/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Consequence Closure | RISU Institute">
+<meta property="og:description" content="A bounded assurance framework for consequence determinacy, materiality witnesses, semantic obligations, realizable closure routes, and source-preservation claims at the machine action boundary.">
+<meta property="og:url" content="https://risuinstitute.org/work/consequence-closure/">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="RISU Institute home">
+      <span class="brand-risu">RISU</span>
+      <span class="brand-institute">Institute</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/work/" aria-current="page">Research</a>
+      <a href="/research/">Publications</a>
+      <a href="/tools/">Tools</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="reading">
+      <p class="eyebrow">Consequence assurance · action-cut verifier · frozen public baseline v1.0.0</p>
+      <h1>Consequence Closure</h1>
+      <p class="page-lede">A machine can have correct authority records, fresh observations, and configured controls while the consequence of the action it is about to take is still not fixed.</p>
+    </div>
+  </section>
+
+  <article class="reading prose">
+    <div class="callout">
+      <p><strong>Core question:</strong> At a declared action cut, do all admissible realizations consistent with the current evidence produce the same specified consequence? If not, what distinction still matters, and what can the system establish to eliminate that dependence before acting?</p>
+    </div>
+
+    <h2>The action cut</h2>
+    <p>Consequence Closure starts where several familiar assurances can stop too early. An authorization decision can be correct. A control change can be recorded. A status field can be fresh. None of those facts alone establishes what an already available action path will actually do at the moment of effect.</p>
+    <p>The Linux commissioning makes the gap concrete. A parent changed a memory-backed file to mode <span class="identifier">0444</span> and verified that mode before a child wrote through a writable descriptor it had already inherited. The administrative state was correct, yet the write still succeeded in all 200 trials. With <span class="identifier">F_SEAL_WRITE</span> established before the same effect cut, the write was blocked with <span class="identifier">EPERM</span> in all 200 trials.</p>
+    <p>The assurance target is therefore not “was the control updated?” It is “is the specified consequence already determined by the evidence and operative state at this action boundary?”</p>
+
+    <h2>Closure means determinacy, not approval</h2>
+    <p>For one declared Boundary, the verifier considers every admissible realization still compatible with the evidence. A declared consequence function maps each realization to the outcome of the action under study.</p>
+    <dl class="spec-grid">
+      <dt>IMPOSSIBLE</dt><dd>No admissible realization remains compatible with the evidence.</dd>
+      <dt>OPEN</dt><dd>At least two compatible realizations still produce different specified consequences.</dd>
+      <dt>CLOSED(c)</dt><dd>Every compatible realization produces the same consequence <span class="identifier">c</span>.</dd>
+    </dl>
+    <p><span class="identifier">CLOSED(c)</span> does not mean safe, allowed, or desirable. The fixed consequence can be denial, failure, an adverse result, or any other declared outcome. Closure says that the consequence is determined. A separate policy decides what to do with that consequence.</p>
+    <p>The action cut is part of the claim. If a consequence-relevant transition can still occur between the evidence cut and the effect but is missing from the Boundary, a clean snapshot cannot be promoted into an action-level guarantee.</p>
+
+    <h2>When the state is OPEN, keep the counterexample</h2>
+    <p>An <span class="identifier">OPEN</span> result is not returned as a bare failure flag. The verifier preserves two compatible realizations that agree on the selected information but disagree on the consequence.</p>
+    <div class="code-block">same current evidence
+       ↙          ↘
+realization A   realization B
+ consequence x  consequence y
+       x ≠ y</div>
+    <p>That pair is a materiality witness. It shows exactly why the current evidence is not enough. For example, the bundled authority trace records that a deployment grant was revoked and that the decision engine observed the revocation, but an earlier bearer capability has not been tested after revocation. The unresolved operativity of that legacy path is what keeps the consequence open.</p>
+
+    <h2>From counterexamples to semantic obligations</h2>
+    <p>Once a consequence-divergent pair is known, the next question is not “which field looks relevant?” It is which declared semantic distinctions can actually separate every pair that would otherwise remain indistinguishable while producing different consequences.</p>
+    <p>Each divergent pair contributes the set of candidate Propositions that distinguish it. Those sets form a materiality hypergraph. A sufficient obligation set must intersect every such edge, and the inclusion-minimal sufficient obligation sets are exactly the inclusion-minimal transversals of that hypergraph.</p>
+    <p><strong>Inclusion-minimal does not mean unique or smallest by cardinality.</strong> Several incomparable minimal obligation sets can exist. Inspector v0.5.0 exposes the exact family it computes within the declared portable budget and chooses one member deterministically only for the compact view.</p>
+    <p>The reference CEGIS loop discovers only the counterexamples it needs. Within a fixed finite candidate surface and a sound-and-complete fixed-set verifier, it terminates with an inclusion-minimal sufficient obligation set when one exists. If two consequence-divergent realizations agree on every declared Proposition, it returns <span class="identifier">UNRESOLVABLE UNDER DECLARED EVIDENCE SURFACE</span>. That result identifies a vocabulary boundary rather than disguising it as search failure.</p>
+    <p>The determinacy and hitting-set ingredients are established formal tools. The project-specific contribution is how they are bound to a declared machine-action consequence, replayable witnesses, realizable Establishments, source-preservation levels, and real-system commissioning without collapsing those claims into one another.</p>
+
+    <h2>What matters is not the same as how to establish it</h2>
+    <p>A semantic obligation answers an information question: which distinctions would be sufficient to determine the consequence? It is deliberately separate from the operations available to obtain that information or change the operative state.</p>
+    <p>Consequence Closure calls those realizable operations <strong>Establishments</strong>. The frozen Core distinguishes epistemic observations, state-making acts, operative guards, operative transactions, and action suppression. A <strong>Route</strong> is a finite strategy over declared Establishments, including branches that depend on observation outcomes.</p>
+    <p>This means the same unresolved distinction can sometimes be closed in two fundamentally different ways. A probe may observe whether a legacy capability is still effective. An operative guard may instead make that capability unable to produce the consequence. One resolves uncertainty; the other changes the reachable effect. The semantic obligation is the same question, but the mechanism is not.</p>
+    <div class="code-block">materiality witness
+        ↓
+semantic obligation family
+        ↓
+declared Establishments
+        ↓
+closure Route
+        ↓
+CLOSED(c)</div>
+    <p>Declarations are fixed before they justify a result. A witness may motivate a new Proposition or Establishment for a new analysis, but the result that exposed the gap cannot be retroactively repaired by changing the vocabulary or mechanism semantics after the outcome is known.</p>
+
+    <h2>A correct final decision can still hide a broken abstraction</h2>
+    <p>Carrier-specific systems need a front end that compiles their source semantics into the small Consequence Closure Core. Matching final outcomes on complete worlds is not enough. Two source abstractions can agree on every final ALLOW or DENY while disagreeing on whether a partial-evidence state is OPEN, what semantic obligations are sufficient, or which closure Route is realizable.</p>
+    <p>The source-preservation hierarchy therefore names the claim that a front end is actually entitled to export:</p>
+    <dl class="spec-grid">
+      <dt>P0 · status preservation</dt><dd>Source and Core agree on <span class="identifier">IMPOSSIBLE</span>, <span class="identifier">OPEN</span>, or <span class="identifier">CLOSED(c)</span> at every declared reachable analysis state.</dd>
+      <dt>P1 · obligation preservation</dt><dd>P0 holds, and source and Core agree on the paired counterexample predicate for every candidate subset. The sufficient-set family and inclusion-minimal obligation families therefore correspond.</dd>
+      <dt>P2 · route preservation</dt><dd>P0 and P1 hold, and declared Establishment enabledness plus the complete labeled successor structure are preserved. Only then does successful finite Route transfer follow at the declared level.</dd>
+    </dl>
+    <p>The hierarchy is output-relative. A source representation may be compressed aggressively when the stronger distinctions are unnecessary, but a status-preserving abstraction cannot silently claim that it also preserved the reasons for openness or the operative route structure.</p>
+
+    <h2>The Cedar official-runtime gate</h2>
+    <p>The P0/P1 preservation claim was converted into a preregistered differential against the official Cedar runtime rather than left as a hand-built reference-model exercise. The source oracle was <span class="identifier">cedar-policy-cli 4.12.0</span>, pinned to its release commit.</p>
+    <dl class="spec-grid">
+      <dt>Source / Core worlds</dt><dd>64 / 64</dd>
+      <dt>Reachable source / Core analysis states</dt><dd>183 / 183</dd>
+      <dt>Complete-world consequence mismatches</dt><dd>0</dd>
+      <dt>Proposition interpretation mismatches</dt><dd>0</dd>
+      <dt>P0 mismatches</dt><dd>0</dd>
+      <dt>P1 surface</dt><dd>183 states × all 16 candidate subsets = 2,928 checks</dd>
+      <dt>P1 mismatches</dt><dd>0</dd>
+      <dt>Exported witness reifications</dt><dd>427 checked · 0 failed</dd>
+      <dt>Post-outcome semantic repair</dt><dd>0</dd>
+    </dl>
+    <p>The frozen classification is <span class="identifier">EXACT_P1_CONFIRMED_ON_FROZEN_BOUNDARY</span>. This is stronger than matching Cedar's final decisions on the 64 complete worlds: on the declared reachable surface, the source and Core also agreed on the counterexample structure that determines semantic sufficiency and inclusion-minimal obligations.</p>
+    <p>The result is intentionally narrower than “equivalent to Cedar.” It covers one preregistered bounded front end. P2 was not tested, and no Route-transfer claim follows from this gate.</p>
+
+    <h2>From model semantics to real effect cuts</h2>
+    <p>Source preservation and mechanism behavior are different assurance links. The commissioning sequence tests whether selected declared effects and evidence gates survive contact with concrete systems, while keeping those results separate from P0/P1/P2 claims.</p>
+    <dl class="spec-grid">
+      <dt>Linux operative effect</dt><dd><span class="identifier">fchmod 0444</span> was verified while the inherited write still succeeded 200 / 200. Expert and compiler-selected <span class="identifier">F_SEAL_WRITE</span> blocked 200 / 200.</dd>
+      <dt>SQLite lost update</dt><dd>A frozen compiler with no SQLite- or Linux-keyed branches selected compare-and-swap. The naive schedule lost the intervening update 200 / 200; expert and compiler-selected CAS lost 0 / 200.</dd>
+      <dt>Prospective filesystem publication</dt><dd><span class="identifier">RENAME_NOREPLACE_BIND</span> was selected and sealed before the real run. Ordinary rename clobbered 200 / 200; the selected no-replace path clobbered 0 / 200 and returned <span class="identifier">EEXIST</span> 200 / 200. A profile without that Establishment returned no closure Route before commissioning.</dd>
+      <dt>OAuth paired-control gate</dt><dd>Across 1,024 well-formed declared gate states, the frozen checker emitted no <span class="identifier">SAFE_AT_CUT</span> where the declared oracle was non-safe. Missing positive gates remained OPEN, while direct post-revocation acceptance was UNSAFE.</dd>
+      <dt>OAuthLib to Keycloak transfer</dt><dd>The same frozen checker separated the live SAFE condition from the controlled authority-resource split state on OAuthLib 3.3.1 and pinned Keycloak 26.7.2 with semantic repair 0 and provider-specific semantic checker branches 0.</dd>
+    </dl>
+    <p>These tests are complementary rather than a ladder toward one undifferentiated “system pass.” Linux attacks the confusion between administrative and operative state. SQLite and Linux pressure generic Route selection across different mechanism families. The filesystem test removes hindsight by freezing selection before the outcome. OAuth controls alternative explanations for a blocked request. The implementation-transfer runs test whether the frozen checker needs provider-specific semantic repair.</p>
+
+    <h2>The assurance object stays challengeable</h2>
+    <p>Consequence Closure Inspector v0.5.0 is designed around the same claim discipline. An OPEN state carries its materiality witness. A selected inclusion-minimal obligation set carries a sufficiency certificate and a concrete removal witness for every selected Proposition, so minimality is replayable rather than asserted by a label.</p>
+    <p>The Inspector also keeps exact Core analysis, source-preservation status, cut adequacy, Boundary qualification, declared Routes, and source lineage visibly separate. A model-relative Route is not promoted into a source-system Route without the required preservation evidence.</p>
+    <p>Exactness has a visible computational boundary. The portable implementation accepts at most 20 candidate Propositions and 2,000 worlds, with explicit search budgets for obligation and Route analysis. A budget overrun stops before a semantic result is emitted rather than substituting an approximate closure claim. The release gate matched exact inclusion-minimal obligation families against a brute-force oracle on 300 randomized models.</p>
+    <p>The v2 inspection export binds the declaration, analysis state, compatible realizations, obligation family and certificate, materiality witness, Route tree, qualifications, and deterministic record digest. The point is not to make a formal result look polished. It is to make the result easier to challenge without changing what it claims.</p>
+    <p><a href="/tools/consequence-closure/">Open the Consequence Closure Inspector</a></p>
+
+    <h2>Result</h2>
+    <div class="callout">
+      <p><strong>Consequence Closure turns residual uncertainty at a machine action boundary into an inspectable assurance problem.</strong> It can show that a consequence is already fixed, produce a concrete pair showing why it is not, derive the inclusion-minimal semantic distinctions sufficient to determine it, connect those distinctions to declared realizable steps, and keep the source and operative qualifications attached to every exported claim.</p>
+    </div>
+    <p>The project does not depend on one policy language, one control plane, or one carrier to define that target. The frozen record demonstrates the Core on a declared formal surface, exact P1 against one official Cedar boundary, prospective and cross-system Route selection under declared mechanism semantics, and frozen evidence checking across two commissioned OAuth implementations.</p>
+
+    <h2>Where the result stops</h2>
+    <p>Every positive statement remains relative to its declared Boundary, action cut, consequence, candidate vocabulary, and source or mechanism qualifications. The Core cannot infer that a source model is complete, that the cut is adequate, that evidence is authentic, or that a declared mechanism behaves correctly in an uncommissioned environment.</p>
+    <p>The Cedar result does not establish general Cedar equivalence and does not establish P2. The Linux, SQLite, filesystem, OAuthLib, and Keycloak runs do not establish general carrier neutrality. A successful commissioning link cannot repair an unproven source-preservation link, and a P1 source result cannot establish the operativity of an unrelated mechanism.</p>
+
+    <h2>Frozen record and source materials</h2>
+    <dl class="spec-grid">
+      <dt>Public research baseline</dt><dd>Consequence Closure v1.0.0</dd>
+      <dt>Core</dt><dd>Consequence Closure Core v0.1.0</dd>
+      <dt>Inspector</dt><dd>Consequence Closure Inspector v0.5.0</dd>
+      <dt>Technical Note DOI</dt><dd class="identifier">10.5281/zenodo.22095709</dd>
+      <dt>Software DOI</dt><dd class="identifier">10.5281/zenodo.22095595</dd>
+      <dt>Inspector release ZIP SHA-256</dt><dd class="identifier">a379d1dc05e0c7ee90f6370fba3a44fdfdff7dc89cff91d968f9b099d545b26c</dd>
+      <dt>Technical Note PDF SHA-256</dt><dd class="identifier">7de97e497b6703b74afaffcf99cb7532e29e6fe02446f9708b84dca05d875b3d</dd>
+      <dt>Cedar primary evidence archive SHA-256</dt><dd class="identifier">66be1260b0c3917bcae1c9884d0e583ee9a193bca0561c45544803730c6adc0d</dd>
+      <dt>Runtime model</dt><dd>Browser-local Inspector · no runtime network path</dd>
+    </dl>
+    <div class="reference-list">
+      <a href="/research/technical-notes/2026-03/">RISU Technical Note 2026-03</a>
+      <a href="/research/technical-notes/2026-03/RISU_Technical_Note_2026-03_Consequence_Closure.pdf">Full Technical Note PDF</a>
+      <a href="/tools/consequence-closure/">Consequence Closure Inspector</a>
+      <a href="https://doi.org/10.5281/zenodo.22095709">Technical Note archival record</a>
+      <a href="https://doi.org/10.5281/zenodo.22095595">Inspector v0.5.0 software archive</a>
+      <a href="https://github.com/risu-research/consequence-closure/blob/main/inspector/evidence/cedar-4.12.0-p1-conformance-summary.json">Cedar 4.12.0 P1 conformance summary</a>
+      <a href="https://github.com/risu-research/consequence-closure/blob/main/inspector/RELEASE_GATE.md">Inspector v0.5.0 release gate</a>
+      <a href="https://github.com/risu-research/consequence-closure/releases/tag/v1.0.0">Frozen v1.0.0 release</a>
+      <a href="https://github.com/risu-research/consequence-closure">Canonical repository</a>
+      <a href="/work/">Back to the RISU research program</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div>
+    <div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
+  </div>
+</footer>
+</body>
+</html>

@@ -151,6 +151,7 @@ test("institutional navigation distinguishes research, publications, tools, and 
   const pages = [
     "index.html",
     "work/index.html",
+    "work/consequence-closure/index.html",
     "work/reliance-before-closure/index.html",
     "work/bounded-agent-closure/index.html",
     "work/native-plus/index.html",
@@ -191,6 +192,7 @@ test("tools index preserves the declared instrument boundaries", async () => {
 test("sitemap includes the current publication, instrument, and work surfaces", async () => {
   const sitemap = await readPublic("sitemap.xml");
   for (const url of [
+    "https://risuinstitute.org/work/consequence-closure/",
     "https://risuinstitute.org/work/reliance-before-closure/",
     "https://risuinstitute.org/work/bounded-agent-closure/",
     "https://risuinstitute.org/work/native-plus/",

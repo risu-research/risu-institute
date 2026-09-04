@@ -80,6 +80,7 @@ const productionPages = [
   "tools/index.html",
   "tools/consequence-closure/index.html",
   "tools/reliance-inspector/index.html",
+  "tools/agent-closure-inspector/index.html",
   "rels/appeal.html",
   "work/appeal-interoperability/index.html",
   "work/problem-semantics/index.html",
@@ -263,6 +264,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "research/technical-notes/index.html",
     "robots.txt",
     "sitemap.xml",
+    "tools/agent-closure-inspector/index.html",
     "tools/agent-closure/app.js",
     "tools/agent-closure/cases/c1-direct-zombie.json",
     "tools/agent-closure/cases/c2-transitive-zombie.json",
@@ -452,7 +454,7 @@ test("the Bounded Agent Closure research card routes through the website overvie
   const work = await readProject("public/work/index.html");
   const overviewHref = 'href="/work/bounded-agent-closure/"';
   const noteHref = 'href="/research/technical-notes/2026-01/"';
-  const inspectorHref = 'href="/tools/agent-closure/"';
+  const inspectorHref = 'href="/tools/agent-closure-inspector/"';
   const softwareHref = 'href="https://doi.org/10.5281/zenodo.22005419"';
 
   assert.equal(work.split(overviewHref).length - 1, 2, overviewHref);
@@ -491,11 +493,15 @@ test("the Research URLs appear in the sitemap exactly once", async () => {
   assert.doesNotMatch(sitemap, /RISU_Technical_Note_2026-01_From_Revocation_to_Closure\.pdf/u);
 });
 
-test("the Agent Closure Inspector URL appears in the sitemap exactly once", async () => {
+test("the current Agent Closure Inspector URL appears in the sitemap exactly once", async () => {
   const sitemap = await readProject("public/sitemap.xml");
   assert.equal(
-    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure\/<\/loc>/gu)].length,
+    [...sitemap.matchAll(/<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure-inspector\/<\/loc>/gu)].length,
     1,
+  );
+  assert.doesNotMatch(
+    sitemap,
+    /<loc>https:\/\/risuinstitute\.org\/tools\/agent-closure\/<\/loc>/u,
   );
 });
 
@@ -564,7 +570,7 @@ test("basic static HTML accessibility invariants hold", async () => {
   }
 });
 
-test("Cloudflare routing preserves the slashless semantic identity and custom 404", async () => {
+test("Cloudflare routing preserves canonical identities and the custom 404", async () => {
   const config = JSON.parse(await readProject("wrangler.jsonc"));
   const redirects = await readProject("public/_redirects");
 

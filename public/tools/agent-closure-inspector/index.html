@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f6f2">
+<base href="/tools/agent-closure/">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/tools/agent-closure/style.css">
+<title>Agent Closure Inspector | RISU Institute</title>
+<meta name="description" content="Inspect why a retiring autonomous agent is CLOSED, INCOMPLETE, or UNKNOWN by following attributable consequences, disposition-specific terminality, source coverage, and convergence across the frozen Bounded Agent Closure corpus.">
+<link rel="canonical" href="https://risuinstitute.org/tools/agent-closure-inspector/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agent Closure Inspector | RISU Institute">
+<meta property="og:description" content="A public research instrument for inspecting the evidence behind bounded agent-closure verdicts, from transitive consequences and terminal dispositions to missing coverage and stable convergence.">
+<meta property="og:url" content="https://risuinstitute.org/tools/agent-closure-inspector/">
+<style>
+:root{
+  --canvas:#f6f6f2;
+  --surface:#fbfbf8;
+  --surface-strong:#fff;
+  --ink:#111512;
+  --text-soft:#303732;
+  --muted-2:#687069;
+  --faint-2:#8d958e;
+  --line-2:#d8dcd7;
+  --line-strong-2:#aeb6af;
+  --accent-2:#0b5f49;
+  --accent-strong-2:#084b3a;
+  --accent-soft-2:#e5efe9;
+  --closed-2:#17633f;
+  --closed-soft-2:#e9f3ed;
+  --incomplete-2:#9b342d;
+  --incomplete-soft-2:#f7e9e6;
+  --unknown-2:#8a5b0c;
+  --unknown-soft-2:#f7edd7;
+  --display:Charter,"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono-2:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --shadow-soft:0 1px 1px rgba(17,21,18,.025),0 18px 42px rgba(17,21,18,.045);
+}
+body.hosted-agent-closure{background:var(--canvas);color:var(--ink);font-family:var(--sans);line-height:1.58;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body.hosted-agent-closure::selection{background:#cfe5db;color:var(--ink)}
+body.hosted-agent-closure a{text-decoration-thickness:1px;text-underline-offset:.19em}
+body.hosted-agent-closure a:hover{color:var(--accent-2)}
+body.hosted-agent-closure main,body.hosted-agent-closure footer{width:min(calc(100% - 56px),1280px)}
+.institutional-header{position:sticky;top:0;z-index:70;border-bottom:1px solid rgba(174,182,175,.68);background:rgba(246,246,242,.96);backdrop-filter:blur(16px)}
+.institutional-inner{width:min(calc(100% - 56px),1280px);min-height:74px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:30px}
+.institutional-brand{display:inline-flex;align-items:baseline;gap:9px;color:var(--ink);text-decoration:none;white-space:nowrap}.institutional-brand:hover{color:var(--ink)}
+.institutional-brand .risu{font-family:var(--display);font-size:1.28rem;font-weight:700;letter-spacing:.055em}.institutional-brand .institute{color:var(--muted-2);font-size:.64rem;font-weight:730;letter-spacing:.17em;text-transform:uppercase}
+.institutional-right{display:flex;align-items:center;gap:28px}.institutional-nav{display:flex;align-items:center;gap:26px;font-size:.82rem}.institutional-nav a{position:relative;color:#555e57;text-decoration:none;font-weight:610}.institutional-nav a::after{content:"";position:absolute;left:0;right:100%;bottom:-8px;height:1px;background:var(--ink);transition:right .18s ease}.institutional-nav a:hover,.institutional-nav a[aria-current="page"]{color:var(--ink)}.institutional-nav a:hover::after,.institutional-nav a[aria-current="page"]::after{right:0}
+body.hosted-agent-closure .privacy-note{margin:0;padding-left:24px;border-left:1px solid var(--line-2);color:var(--muted-2);font-size:.7rem;white-space:nowrap}
+body.hosted-agent-closure .eyebrow{margin:0 0 12px;color:var(--accent-2);font-family:var(--sans);font-size:.66rem;font-weight:780;letter-spacing:.145em;text-transform:uppercase}
+body.hosted-agent-closure .intro{padding:clamp(78px,9vw,118px) 0 62px;border-bottom:0}
+.instrument-hero{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(350px,.88fr);gap:clamp(54px,8vw,112px);align-items:end;padding-bottom:58px;border-bottom:1px solid var(--line-2)}
+.instrument-hero h1{max-width:850px;margin:0;font-family:var(--display);font-size:clamp(3.7rem,7.3vw,6.8rem);font-weight:500;line-height:.92;letter-spacing:-.055em;text-wrap:balance}
+.hero-lede{max-width:780px;margin:28px 0 0;color:var(--text-soft);font-size:clamp(1.12rem,1.8vw,1.38rem);line-height:1.6}.hero-support{max-width:740px;margin:16px 0 0;color:var(--muted-2);font-size:.98rem;line-height:1.65}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:28px}.hero-action{display:inline-flex;align-items:center;min-height:42px;color:var(--ink);font-size:.86rem;font-weight:700;text-decoration:none}.hero-action.primary-action{padding:9px 14px;border:1px solid var(--ink);border-radius:6px;background:var(--ink);color:#fff}.hero-action.primary-action:hover{background:var(--accent-strong-2);border-color:var(--accent-strong-2);color:#fff}
+.verdict-map{border-top:1px solid var(--ink)}.verdict-map-head{padding:0 0 14px;color:var(--muted-2);font-size:.68rem;font-weight:750;letter-spacing:.11em;text-transform:uppercase}.verdict-map-row{display:grid;grid-template-columns:116px minmax(0,1fr);gap:18px;padding:19px 0;border-bottom:1px solid var(--line-2)}.verdict-map-row strong{font-family:var(--mono-2);font-size:.78rem;letter-spacing:.04em}.verdict-map-row p{margin:0;color:var(--muted-2);font-size:.86rem}.verdict-map-row.closed strong{color:var(--closed-2)}.verdict-map-row.incomplete strong{color:var(--incomplete-2)}.verdict-map-row.unknown strong{color:var(--unknown-2)}
+.closure-contract{display:grid;grid-template-columns:repeat(4,1fr);margin-top:0;border-bottom:1px solid var(--ink)}.closure-contract article{min-width:0;padding:25px 20px 28px;border-right:1px solid var(--line-2)}.closure-contract article:first-child{padding-left:0}.closure-contract article:last-child{border-right:0;padding-right:0}.closure-contract span{display:block;color:var(--muted-2);font-size:.65rem;font-weight:750;letter-spacing:.1em}.closure-contract h2{margin:16px 0 8px;font-family:var(--display);font-size:1.35rem;font-weight:500;letter-spacing:-.02em}.closure-contract p{margin:0;color:var(--muted-2);font-size:.82rem;line-height:1.55}
+.contrast-section{padding:62px 0 8px}.contrast-heading{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.7fr);gap:40px;align-items:end}.contrast-heading h2{margin:0;font-family:var(--display);font-size:clamp(2.3rem,4.6vw,4.3rem);font-weight:500;line-height:1;letter-spacing:-.045em}.contrast-heading p{margin:0;color:var(--muted-2);font-size:.94rem}.contrast-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:27px}.contrast-card{padding:21px;border:1px solid var(--line-2);background:rgba(255,255,255,.28)}.contrast-card .case-ref{display:block;color:var(--muted-2);font-size:.65rem;font-weight:760;letter-spacing:.1em;text-transform:uppercase}.contrast-card h3{margin:10px 0 9px;font-family:var(--display);font-size:1.25rem;font-weight:500}.contrast-card p{margin:0;color:var(--muted-2);font-size:.82rem}.contrast-card .case-result{display:block;margin-top:17px;padding-top:12px;border-top:1px solid var(--line-2);font-family:var(--mono-2);font-size:.7rem;font-weight:750}.contrast-card.false .case-result{color:var(--incomplete-2)}.contrast-card.transfer .case-result{color:var(--closed-2)}.contrast-card.coverage .case-result{color:var(--unknown-2)}.contrast-card.convergence .case-result{color:var(--closed-2)}
+.local-boundary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:center;margin-top:52px;padding:23px 0;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}.local-boundary h2{margin:0 0 5px;font-family:var(--display);font-size:1.3rem;font-weight:500}.local-boundary p{max-width:780px;margin:0;color:var(--muted-2);font-size:.82rem}.local-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:12px}.local-actions .button{margin:0}.local-actions .capability-note{max-width:260px;min-height:0;margin:0;text-align:right;font-size:.72rem}
+body.hosted-agent-closure .cases{padding:76px 0 92px}body.hosted-agent-closure .section-heading{align-items:end;padding-bottom:19px;border-bottom:1px solid var(--ink)}body.hosted-agent-closure .section-heading h2{margin:0;font-family:var(--display);font-size:clamp(2.4rem,4.6vw,4.2rem);font-weight:500;letter-spacing:-.045em}body.hosted-agent-closure .section-heading>p{max-width:560px;color:var(--muted-2);font-size:.88rem}
+body.hosted-agent-closure .case-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}body.hosted-agent-closure .case-button{min-height:205px;padding:22px;border:1px solid var(--line-2);border-radius:4px;background:rgba(255,255,255,.34);box-shadow:none;transition:border-color .14s ease,background .14s ease,transform .14s ease}body.hosted-agent-closure .case-button:hover{border-color:var(--line-strong-2);background:var(--surface-strong);transform:translateY(-1px)}body.hosted-agent-closure .case-button h3{margin:15px 0 8px;font-family:var(--display);font-size:1.28rem;font-weight:500}body.hosted-agent-closure .case-button p{font-size:.8rem;line-height:1.55}body.hosted-agent-closure .case-id{color:var(--muted-2)}body.hosted-agent-closure .case-footer{padding-top:13px;border-top:1px solid var(--line-2)}
+body.hosted-agent-closure .inspector{padding:34px 0 96px}body.hosted-agent-closure .inspector-heading{align-items:end;padding:34px 0 22px;border-bottom:1px solid var(--ink)}body.hosted-agent-closure .inspector-heading h2{margin:0;font-family:var(--display);font-size:clamp(2.6rem,5.2vw,5rem);font-weight:500;letter-spacing:-.05em;line-height:.98}body.hosted-agent-closure .inspector-heading>div>p:last-child{max-width:780px;margin-top:13px;color:var(--muted-2);font-size:.93rem}
+body.hosted-agent-closure .tabs{gap:26px;margin:0 0 20px;padding-top:5px}body.hosted-agent-closure .tab{padding:14px 1px 12px;font-size:.82rem}body.hosted-agent-closure .tab.active{border-bottom-color:var(--accent-2)}
+body.hosted-agent-closure .verdict-strip{grid-template-columns:minmax(250px,.78fr) minmax(0,1.22fr);gap:42px;padding:30px;border:1px solid var(--line-2);border-left-width:5px;border-radius:5px;background:var(--surface-strong);box-shadow:var(--shadow-soft)}body.hosted-agent-closure .verdict-word{font-family:var(--display);font-size:clamp(2.8rem,5vw,4.8rem);font-weight:500;letter-spacing:-.045em;line-height:.94}body.hosted-agent-closure .verdict-summary{max-width:520px;color:var(--muted-2);font-size:.9rem}body.hosted-agent-closure .verdict-strip.closed{border-left-color:var(--closed-2)}body.hosted-agent-closure .verdict-strip.incomplete{border-left-color:var(--incomplete-2)}body.hosted-agent-closure .verdict-strip.unknown{border-left-color:var(--unknown-2)}
+body.hosted-agent-closure .workspace-grid{display:grid;grid-template-columns:minmax(310px,.72fr) minmax(0,1.28fr);gap:16px;margin-top:16px}body.hosted-agent-closure .panel{border:1px solid var(--line-2);border-radius:5px;background:rgba(255,255,255,.42);box-shadow:none}body.hosted-agent-closure .why-panel{order:1;background:var(--surface-strong)}body.hosted-agent-closure .lineage-panel{order:2;min-width:0}body.hosted-agent-closure .panel-heading{align-items:end;padding-bottom:13px;border-bottom:1px solid var(--line-2)}body.hosted-agent-closure .panel-heading h3{font-family:var(--display);font-size:1.36rem;font-weight:500}body.hosted-agent-closure .problem-intro{color:var(--text-soft);font-size:.88rem;line-height:1.62}body.hosted-agent-closure .problem-list li{border-color:var(--line-2);background:transparent}body.hosted-agent-closure .machine-code{color:var(--incomplete-2)}
+body.hosted-agent-closure .lineage-graph{background:#f9faf7;border-color:var(--line-2)}body.hosted-agent-closure .node-detail{border-color:var(--line-2);background:var(--surface-strong)}
+body.hosted-agent-closure .timeline-panel{margin-top:16px}body.hosted-agent-closure .timeline{gap:9px}body.hosted-agent-closure .timeline-button{border-color:var(--line-2);border-radius:4px;background:var(--surface)}body.hosted-agent-closure .timeline-button.selected{border-color:var(--ink);background:var(--surface-strong)}body.hosted-agent-closure .timeline-button.qualified{box-shadow:inset 3px 0 0 var(--closed-2)}
+body.hosted-agent-closure .secondary-grid{gap:12px;margin-top:16px}body.hosted-agent-closure .details-panel{background:rgba(255,255,255,.32)}body.hosted-agent-closure .details-panel summary{font-family:var(--display);font-size:1rem;font-weight:500}body.hosted-agent-closure .evidence-panel{margin-top:8px}body.hosted-agent-closure .text-button,body.hosted-agent-closure .copy-button{color:var(--accent-2)}
+body.hosted-agent-closure .error-surface{margin:72px 0;padding:30px;border:1px solid #d5a7a1;border-radius:5px;background:var(--incomplete-soft-2)}body.hosted-agent-closure .error-surface h2{font-family:var(--display);font-weight:500}
+.instrument-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:start;padding:25px 0 36px;border-top:1px solid var(--line-2);color:var(--muted-2);font-size:.72rem}.instrument-footer p{margin:0}.instrument-footer a{color:var(--ink);font-weight:650;text-decoration:none}.instrument-footer .footer-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px 18px}
+@media(max-width:1080px){.instrument-hero{grid-template-columns:1fr;gap:48px}.verdict-map{max-width:760px}.closure-contract{grid-template-columns:repeat(2,1fr)}.closure-contract article:nth-child(2){border-right:0}.closure-contract article:nth-child(n+3){border-top:1px solid var(--line-2)}.closure-contract article:nth-child(3){padding-left:0}.contrast-grid{grid-template-columns:repeat(2,1fr)}body.hosted-agent-closure .case-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.hosted-agent-closure .workspace-grid{grid-template-columns:1fr}.institutional-right{gap:18px}.privacy-note{display:none}}
+@media(max-width:760px){body.hosted-agent-closure main,body.hosted-agent-closure footer,.institutional-inner{width:min(calc(100% - 36px),1280px)}.institutional-inner{min-height:66px;align-items:flex-start;padding:17px 0;flex-direction:column;gap:12px}.institutional-nav{gap:15px;flex-wrap:wrap}.instrument-hero h1{font-size:clamp(3rem,16vw,4.7rem)}.closure-contract,.contrast-grid,body.hosted-agent-closure .case-grid{grid-template-columns:1fr}.closure-contract article,.closure-contract article:first-child,.closure-contract article:nth-child(3),.closure-contract article:last-child{padding:20px 0;border-right:0;border-top:1px solid var(--line-2)}.closure-contract article:first-child{border-top:0}.contrast-heading{grid-template-columns:1fr;gap:18px}.local-boundary{grid-template-columns:1fr}.local-actions{justify-content:flex-start}.local-actions .capability-note{text-align:left}.verdict-map-row{grid-template-columns:100px 1fr}body.hosted-agent-closure .verdict-strip{grid-template-columns:1fr;gap:24px;padding:23px}body.hosted-agent-closure .section-heading,body.hosted-agent-closure .inspector-heading{align-items:flex-start;flex-direction:column}.instrument-footer{grid-template-columns:1fr}.instrument-footer .footer-links{justify-content:flex-start}}
+</style>
+<script type="module" src="/tools/agent-closure/app.js"></script>
+</head>
+<body class="hosted-agent-closure">
+<header class="institutional-header">
+  <div class="institutional-inner">
+    <a class="institutional-brand" href="/" aria-label="RISU Institute home"><span class="risu">RISU</span><span class="institute">Institute</span></a>
+    <div class="institutional-right">
+      <nav class="institutional-nav" aria-label="Primary">
+        <a href="/work/">Research</a>
+        <a href="/research/">Publications</a>
+        <a href="/tools/" aria-current="page">Tools</a>
+        <a href="/about/">About</a>
+      </nav>
+      <p class="privacy-note" id="privacy-note">Static mode · Canonical evidence only</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="intro" id="intro" aria-labelledby="intro-title">
+    <div class="instrument-hero">
+      <div>
+        <p class="eyebrow">BOUNDED AGENT CLOSURE · FROZEN ENGINE · 8 BOUNDARY CASES</p>
+        <h1 id="intro-title">Agent Closure Inspector</h1>
+        <p class="hero-lede">Stopping an autonomous agent from creating new work does not tell you whether the consequences it already created are finished.</p>
+        <p class="hero-support">This instrument follows the consequences still attributable to a retiring agent, applies the terminal condition each consequence actually requires, and shows whether the available evidence supports bounded closure, exposes a known blocker, or leaves the answer unresolved.</p>
+        <div class="hero-actions">
+          <a class="hero-action primary-action" href="/tools/agent-closure-inspector/#canonical-cases">Inspect the published cases</a>
+          <a class="hero-action" href="/work/bounded-agent-closure/">Read the research overview</a>
+          <a class="hero-action" href="https://doi.org/10.5281/zenodo.22005419">Software record</a>
+        </div>
+      </div>
+      <aside class="verdict-map" aria-label="Closure verdicts">
+        <div class="verdict-map-head">What the verdict means</div>
+        <div class="verdict-map-row closed"><strong>CLOSED</strong><p>Every in-scope attributable consequence satisfies its declared terminal disposition with sufficient coverage, freshness, stability, and final confirmation.</p></div>
+        <div class="verdict-map-row incomplete"><strong>INCOMPLETE</strong><p>A known consequence or unstable final state still prevents closure. The blocker is identified rather than hidden behind a generic failure.</p></div>
+        <div class="verdict-map-row unknown"><strong>UNKNOWN</strong><p>The evidence surface is not strong enough to establish closure. Missing visibility is kept separate from a known live blocker.</p></div>
+      </aside>
+    </div>
+
+    <section class="closure-contract" aria-label="Closure verification flow">
+      <article><span>01</span><h2>Block new authority</h2><p>Retirement begins after the root can no longer initiate new business. That is a starting premise, not the closure verdict.</p></article>
+      <article><span>02</span><h2>Follow consequences</h2><p>Traverse evidence-backed <code>DERIVED_FROM</code> lineage so a descendant job or commitment does not disappear behind an already-quiet parent.</p></article>
+      <article><span>03</span><h2>Apply the right ending</h2><p>Extinguish, settle, transfer, and retain are different terminal dispositions. Closure does not mean deleting everything.</p></article>
+      <article><span>04</span><h2>Confirm stability</h2><p>Coverage, attribution, fresh observation, source stability, and final-pair semantic convergence are required before <code>CLOSED</code>.</p></article>
+    </section>
+
+    <section class="contrast-section" aria-labelledby="contrast-title">
+      <div class="contrast-heading">
+        <div><p class="eyebrow">Four useful contrasts</p><h2 id="contrast-title">The cases are designed to break simple closure rules.</h2></div>
+        <p>The corpus is most useful when read as a set of opposing examples. A success response can still fail. A surviving object can still be terminal. A clean graph can still be unknown. One clean scan can still be too early.</p>
+      </div>
+      <div class="contrast-grid">
+        <article class="contrast-card false"><span class="case-ref">C7 · False Success</span><h3>Success is not the postcondition.</h3><p>A cancel operation reports success while the schedule remains present, active, and linked to the retiring root.</p><span class="case-result">INCOMPLETE</span></article>
+        <article class="contrast-card transfer"><span class="case-ref">C5 · Successor Transfer</span><h3>Survival is not necessarily failure.</h3><p>An active object can be closed relative to the old root when responsibility has moved to an accepted successor.</p><span class="case-result">CLOSED</span></article>
+        <article class="contrast-card coverage"><span class="case-ref">C6 · Missing Coverage</span><h3>Silence is not evidence of closure.</h3><p>No known blocker appears, but a required source cannot establish complete coverage.</p><span class="case-result">UNKNOWN</span></article>
+        <article class="contrast-card convergence"><span class="case-ref">C8 · Fixed-Point Wind-Down</span><h3>Clean once is not stable.</h3><p>A later retry enters the consequence cone, so closure waits until the terminal semantic state is confirmed again.</p><span class="case-result">CLOSED AFTER CONFIRMATION</span></article>
+      </div>
+    </section>
+
+    <section class="local-boundary" aria-label="Local evaluation boundary">
+      <div><p class="eyebrow">Private evidence</p><h2>Canonical cases are public. Arbitrary evidence stays local.</h2><p>The hosted site reads only the frozen generated corpus. The archived local Inspector can evaluate a conforming JSON evidence bundle in memory on literal <code>127.0.0.1</code> through the same frozen verifier path.</p></div>
+      <div class="local-actions">
+        <button class="button primary" id="open-file" type="button" disabled>Open local evidence</button>
+        <input id="file-input" type="file" accept="application/json,.json" hidden>
+        <p class="capability-note" id="capability-note" aria-live="polite"></p>
+      </div>
+    </section>
+  </section>
+
+  <section class="cases" id="canonical-cases" aria-labelledby="cases-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">Frozen corpus · phase1-freeze-v0.3</p><h2 id="cases-title">Eight boundary cases</h2></div>
+      <p>Each card is a generated evaluation from the frozen verifier. Open a case to inspect its decisive reasons, attributable lineage, source coverage, scan history, and certificate when one exists.</p>
+    </div>
+    <div class="case-grid" id="case-grid" aria-live="polite"></div>
+  </section>
+
+  <section class="inspector hidden" id="inspector" aria-labelledby="case-title">
+    <div class="inspector-heading">
+      <div><p class="eyebrow" id="case-kicker">Evidence bundle</p><h2 id="case-title">Evaluation</h2><p id="case-description"></p></div>
+      <button class="text-button" id="choose-another" type="button">Back to the case library</button>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Inspector views">
+      <button id="evaluation-tab" class="tab active" role="tab" aria-selected="true" aria-controls="evaluation-view" type="button">Evaluation</button>
+      <button id="evidence-tab" class="tab" role="tab" aria-selected="false" aria-controls="evidence-view" type="button">Evidence received</button>
+    </div>
+
+    <div id="evaluation-view" role="tabpanel" aria-labelledby="evaluation-tab">
+      <section class="verdict-strip" id="verdict-strip" aria-live="polite"></section>
+
+      <section class="workspace-grid">
+        <article class="panel why-panel" aria-labelledby="why-title">
+          <div class="panel-heading"><div><p class="eyebrow">Decision basis</p><h3 id="why-title">Why this verdict</h3></div></div>
+          <div id="why-content"></div>
+        </article>
+        <article class="panel lineage-panel" aria-labelledby="lineage-title">
+          <div class="panel-heading"><div><p class="eyebrow">Attributable consequence cone</p><h3 id="lineage-title">Evidence lineage</h3></div><p id="history-label" class="history-label"></p></div>
+          <div id="lineage-graph" class="lineage-graph"></div>
+          <div id="node-detail" class="node-detail" aria-live="polite"></div>
+        </article>
+      </section>
+
+      <section class="panel timeline-panel" aria-labelledby="timeline-title">
+        <div class="panel-heading"><div><p class="eyebrow">Freshness and convergence</p><h3 id="timeline-title">Scan history</h3></div><p>Explore earlier scans without recomputing the frozen final verdict.</p></div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+
+      <section class="secondary-grid">
+        <details class="panel details-panel" open><summary>Sources and coverage</summary><div id="sources-content"></div></details>
+        <details class="panel details-panel"><summary>Scope and trust boundary</summary><p>Closure is established only within <code>RISU_AGENT_CLOSURE_V0</code> and the declared source contracts.</p><p>Source completeness and attribution claims are supplied by the evidence producer and are not independently authenticated by the verifier.</p></details>
+        <details class="panel details-panel" id="certificate-panel"><summary>Closure certificate</summary><div id="certificate-content"></div></details>
+      </section>
+    </div>
+
+    <div id="evidence-view" class="hidden" role="tabpanel" aria-labelledby="evidence-tab">
+      <section class="panel evidence-panel" aria-labelledby="evidence-title">
+        <div class="panel-heading"><div><p class="eyebrow">Read-only input</p><h3 id="evidence-title">Evidence received by the engine</h3></div></div>
+        <div id="evidence-content"></div>
+      </section>
+    </div>
+  </section>
+
+  <section class="error-surface hidden" id="error-surface" aria-live="assertive">
+    <p class="eyebrow">Evaluation stopped</p><h2>Evidence could not be evaluated</h2><p>No closure verdict was issued.</p><div id="error-list"></div>
+  </section>
+</main>
+
+<footer class="instrument-footer">
+  <p>Hosted presentation over frozen Inspector v0.1 and Phase-1 engine v0.3. The frozen publication bytes remain preserved separately.</p>
+  <div class="footer-links"><a href="/work/bounded-agent-closure/">Research overview</a><a href="/research/technical-notes/2026-01/">Technical Note</a><a href="https://github.com/risu-research/bounded-agent-closure">Canonical repository</a><a href="/tools/agent-closure/provenance.json">Frozen provenance</a></div>
+</footer>
+</body>
+</html>

@@ -25,14 +25,14 @@ test("Consequence Closure has a website-first conceptual overview", async () => 
 
   for (const expected of [
     `<link rel="canonical" href="${overviewUrl}">`,
-    "The action cut",
+    "The question at the moment of action",
     "Closure means determinacy, not approval",
-    "When the state is OPEN, keep the counterexample",
-    "From counterexamples to semantic obligations",
-    "What matters is not the same as how to establish it",
+    "If two possible worlds disagree, keep both",
+    "Turn the disagreement into semantic obligations",
+    "Knowing what matters is different from knowing how to establish it",
     "A correct final decision can still hide a broken abstraction",
     "The Cedar official-runtime gate",
-    "From model semantics to real effect cuts",
+    "Then test the semantics at real effect cuts",
     "The assurance object stays challengeable",
     "Result",
     "Where the result stops",
@@ -74,6 +74,7 @@ test("Consequence Closure has a website-first conceptual overview", async () => 
     repositoryUrl,
   ]) assert.ok(page.includes(expected), expected);
 
+  assert.match(page, /still-possible realization/iu);
   assert.match(page, /CLOSED\(c\)<\/span> does not mean safe, allowed, or desirable/iu);
   assert.match(page, /Inclusion-minimal does not mean unique or smallest by cardinality/iu);
   assert.match(page, /determinacy and hitting-set ingredients are established formal tools/iu);

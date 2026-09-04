@@ -7,11 +7,11 @@
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
 <title>Consequence Closure | RISU Institute</title>
-<meta name="description" content="Consequence Closure is a carrier-neutral assurance framework for determining what can still change the consequence of a machine action at a declared action cut, what semantic distinctions are sufficient to determine it, and what declared steps can establish closure.">
+<meta name="description" content="Consequence Closure is a carrier-neutral assurance framework for determining whether the consequence of a machine action is fixed at a declared action cut, what still makes it vary, and what can establish determinacy before action.">
 <link rel="canonical" href="https://risuinstitute.org/work/consequence-closure/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Consequence Closure | RISU Institute">
-<meta property="og:description" content="A bounded assurance framework for consequence determinacy, materiality witnesses, semantic obligations, realizable closure routes, and source-preservation claims at the machine action boundary.">
+<meta property="og:description" content="An assurance framework for consequence determinacy, materiality witnesses, semantic obligations, realizable closure routes, and source-preservation claims at the machine action boundary.">
 <meta property="og:url" content="https://risuinstitute.org/work/consequence-closure/">
 </head>
 <body>
@@ -35,16 +35,16 @@
     <div class="reading">
       <p class="eyebrow">Consequence assurance · action-cut verifier · frozen public baseline v1.0.0</p>
       <h1>Consequence Closure</h1>
-      <p class="page-lede">A machine can have correct authority records, fresh observations, and configured controls while the consequence of the action it is about to take is still not fixed.</p>
+      <p class="page-lede">A rule can be changed, a permission revoked, and a control can report success while the next consequential action still has more than one possible outcome.</p>
     </div>
   </section>
 
   <article class="reading prose">
     <div class="callout">
-      <p><strong>Core question:</strong> At a declared action cut, do all admissible realizations consistent with the current evidence produce the same specified consequence? If not, what distinction still matters, and what can the system establish to eliminate that dependence before acting?</p>
+      <p><strong>Core question:</strong> At the moment of action, does every still-possible realization consistent with the current evidence produce the same specified consequence? If two compatible worlds still disagree, Consequence Closure keeps that disagreement as evidence and asks what must be learned or changed to make the consequence determinate.</p>
     </div>
 
-    <h2>The action cut</h2>
+    <h2>The question at the moment of action</h2>
     <p>Consequence Closure starts where several familiar assurances can stop too early. An authorization decision can be correct. A control change can be recorded. A status field can be fresh. None of those facts alone establishes what an already available action path will actually do at the moment of effect.</p>
     <p>The Linux commissioning makes the gap concrete. A parent changed a memory-backed file to mode <span class="identifier">0444</span> and verified that mode before a child wrote through a writable descriptor it had already inherited. The administrative state was correct, yet the write still succeeded in all 200 trials. With <span class="identifier">F_SEAL_WRITE</span> established before the same effect cut, the write was blocked with <span class="identifier">EPERM</span> in all 200 trials.</p>
     <p>The assurance target is therefore not “was the control updated?” It is “is the specified consequence already determined by the evidence and operative state at this action boundary?”</p>
@@ -59,23 +59,24 @@
     <p><span class="identifier">CLOSED(c)</span> does not mean safe, allowed, or desirable. The fixed consequence can be denial, failure, an adverse result, or any other declared outcome. Closure says that the consequence is determined. A separate policy decides what to do with that consequence.</p>
     <p>The action cut is part of the claim. If a consequence-relevant transition can still occur between the evidence cut and the effect but is missing from the Boundary, a clean snapshot cannot be promoted into an action-level guarantee.</p>
 
-    <h2>When the state is OPEN, keep the counterexample</h2>
+    <h2>If two possible worlds disagree, keep both</h2>
     <p>An <span class="identifier">OPEN</span> result is not returned as a bare failure flag. The verifier preserves two compatible realizations that agree on the selected information but disagree on the consequence.</p>
     <div class="code-block">same current evidence
        ↙          ↘
 realization A   realization B
  consequence x  consequence y
        x ≠ y</div>
-    <p>That pair is a materiality witness. It shows exactly why the current evidence is not enough. For example, the bundled authority trace records that a deployment grant was revoked and that the decision engine observed the revocation, but an earlier bearer capability has not been tested after revocation. The unresolved operativity of that legacy path is what keeps the consequence open.</p>
+    <p>That pair is a materiality witness. It is not merely an explanation attached after the verdict. It is the concrete reason the current evidence cannot yet determine the consequence.</p>
+    <p>For example, the bundled authority trace records that a deployment grant was revoked and that the decision engine observed the revocation, but an earlier bearer capability has not been tested after revocation. The unresolved operativity of that legacy path is what keeps the consequence open.</p>
 
-    <h2>From counterexamples to semantic obligations</h2>
-    <p>Once a consequence-divergent pair is known, the next question is not “which field looks relevant?” It is which declared semantic distinctions can actually separate every pair that would otherwise remain indistinguishable while producing different consequences.</p>
+    <h2>Turn the disagreement into semantic obligations</h2>
+    <p>Once a consequence-divergent pair is known, the next question is not “which field looks relevant?” It is which declared semantic distinctions can separate every pair that would otherwise remain indistinguishable while producing different consequences.</p>
     <p>Each divergent pair contributes the set of candidate Propositions that distinguish it. Those sets form a materiality hypergraph. A sufficient obligation set must intersect every such edge, and the inclusion-minimal sufficient obligation sets are exactly the inclusion-minimal transversals of that hypergraph.</p>
     <p><strong>Inclusion-minimal does not mean unique or smallest by cardinality.</strong> Several incomparable minimal obligation sets can exist. Inspector v0.5.0 exposes the exact family it computes within the declared portable budget and chooses one member deterministically only for the compact view.</p>
     <p>The reference CEGIS loop discovers only the counterexamples it needs. Within a fixed finite candidate surface and a sound-and-complete fixed-set verifier, it terminates with an inclusion-minimal sufficient obligation set when one exists. If two consequence-divergent realizations agree on every declared Proposition, it returns <span class="identifier">UNRESOLVABLE UNDER DECLARED EVIDENCE SURFACE</span>. That result identifies a vocabulary boundary rather than disguising it as search failure.</p>
     <p>The determinacy and hitting-set ingredients are established formal tools. The project-specific contribution is how they are bound to a declared machine-action consequence, replayable witnesses, realizable Establishments, source-preservation levels, and real-system commissioning without collapsing those claims into one another.</p>
 
-    <h2>What matters is not the same as how to establish it</h2>
+    <h2>Knowing what matters is different from knowing how to establish it</h2>
     <p>A semantic obligation answers an information question: which distinctions would be sufficient to determine the consequence? It is deliberately separate from the operations available to obtain that information or change the operative state.</p>
     <p>Consequence Closure calls those realizable operations <strong>Establishments</strong>. The frozen Core distinguishes epistemic observations, state-making acts, operative guards, operative transactions, and action suppression. A <strong>Route</strong> is a finite strategy over declared Establishments, including branches that depend on observation outcomes.</p>
     <p>This means the same unresolved distinction can sometimes be closed in two fundamentally different ways. A probe may observe whether a legacy capability is still effective. An operative guard may instead make that capability unable to produce the consequence. One resolves uncertainty; the other changes the reachable effect. The semantic obligation is the same question, but the mechanism is not.</p>
@@ -113,10 +114,10 @@ CLOSED(c)</div>
       <dt>Exported witness reifications</dt><dd>427 checked · 0 failed</dd>
       <dt>Post-outcome semantic repair</dt><dd>0</dd>
     </dl>
-    <p>The frozen classification is <span class="identifier">EXACT_P1_CONFIRMED_ON_FROZEN_BOUNDARY</span>. This is stronger than matching Cedar's final decisions on the 64 complete worlds: on the declared reachable surface, the source and Core also agreed on the counterexample structure that determines semantic sufficiency and inclusion-minimal obligations.</p>
+    <p>The frozen classification is <span class="identifier">EXACT_P1_CONFIRMED_ON_FROZEN_BOUNDARY</span>. This is stronger than matching Cedar's final decisions on the 64 complete worlds. On the declared reachable surface, source and Core also agreed on the counterexample structure that determines semantic sufficiency and inclusion-minimal obligations.</p>
     <p>The result is intentionally narrower than “equivalent to Cedar.” It covers one preregistered bounded front end. P2 was not tested, and no Route-transfer claim follows from this gate.</p>
 
-    <h2>From model semantics to real effect cuts</h2>
+    <h2>Then test the semantics at real effect cuts</h2>
     <p>Source preservation and mechanism behavior are different assurance links. The commissioning sequence tests whether selected declared effects and evidence gates survive contact with concrete systems, while keeping those results separate from P0/P1/P2 claims.</p>
     <dl class="spec-grid">
       <dt>Linux operative effect</dt><dd><span class="identifier">fchmod 0444</span> was verified while the inherited write still succeeded 200 / 200. Expert and compiler-selected <span class="identifier">F_SEAL_WRITE</span> blocked 200 / 200.</dd>
@@ -125,18 +126,18 @@ CLOSED(c)</div>
       <dt>OAuth paired-control gate</dt><dd>Across 1,024 well-formed declared gate states, the frozen checker emitted no <span class="identifier">SAFE_AT_CUT</span> where the declared oracle was non-safe. Missing positive gates remained OPEN, while direct post-revocation acceptance was UNSAFE.</dd>
       <dt>OAuthLib to Keycloak transfer</dt><dd>The same frozen checker separated the live SAFE condition from the controlled authority-resource split state on OAuthLib 3.3.1 and pinned Keycloak 26.7.2 with semantic repair 0 and provider-specific semantic checker branches 0.</dd>
     </dl>
-    <p>These tests are complementary rather than a ladder toward one undifferentiated “system pass.” Linux attacks the confusion between administrative and operative state. SQLite and Linux pressure generic Route selection across different mechanism families. The filesystem test removes hindsight by freezing selection before the outcome. OAuth controls alternative explanations for a blocked request. The implementation-transfer runs test whether the frozen checker needs provider-specific semantic repair.</p>
+    <p>These tests answer different questions rather than adding up to one vague “system pass.” Linux separates administrative state from operative effect. SQLite and Linux pressure generic Route selection across different mechanism families. The filesystem test removes hindsight by freezing selection before the outcome. OAuth controls alternative explanations for a blocked request. The implementation-transfer runs test whether the frozen checker needs provider-specific semantic repair.</p>
 
     <h2>The assurance object stays challengeable</h2>
-    <p>Consequence Closure Inspector v0.5.0 is designed around the same claim discipline. An OPEN state carries its materiality witness. A selected inclusion-minimal obligation set carries a sufficiency certificate and a concrete removal witness for every selected Proposition, so minimality is replayable rather than asserted by a label.</p>
+    <p>Consequence Closure Inspector v0.5.0 follows the same claim discipline. An OPEN state carries its materiality witness. A selected inclusion-minimal obligation set carries a sufficiency certificate and a concrete removal witness for every selected Proposition, so minimality is replayable rather than asserted by a label.</p>
     <p>The Inspector also keeps exact Core analysis, source-preservation status, cut adequacy, Boundary qualification, declared Routes, and source lineage visibly separate. A model-relative Route is not promoted into a source-system Route without the required preservation evidence.</p>
     <p>Exactness has a visible computational boundary. The portable implementation accepts at most 20 candidate Propositions and 2,000 worlds, with explicit search budgets for obligation and Route analysis. A budget overrun stops before a semantic result is emitted rather than substituting an approximate closure claim. The release gate matched exact inclusion-minimal obligation families against a brute-force oracle on 300 randomized models.</p>
-    <p>The v2 inspection export binds the declaration, analysis state, compatible realizations, obligation family and certificate, materiality witness, Route tree, qualifications, and deterministic record digest. The point is not to make a formal result look polished. It is to make the result easier to challenge without changing what it claims.</p>
+    <p>The v2 inspection export binds the declaration, analysis state, compatible realizations, obligation family and certificate, materiality witness, Route tree, qualifications, and deterministic record digest. The goal is not to make a formal result look polished. It is to make the result easier to challenge without changing what it claims.</p>
     <p><a href="/tools/consequence-closure/">Open the Consequence Closure Inspector</a></p>
 
     <h2>Result</h2>
     <div class="callout">
-      <p><strong>Consequence Closure turns residual uncertainty at a machine action boundary into an inspectable assurance problem.</strong> It can show that a consequence is already fixed, produce a concrete pair showing why it is not, derive the inclusion-minimal semantic distinctions sufficient to determine it, connect those distinctions to declared realizable steps, and keep the source and operative qualifications attached to every exported claim.</p>
+      <p><strong>Consequence Closure turns uncertainty at a machine action boundary into something a system can inspect, challenge, and resolve.</strong> It can show that a consequence is already fixed, preserve a concrete pair showing why it is not, derive the inclusion-minimal semantic distinctions sufficient to determine it, connect those distinctions to declared realizable steps, and keep source and operative qualifications attached to the result.</p>
     </div>
     <p>The project does not depend on one policy language, one control plane, or one carrier to define that target. The frozen record demonstrates the Core on a declared formal surface, exact P1 against one official Cedar boundary, prospective and cross-system Route selection under declared mechanism semantics, and frozen evidence checking across two commissioned OAuth implementations.</p>
 

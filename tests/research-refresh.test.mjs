@@ -38,7 +38,6 @@ test("2026-02 publication page exposes the published scholarly record", async ()
   assert.doesNotMatch(page, /peer[- ]reviewed/iu);
 });
 
-
 test("Reliance Before Closure deeper surfaces link to the substantive canonical repository", async () => {
   for (const page of [
     "work/reliance-before-closure/index.html",
@@ -183,10 +182,11 @@ test("tools index preserves the declared instrument boundaries", async () => {
   for (const title of ["Consequence Closure Inspector", "Reliance Inspector", "Agent Closure Inspector", "Negative Result Warrant Inspector"]) {
     assert.ok(page.includes(title), title);
   }
-  assert.ok(page.toLowerCase().includes("local-first"));
-  assert.ok(page.includes("limited to canonical evidence"));
-  assert.ok(page.includes("Receiver validation is performed locally"));
-  assert.ok(page.includes(repositoryUrl));
+  assert.ok(page.includes("Local only · no file upload"));
+  assert.ok(page.includes("The Workbench consumes RISU artifacts; it does not infer a new assurance claim from arbitrary JSON."));
+  assert.ok(page.includes("Browser verified"));
+  assert.ok(page.includes("Producer recorded"));
+  assert.ok(page.includes('href="/tools/reliance-inspector/">Open Inspector'));
 });
 
 test("sitemap includes the current publication, instrument, and work surfaces", async () => {

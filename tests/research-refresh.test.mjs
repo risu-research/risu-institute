@@ -14,6 +14,8 @@ const noteTitle =
 const noteDoi = "10.5281/zenodo.22038494";
 const softwareDoi = "10.5281/zenodo.22037607";
 const repositoryUrl = "https://github.com/risu-research/reliance-before-closure";
+const nativePlusRecordUrl =
+  "https://github.com/risu-research/risu-institute/tree/main/records/native-plus-v0.2";
 const pdfPath =
   "research/technical-notes/2026-02/RISU_Technical_Note_2026-02_Reliance_Before_Closure.pdf";
 
@@ -58,6 +60,7 @@ test("the research program is ordered by current threads and latest work", async
     "Consequence Closure",
     "Reliance Before Closure",
     "Bounded Agent Closure",
+    "Native++ v0.2",
     "ClosureProbe",
     "Negative Result Warrant",
     "OpenAPI→MCP Problem-Semantics Preservation Profile",
@@ -71,6 +74,14 @@ test("the research program is ordered by current threads and latest work", async
     "Evidence qualification and transport.",
     "Semantic identity and preservation.",
   ]) assert.ok(work.includes(thread));
+});
+
+test("Native++ is exposed as a frozen experimental record, not a numbered publication", async () => {
+  const work = await readPublic("work/index.html");
+  assert.equal(work.split(nativePlusRecordUrl).length - 1, 1);
+  assert.ok(work.includes("Evidence qualification · frozen experimental record"));
+  assert.ok(work.includes("not evidence of cross-provider semantic-labor amortization"));
+  assert.ok(!work.includes("RISU Technical Note 2026-05"));
 });
 
 test("institutional navigation distinguishes research, publications, tools, and about", async () => {

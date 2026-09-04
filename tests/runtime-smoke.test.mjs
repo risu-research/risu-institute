@@ -83,6 +83,7 @@ test("exact public surfaces return the expected status and Content-Type", async 
     ["/tools/consequence-closure/inspector/engine.js", "text/javascript"],
     ["/tools/consequence-closure/inspector/samples.js", "text/javascript"],
     ["/tools/consequence-closure/inspector/styles.css", "text/css"],
+    ["/tools/agent-closure-inspector/", "text/html"],
     ["/tools/agent-closure/", "text/html"],
     ["/tools/agent-closure/app.js", "text/javascript"],
     ["/tools/agent-closure/style.css", "text/css"],
@@ -189,6 +190,35 @@ test("the Agent Closure Inspector route has the canonical-only security boundary
     "manifest-src 'none'",
   ]) assert.ok(policy.includes(directive), directive);
 
+  assert.match(response.headers.get("referrer-policy") ?? "", /(?:^|,\s*)no-referrer$/u);
+  assert.deepEqual(
+    new Set((response.headers.get("permissions-policy") ?? "").split(", ")),
+    new Set(["camera=()", "microphone=()", "geolocation=()", "payment=()", "usb=()"]),
+  );
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+});
+
+test("the current Agent Closure Inspector route applies its hosted security boundary", async () => {
+  const response = await fetch(`${origin}/tools/agent-closure-inspector/`);
+  const policy = response.headers.get("content-security-policy") ?? "";
+
+  for (const directive of [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self'",
+    "font-src 'none'",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "manifest-src 'none'",
+  ]) assert.ok(policy.includes(directive), directive);
+
+  assert.doesNotMatch(policy, /script-src[^;]*'unsafe-inline'/u);
   assert.match(response.headers.get("referrer-policy") ?? "", /(?:^|,\s*)no-referrer$/u);
   assert.deepEqual(
     new Set((response.headers.get("permissions-policy") ?? "").split(", ")),

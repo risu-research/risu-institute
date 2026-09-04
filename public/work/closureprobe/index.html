@@ -88,7 +88,7 @@ agent or downstream claim</div>
     <h2>The receiver does not trust the trace at face value</h2>
     <p>One of the main rc3 changes was to remove a self-certification gap at the root. A trace cannot begin with a field that merely says <span class="identifier">profile_validated</span>. It must carry <span class="identifier">rootEvidence</span>, and the receiver reconstructs the first observation from the supplied material using the exact installed profile and version.</p>
     <p>The receiver recomputes canonical request and response digests, checks the declared source grounding, verifies proposition scope, and requires the reconstructed observation to match the first trace stage. If that chain cannot be rebuilt, the root is unanchored.</p>
-    <p>This distinction matters because provenance metadata is not evidence merely because a sender labels it as trusted. Legitimate new evidence can strengthen a later stage, but the receiver must reconstruct that evidence too.</p>
+    <p>A sender's trust label cannot substitute for that reconstruction. Legitimate new evidence can strengthen a later stage, but the receiver must reconstruct that evidence too.</p>
 
     <h2>Four bindings keep the claim from drifting</h2>
     <p>ClosureProbe independently binds four things that are easy to blur together:</p>
@@ -114,7 +114,7 @@ agent or downstream claim</div>
       <li><span class="identifier">unverified_evidence_introduction</span></li>
       <li><span class="identifier">unlicensed_negative</span></li>
     </ul>
-    <p>The point is not the vocabulary itself. The useful output is the boundary: where did a chain that was previously anchored become weaker, different, or unjustifiably stronger?</p>
+    <p>The useful output is the boundary: where did a chain that was previously anchored become weaker, different, or unjustifiably stronger?</p>
 
     <h2>Producer-specific semantics</h2>
     <p>Completeness means different things for different systems, so rc3 does not pretend that one generic “empty” rule is enough. The frozen release ships five producer-specific profiles plus one controlled generic contract.</p>
@@ -139,6 +139,7 @@ Generic enumeration        explicit controlled traversal contract</div>
       <dt>Cross-boundary traces</dt><dd>13</dd>
       <dt>Implementation and integration tests</dt><dd>33</dd>
       <dt>Controlled protocol check</dt><dd>Official MCP 2.0.0 client/server packages over stdio</dd>
+      <dt>Normative judge</dt><dd>Deterministic · no LLM judge</dd>
     </dl>
     <p>Adversarial cases include forged root anchoring, source-scope drift, profile substitution, skipped cross-cluster search, malformed Microsoft Graph traversal links, denied or failed execution, continued results, segment-only evidence, and favorable guard mutation. Positive controls include exact complete zeros, validated multi-page aggregates, ordinary weakening, and legitimate receiver-reconstructed evidence upgrades.</p>
     <p>The 50 of 50 result is a conformance result for the frozen artifact. It is not an error rate for external clients or a claim that arbitrary agent pipelines preserve negative evidence.</p>
@@ -151,7 +152,7 @@ Generic enumeration        explicit controlled traversal contract</div>
     <div class="callout">
       <p><strong>ClosureProbe turns a negative claim from a terminal string into an auditable evidence path.</strong> Within its declared profiles and supplied observable traces, it can determine whether the exact bounded negative remained anchored and identify the first observed boundary where that support was lost, substituted, mutated, or exceeded.</p>
     </div>
-    <p>The stronger contribution is not the familiar statement that absence requires adequate search. It is the executable composition: producer-specific closure semantics, receiver reconstruction, independent bindings, anchor propagation, and first-boundary localization in one falsifiable system.</p>
+    <p>The contribution here is not the familiar statement that absence requires adequate search. It is the executable composition: producer-specific closure semantics, receiver reconstruction, independent bindings, anchor propagation, and first-boundary localization in one falsifiable system.</p>
 
     <h2>Where the system stops</h2>
     <p>ClosureProbe analyzes supplied observable traces. It does not automatically intercept hidden transforms, prove that the producer told the truth, authenticate the declared authority context, establish freshness beyond the supplied observation, infer semantic equivalence between different queries, or prove world-level nonexistence. It does not certify legal compliance, security, eligibility, medical correctness, or the safety of a downstream action.</p>

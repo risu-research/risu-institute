@@ -22,7 +22,7 @@ test("Projection Assurance has a website-first conceptual overview", async () =>
   for (const expected of [
     `<link rel="canonical" href="${overviewUrl}">`,
     "Surface fidelity is not consequence fidelity",
-    "Five questions, kept separate",
+    "What has to survive",
     "Correspondence",
     "Discrimination",
     "Operative Placement",
@@ -40,6 +40,7 @@ test("Projection Assurance has a website-first conceptual overview", async () =>
     "MECHANISM_MISALIGNMENT",
     ".risu.json",
     "source_semantic_digest",
+    "Scope of the result",
     "10.5281/zenodo.22149639",
     "10.5281/zenodo.22149517",
     "10.5281/zenodo.22149593",
@@ -48,7 +49,7 @@ test("Projection Assurance has a website-first conceptual overview", async () =>
     "https://github.com/risu-research/risu-verify",
   ]) assert.ok(page.includes(expected), expected);
 
-  assert.match(page, /visible information can become decorative/iu);
+  assert.match(page, /Visible information can become decorative/iu);
   assert.match(page, /source control does not need to survive as the same knob/iu);
   assert.match(page, /same byte-identical source consequence contract/iu);
   assert.match(page, /does not establish general agent safety/iu);

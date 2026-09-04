@@ -5,69 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f3f0e8">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css">
-<title>Consequence Closure Inspector — RISU Institute</title>
-<meta name="description" content="Consequence Closure Inspector v0.5.0 is a local first research instrument for inspecting consequence status, materiality witnesses, semantic obligations, Routes, and assurance qualifications.">
+<link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
+<title>Consequence Closure Inspector | RISU Institute</title>
+<meta name="description" content="Consequence Closure Inspector is a browser-local research instrument for challenging consequence status, materiality witnesses, exact obligation families, closure Routes, and assurance boundaries.">
 <link rel="canonical" href="https://risuinstitute.org/tools/consequence-closure/">
+<style>
+.cc-hero{padding-bottom:54px}.cc-title-link{color:inherit;text-decoration:none}.cc-title-link:hover{text-decoration:none}.cc-title-link:focus-visible{outline:2px solid currentColor;outline-offset:7px;border-radius:3px}.cc-launch-row{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(270px,.65fr);gap:12px;max-width:880px;margin-top:30px}.cc-launch{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:92px;padding:21px 23px;border:1px solid var(--ink);border-radius:9px;text-decoration:none}.cc-launch strong,.cc-launch span{display:block}.cc-launch strong{font-size:1.03rem}.cc-launch span{margin-top:4px;font-size:.82rem;line-height:1.4}.cc-launch.primary{background:var(--ink);color:var(--white)}.cc-launch.primary:hover{background:#282924;color:var(--white)}.cc-launch.secondary{background:rgba(255,255,255,.38);border-color:var(--line);color:var(--ink)}.cc-launch.secondary:hover{border-color:var(--ink);color:var(--ink)}.cc-arrow{font-size:1.7rem;line-height:1;flex:none}.cc-ledger{display:grid;grid-template-columns:repeat(4,1fr);margin-top:34px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}.cc-ledger div{padding:17px 16px 18px;border-right:1px solid var(--line)}.cc-ledger div:last-child{border-right:0}.cc-ledger span{display:block;color:var(--muted);font-size:.67rem;letter-spacing:.1em;text-transform:uppercase}.cc-ledger strong{display:block;margin-top:6px;font-size:.86rem}.cc-capabilities{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:28px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}.cc-capabilities article{padding:24px 20px;border-right:1px solid var(--line)}.cc-capabilities article:last-child{border-right:0}.cc-capabilities span{font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}.cc-capabilities h3{margin:18px 0 7px;font-family:Georgia,"Times New Roman",serif;font-size:1.28rem;font-weight:500}.cc-capabilities p{margin:0;color:var(--muted);font-size:.85rem}.cc-start-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:25px}.cc-start{display:block;padding:20px;border:1px solid var(--line);text-decoration:none}.cc-start:hover{border-color:var(--ink);color:var(--ink)}.cc-start span{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.09em}.cc-start strong{display:block;margin:10px 0 6px;font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:1.2rem}.cc-start small{display:block;color:var(--muted);font-size:.78rem;line-height:1.45}.cc-record{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.72fr);gap:54px;align-items:start}.cc-record-list{margin:0;border-top:1px solid var(--ink)}.cc-record-list div{display:grid;grid-template-columns:145px minmax(0,1fr);gap:18px;padding:13px 0;border-bottom:1px solid var(--line)}.cc-record-list dt{font-size:.67rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}.cc-record-list dd{margin:0;font-size:.82rem;overflow-wrap:anywhere}.cc-note{padding:20px;border:1px solid var(--line);background:rgba(255,255,255,.35)}.cc-note strong{display:block;margin-bottom:8px}.cc-note p{margin:0;color:var(--muted);font-size:.86rem}.cc-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:17px}.cc-links a{font-size:.83rem;font-weight:680}@media(max-width:900px){.cc-launch-row,.cc-record{grid-template-columns:1fr}.cc-ledger,.cc-capabilities{grid-template-columns:repeat(2,1fr)}.cc-ledger div:nth-child(2),.cc-capabilities article:nth-child(2){border-right:0}.cc-start-grid{grid-template-columns:1fr}}@media(max-width:560px){.cc-ledger,.cc-capabilities{grid-template-columns:1fr}.cc-ledger div,.cc-capabilities article{border-right:0;border-bottom:1px solid var(--line)}.cc-ledger div:last-child,.cc-capabilities article:last-child{border-bottom:0}.cc-launch{min-height:82px;padding:18px}.cc-arrow{font-size:1.35rem}}
+</style>
 </head>
 <body>
 <header class="site-header"><div class="wrap header-inner">
   <a class="brand" href="/" aria-label="RISU Institute home"><span class="brand-risu">RISU</span><span class="brand-institute">Institute</span></a>
   <nav class="nav" aria-label="Primary">
-      <a href="/work/">Research</a>
-      <a href="/research/">Publications</a>
-      <a href="/tools/" aria-current="page">Tools</a>
-      <a href="/about/">About</a>
+    <a href="/work/">Research</a>
+    <a href="/research/">Publications</a>
+    <a href="/tools/" aria-current="page">Tools</a>
+    <a href="/about/">About</a>
   </nav>
 </div></header>
 <main>
-  <section class="page-hero"><div class="wrap">
-    <p class="eyebrow">Research instrument · Frozen v0.5.0 · 2026</p>
-    <h1>Consequence Closure Inspector</h1>
-    <p class="page-lede">Inspect what can still change the consequence of a declared machine action, why the distinction is material, and what qualifications govern the result.</p>
+  <section class="page-hero cc-hero"><div class="wrap">
+    <p class="eyebrow">Research instrument · browser local · frozen semantics, evolving interface</p>
+    <h1><a class="cc-title-link" href="/tools/consequence-closure/current/" aria-label="Open the current Consequence Closure Inspector">Consequence Closure Inspector</a></h1>
+    <p class="page-lede">See whether a machine action's specified consequence is already determined, preserve the exact counterexample when it is not, and challenge the semantic obligations, Route, and assurance boundary behind the result.</p>
+    <div class="cc-launch-row">
+      <a class="cc-launch primary" href="/tools/consequence-closure/current/"><span><strong>Open the current Inspector</strong><span>Challenge exact results, recompute evidence cuts, compare boundary transitions, and export a deterministic assurance record.</span></span><span class="cc-arrow" aria-hidden="true">→</span></a>
+      <a class="cc-launch secondary" href="/tools/consequence-closure/inspector/" target="_blank" rel="noopener"><span><strong>Frozen v0.5.0</strong><span>Open the exact archival browser release tied to the software record.</span></span><span class="cc-arrow" aria-hidden="true">↗</span></a>
+    </div>
+    <div class="cc-ledger" aria-label="Inspector identity">
+      <div><span>Semantic engine</span><strong>Inspector v0.5.0 · Core v0.1.0</strong></div>
+      <div><span>Current execution</span><strong>Ephemeral Web Worker</strong></div>
+      <div><span>Evidence transport</span><strong>Browser memory only</strong></div>
+      <div><span>Runtime network</span><strong>None</strong></div>
+    </div>
   </div></section>
 
   <section class="section"><div class="wrap">
-    <article class="work-card">
-      <div class="work-main">
-        <p class="work-label">Local first · Exact bounded analysis</p>
-        <h2 class="work-title">Make the assurance object challengeable.</h2>
-        <p class="work-question">What is determined, what can still change it, and what declared step can close the gap?</p>
-        <p class="work-summary">The Inspector recomputes supported local analyses and presents closure status, inclusion minimal obligation families, materiality and removal witnesses, declared Routes, source lineage, and assurance qualifications in one inspectable record. Reference records are bundled for immediate inspection, and user supplied JSON remains in the browser session.</p>
-        <a class="arrow-link" href="/tools/consequence-closure/inspector/" target="_blank" rel="noopener">Launch Inspector <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://doi.org/10.5281/zenodo.22095595">Software archive <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="https://github.com/risu-research/consequence-closure">Source repository <span aria-hidden="true">→</span></a><br>
-        <a class="arrow-link" href="/research/technical-notes/2026-03/">Technical Note 2026-03 <span aria-hidden="true">→</span></a>
-      </div>
-      <aside class="work-meta" aria-label="Consequence Closure Inspector status">
-        <dl class="meta-list">
-          <div><dt>Inspector</dt><dd>v0.5.0</dd></div>
-          <div><dt>Core</dt><dd>v0.1.0</dd></div>
-          <div><dt>Execution</dt><dd>Browser local</dd></div>
-          <div><dt>Network</dt><dd>No runtime network path</dd></div>
-          <div><dt>Technical Note DOI</dt><dd class="identifier">10.5281/zenodo.22095709</dd></div>
-          <div><dt>Software DOI</dt><dd class="identifier">10.5281/zenodo.22095595</dd></div>
-        </dl>
-      </aside>
-    </article>
+    <p class="eyebrow">One assurance object</p>
+    <h2>Do not just read the verdict. Try to break it.</h2>
+    <div class="cc-capabilities">
+      <article><span>01 · Decision</span><h3>What is fixed?</h3><p>Separate IMPOSSIBLE, OPEN, and CLOSED(c), without turning determinacy into permission or desirability.</p></article>
+      <article><span>02 · Challenge</span><h3>Why is it open?</h3><p>Inspect a concrete materiality witness, switch among exact inclusion-minimal obligation families, and replay removal witnesses.</p></article>
+      <article><span>03 · Change</span><h3>What closes the gap?</h3><p>Change the current evidence cut, recompute exact compatible realizations, and inspect a declared model-relative Establishment Route.</p></article>
+      <article><span>04 · Boundary</span><h3>Where does the claim stop?</h3><p>Keep Core exactness, source preservation, P0/P1/P2, cut adequacy, commissioning, and source truth visibly separate.</p></article>
+    </div>
   </div></section>
 
-  <article class="reading prose">
-    <h2>What the Inspector preserves</h2>
-    <p>The instrument is designed around claim fidelity rather than presentation alone. An OPEN result retains a concrete materiality witness. A selected inclusion minimal obligation set retains removal witnesses showing why each selected Proposition is necessary. A declared Route remains model relative unless the applicable source preservation evidence supports exporting it further.</p>
+  <section class="section"><div class="wrap">
+    <p class="eyebrow">Recorded contrasts</p>
+    <h2>Start where the distinction matters.</h2>
+    <div class="cc-start-grid">
+      <a class="cc-start" href="/tools/consequence-closure/current/?case=authority-open"><span>Materiality</span><strong>Authority revocation remains OPEN</strong><small>A revoked grant and observed revocation still leave one earlier capability path unresolved. Inspect the witness, exact obligation, and probe Route.</small></a>
+      <a class="cc-start" href="/tools/consequence-closure/current/?case=linux-admin"><span>Operativity</span><strong>Administrative state is not the effect</strong><small>Open the Linux administrative case, then compare it with the operative seal that blocks the same pre-existing write path.</small></a>
+      <a class="cc-start" href="/tools/consequence-closure/current/?case=oauth-stale"><span>Paired control</span><strong>Authority and resource can split</strong><small>Inspect a controlled OAuth state where authority reports inactivity while the protected action path still accepts the same token.</small></a>
+    </div>
+  </div></section>
 
-    <h2>Hosted copy and archival record</h2>
-    <p>The hosted application serves the same five browser files from the frozen v0.5.0 release. The site does not add a hosted semantic backend. The <a href="https://doi.org/10.5281/zenodo.22095595">Zenodo software record</a> remains the archival software record, and the <a href="https://github.com/risu-research/consequence-closure">canonical repository</a> contains the frozen source, validation records, evidence summaries, and verification tooling.</p>
-
-    <h2>Claim boundary</h2>
-    <p>The Inspector makes formal results and their qualifications easier to inspect. It does not turn model relative closure into source equivalence, does not establish P2 where P2 has not been tested, and does not enlarge the bounded commissioning claims reported in the Technical Note.</p>
-  </article>
+  <section class="section"><div class="wrap cc-record">
+    <div>
+      <p class="eyebrow">Current surface and frozen record</p>
+      <h2>Let the interface evolve without rewriting the published result.</h2>
+      <p>The current hosted surface delegates semantic analysis to the exact frozen v0.5.0 engine and Core v0.1.0, but moves that computation into a Web Worker and adds a stronger interaction layer for challenge, comparison, progressive rendering, and inspection-record integrity checks. The frozen five-file v0.5.0 browser release remains separately available and byte-pinned.</p>
+      <p>This split is deliberate. The DOI-backed release remains a stable, reproducible research artifact while the current interface can improve without pretending that a later presentation layer was part of the archived release.</p>
+      <div class="cc-links"><a href="/work/consequence-closure/">Research overview</a><a href="/research/technical-notes/2026-03/">Technical Note 2026-03</a><a href="https://github.com/risu-research/consequence-closure">Source repository</a><a href="/tools/consequence-closure/current/provenance.json">Current host provenance</a></div>
+    </div>
+    <div>
+      <dl class="cc-record-list">
+        <div><dt>Inspector</dt><dd>v0.5.0 frozen semantics</dd></div>
+        <div><dt>Core</dt><dd>v0.1.0</dd></div>
+        <div><dt>Technical Note DOI</dt><dd class="identifier">10.5281/zenodo.22095709</dd></div>
+        <div><dt>Software DOI</dt><dd class="identifier">10.5281/zenodo.22095595</dd></div>
+        <div><dt>Public inputs</dt><dd>Closure profile · authority trace · OAuth evidence · Keycloak commissioning summary</dd></div>
+        <div><dt>Export</dt><dd class="identifier">risu-consequence-closure-inspection/v2</dd></div>
+      </dl>
+      <div class="cc-note" style="margin-top:18px"><strong>Claim boundary</strong><p>The interface can make a formal result easier to interrogate. It cannot manufacture source conformance, infer P2 from a model Route, authenticate external truth from a digest, or enlarge a bounded commissioning claim.</p></div>
+    </div>
+  </div></section>
 </main>
-<footer class="site-footer">
-  <div class="wrap footer-inner">
-    <div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div>
-    <div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div>
-  </div>
-</footer>
+<footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>Research initiative of RISU LLC · Washington, DC</div><div><a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
 </body>
 </html>

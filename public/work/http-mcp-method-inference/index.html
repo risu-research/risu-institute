@@ -7,11 +7,11 @@
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
 <title>HTTP to MCP Method-Inference Soundness | RISU Institute</title>
-<meta name="description" content="A bounded executable RISU profile asking what MCP tool guarantees can be justified from HTTP GET, POST, PUT, PATCH, and DELETE semantics alone.">
+<meta name="description" content="A bounded executable RISU profile on which MCP tool guarantees can be inferred from HTTP GET, POST, PUT, PATCH, and DELETE alone.">
 <link rel="canonical" href="https://risuinstitute.org/work/http-mcp-method-inference/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HTTP to MCP Method-Inference Soundness | RISU Institute">
-<meta property="og:description" content="An executable profile for detecting unsupported semantic gain when HTTP operations are translated into MCP tools.">
+<meta property="og:description" content="A five-method executable profile for checking whether HTTP-to-MCP translation adds guarantees the source method does not support.">
 <meta property="og:url" content="https://risuinstitute.org/work/http-mcp-method-inference/">
 </head>
 <body>
@@ -35,22 +35,22 @@
     <div class="reading">
       <p class="eyebrow">Experimental profile · v0.2.1</p>
       <h1>HTTP→MCP Method-Inference Soundness</h1>
-      <p class="page-lede">What can a translator safely promise about an MCP tool when all it knows is that the source operation was GET, POST, PUT, PATCH, or DELETE?</p>
+      <p class="page-lede">When an HTTP API becomes an MCP tool, how much can the translator safely infer from GET, POST, PUT, PATCH, or DELETE alone?</p>
     </div>
   </section>
 
   <article class="reading prose">
     <div class="callout">
-      <p><strong>Core result:</strong> an HTTP method gives a translator a limited semantic claim budget. Under the profile's effect-faithful translation assumption, GET can justify a read-only claim, PUT and DELETE can justify idempotence, while POST and PATCH justify no positive Core guarantee from the method alone. The executable oracle checks every covered method against every combination of the three MCP annotations, 40 states in total.</p>
+      <p><strong>Core result:</strong> HTTP methods carry useful semantics, but those semantics set a limit. Under the profile's effect-faithful translation assumption, GET supports a read-only inference, PUT and DELETE support idempotence, and POST and PATCH support no positive Core guarantee from the method alone. The checker evaluates all 40 combinations of the five methods and three covered MCP annotations.</p>
     </div>
 
-    <h2>The problem in plain language</h2>
-    <p>Turning an API operation into an agent-facing tool often involves filling in metadata about what that tool can do. MCP exposes hints such as <span class="identifier">readOnlyHint</span>, <span class="identifier">destructiveHint</span>, and <span class="identifier">idempotentHint</span>. Those hints can shape how another system plans, approves, or repeats an action.</p>
-    <p>The tempting shortcut is to infer those properties from the HTTP method. Some inferences are well grounded. Others quietly say more than the method actually guarantees.</p>
-    <p>A GET request has standardized safety semantics, so a faithful translation has a real basis for a read-only claim. PUT and DELETE are standardized as idempotent, so idempotence can be carried across under the profile's repetition assumptions. But POST does not generically mean "additive only," and PATCH does not generically mean "non-destructive" or "idempotent." A translator that invents those stronger properties has crossed from translation into unsupported semantic gain.</p>
+    <h2>The question</h2>
+    <p>An API-to-tool translator usually needs to describe what a generated tool may do. MCP <span class="identifier">ToolAnnotations</span> include hints such as <span class="identifier">readOnlyHint</span>, <span class="identifier">destructiveHint</span>, and <span class="identifier">idempotentHint</span>. Downstream systems may use those hints when they plan, approve, or repeat an action.</p>
+    <p>The translator often knows the HTTP method. That method says something real about the operation, but it does not say everything. The risk is straightforward: a translator can attach a guarantee that the source method never supplied.</p>
+    <p>GET has standardized safety semantics, so a faithful translation has a basis for a read-only claim. PUT and DELETE are standardized as idempotent. POST, however, does not generally mean additive-only, and PATCH is not generally non-destructive or idempotent. Those stronger properties need some basis beyond the method name.</p>
 
-    <h2>The five-method claim budget</h2>
-    <p>The Core is intentionally small. It asks only what follows from the standardized method semantics of GET, POST, PUT, PATCH, and DELETE, using RFC 9110 and RFC 5789 as the source basis.</p>
+    <h2>What each method can support</h2>
+    <p>The Core covers five methods and asks only what follows from their standardized semantics under RFC 9110 and RFC 5789.</p>
 
     <div class="code-block">HTTP method   What the method alone can justify in this profile
 GET           READ_ONLY, ADDITIVE_ONLY, IDEMPOTENT
@@ -59,10 +59,11 @@ PUT           IDEMPOTENT
 PATCH         no positive Core guarantee
 DELETE        IDEMPOTENT</div>
 
-    <p>For GET, the profile treats read-only as also satisfying its additive-only and idempotent guarantees at the requested-effect level. In the actual MCP encoding, <span class="identifier">readOnlyHint=true</span> is the maximal representation and the dependent raw hints become semantically inactive.</p>
+    <p>For GET, the profile treats read-only as also satisfying additive-only and idempotent at the requested-effect level: if the requested operation makes no modification, it also makes no destructive modification and repeating it adds no requested modification. In MCP, the cleanest GET representation is <span class="identifier">readOnlyHint=true</span>. Once read-only is active, the two dependent raw hints are not used for the Core decision.</p>
 
-    <h2>One rule drives the checker</h2>
-    <p>The profile separates what the source method justifies from what the generated MCP annotations actively claim. Soundness is then a simple containment question.</p>
+    <h2>The soundness check</h2>
+    <p>The checker first resolves the annotation state into the guarantees it actively asserts. <span class="identifier">readOnlyHint=true</span> activates <span class="identifier">READ_ONLY</span>. For a non-read-only tool, <span class="identifier">destructiveHint=false</span> activates <span class="identifier">ADDITIVE_ONLY</span>, and <span class="identifier">idempotentHint=true</span> activates <span class="identifier">IDEMPOTENT</span>.</p>
+    <p>It then compares those active claims with the guarantees justified by the HTTP method.</p>
 
     <div class="code-block">SOUND
 iff
@@ -70,10 +71,10 @@ ActiveGuarantees(annotation state)
 ⊆
 JustifiedGuarantees(HTTP method)</div>
 
-    <p>This matters because the checker does not punish caution. A translator may say less than it could safely say and still be sound. The failure condition is the opposite: asserting an active guarantee that has no basis in the source method.</p>
+    <p>A translator can remain conservative and still be sound. It may leave a justified guarantee unstated. The failure case is narrower: an active annotation claims something the method does not support.</p>
 
-    <h2>Why there are 40 states</h2>
-    <p>The Core covers five HTTP methods. Each generated MCP tool can resolve the three covered annotation fields to eight boolean combinations. Five methods times eight annotation states gives an exhaustive 40-state oracle.</p>
+    <h2>The 40-state oracle</h2>
+    <p>Each of the three covered annotation fields is boolean, so there are eight raw annotation states for each method. Across five methods, that gives 40 states. The oracle evaluates all of them rather than sampling a few familiar mappings.</p>
 
     <dl class="spec-grid">
       <dt>Methods</dt><dd>GET, POST, PUT, PATCH, DELETE</dd>
@@ -85,80 +86,63 @@ JustifiedGuarantees(HTTP method)</div>
       <dt>Runtime dependencies</dt><dd>0</dd>
     </dl>
 
-    <p>The oracle is deterministic. Version 0.2.1 preserved every substantive v0.2.0 classification, including all 40 complete checker results.</p>
+    <p>Some raw states become semantically equivalent because <span class="identifier">readOnlyHint=true</span> makes the dependent fields inactive, but the full 40-state surface is still checked. Version 0.2.1 preserved every substantive v0.2.0 classification and complete checker result.</p>
 
-    <h2>A few concrete examples</h2>
-    <h3>GET marked read-only</h3>
-    <p>Assuming the generated tool faithfully represents the GET operation's requested effect, <span class="identifier">readOnlyHint=true</span> is supported. This is the profile-maximal GET representation.</p>
-
-    <h3>POST marked non-destructive</h3>
-    <p>When a non-read-only tool sets <span class="identifier">destructiveHint=false</span>, the profile reads that as an active additive-only guarantee. POST semantics do not justify that guarantee in general, so a method-only inference of this kind is unsound.</p>
-
-    <h3>PUT marked idempotent</h3>
-    <p>PUT is idempotent under RFC 9110, so <span class="identifier">idempotentHint=true</span> has a method-level basis. But PUT can replace existing state, so the method alone does not justify an additive-only claim.</p>
-
-    <h3>PATCH marked idempotent</h3>
-    <p>PATCH is not generically idempotent. An individual PATCH operation may have stronger properties, but those need operation-specific evidence rather than a universal method rule.</p>
-
-    <h3>DELETE marked idempotent</h3>
-    <p>DELETE is standardized as idempotent, so the profile allows the idempotence claim. That does not make deletion non-destructive.</p>
-
-    <h2>Applicability comes first</h2>
-    <p>The checker is deliberately conditional. Before lifting a method guarantee into MCP, the HTTP method must still faithfully characterize the generated tool's requested or intended effect for that guarantee.</p>
-    <p>For example, a tool that performs <span class="identifier">GET /account</span> but also requests a write to another store cannot inherit a read-only claim merely because one component uses GET. Likewise, when HTTP idempotence is lifted, repeated MCP calls with the same arguments must preserve equivalent operation-relevant HTTP request semantics. Different request IDs, authentication tokens, or tracing metadata do not by themselves break that condition.</p>
-    <p>The profile calls this <strong>effect-faithful translation</strong>. The checker assumes it. It does not verify it.</p>
-
-    <h2>Sound is not the same as maximal</h2>
-    <p>The primary goal is to prevent unsupported claims. A translator that intentionally underclaims can still be sound.</p>
-    <p><span class="identifier">PROFILE_MAXIMAL</span> is a secondary precision measure: it asks whether a sound state also expresses the strongest representation justified by the Core. MCP does not require profile maximality, and <span class="identifier">SOUND_NON_MAXIMAL</span> is not a failure.</p>
-    <p>This distinction keeps the profile focused. It is stricter about saying too much than about saying too little.</p>
-
-    <h2>Independent implementation witnesses</h2>
-    <p>The frozen artifact also reproduced method-default mappings from three independent implementation sources and evaluated those specific mappings under the same Core. These are witnesses, not normative authorities and not whole-product verdicts.</p>
-
-    <div class="code-block">Reproduced method-default layer        Sound methods   Unsupported active guarantees
-API7 documented defaults             5 / 5           0
-Infobip verified source defaults      2 / 5           3
-Azure App Service documented defaults 2 / 5           4</div>
-
-    <p>API7's documented defaults independently converged with the profile-maximal mapping for all five methods. In the frozen Infobip mapping, the reproduced POST, PUT, and PATCH defaults activated additive-only guarantees not justified by the method alone. In the frozen Azure mapping, POST and PUT activated additive-only guarantees, while PATCH activated both additive-only and idempotent guarantees.</p>
-    <p>Those findings are intentionally narrow. They classify the reproduced method-inference defaults under this profile, not API7, Infobip, or Azure as products.</p>
-
-    <h2>The blind witness annex</h2>
-    <p>A formal method table can still feel abstract, so the project kept a separate semantics-blind witness set. It contains 25 method-stratified operations and eight unique operation-level evidence records. The annex does not define the Core and cannot estimate prevalence.</p>
-    <p>Within that frozen set, six matched contradiction witnesses documented real POST, PUT, and PATCH operations that edit, replace, or delete existing state. Those examples make one boundary concrete: method semantics alone cannot support a universal rule that these methods are non-destructive.</p>
-    <p>The annex also contained one supported additive-only POST at the operation level. That is useful for the opposite reason. It shows that a stronger claim may sometimes be justified, but only by additional evidence about the specific operation. The Core therefore leaves proof-carrying, operation-specific exceptions experimental rather than weakening the method-level rule for everyone.</p>
-
-    <h2>What the project established</h2>
-    <div class="callout">
-      <p><strong>The source method sets a bounded semantic budget.</strong> For an effect-faithful translation, method-derived MCP annotations are sound when their active guarantees stay inside that budget. The executable profile makes that boundary deterministic and testable instead of leaving it as an informal mapping convention.</p>
-    </div>
-    <p>The broader intuition is simple: translating an interface should not silently strengthen what the source can support. In this project that intuition is proven only for the declared five-method HTTP to MCP profile. It is not presented as a universal translation theory.</p>
-
-    <h2>What it does not establish</h2>
+    <h2>Concrete cases</h2>
     <ul>
-      <li>It does not verify that a real wrapper is effect-faithful.</li>
-      <li>It does not certify runtime behavior, tool safety, server honesty, HTTP compliance, or MCP server trustworthiness.</li>
-      <li>It does not validate explicit operation-specific annotations or evidence.</li>
-      <li>It does not measure Internet prevalence or ecosystem-wide converter quality.</li>
-      <li>It does not classify entire vendor products from the reproduced witness mappings.</li>
-      <li>It does not cover every HTTP method or custom operation.</li>
-      <li>It is not an official MCP, IETF, OpenAPI, vendor, or standards-body profile.</li>
-      <li>It does not require translators to be profile-maximal.</li>
+      <li><strong>GET with <span class="identifier">readOnlyHint=true</span>:</strong> supported, assuming the generated tool preserves the GET operation's requested effect. This is the profile-maximal GET representation.</li>
+      <li><strong>POST with <span class="identifier">destructiveHint=false</span>:</strong> for a non-read-only tool, that asserts an additive-only guarantee. POST semantics do not support that guarantee in general, so method-only inference is unsound.</li>
+      <li><strong>PUT with <span class="identifier">idempotentHint=true</span>:</strong> supported by PUT's standardized idempotence. PUT can still replace existing state, so the method alone does not support an additive-only claim.</li>
+      <li><strong>PATCH with <span class="identifier">idempotentHint=true</span>:</strong> unsupported as a general method rule. A particular PATCH operation may be idempotent, but that requires operation-specific evidence.</li>
+      <li><strong>DELETE with <span class="identifier">idempotentHint=true</span>:</strong> supported. Idempotence does not make deletion non-destructive.</li>
     </ul>
 
-    <h2>Freeze and reproducibility</h2>
-    <p>Version 0.2.1 is an experimental draft for public review. It clarified applicability, status, framing, packaging, and machine-readable metadata without changing the v0.2.0 decision model or any substantive result.</p>
+    <h2>The assumption behind the result</h2>
+    <p>The profile applies only when the HTTP method still faithfully describes the generated tool's requested or intended effect for the guarantee being carried over. It calls this <strong>effect-faithful translation</strong>.</p>
+    <p>A tool that performs <span class="identifier">GET /account</span> and also requests a write to another store cannot inherit a read-only claim merely because one part of the tool uses GET. For idempotence, repeated MCP calls with the same arguments must preserve equivalent operation-relevant HTTP request semantics. The requests do not have to be byte-identical: request IDs, authentication tokens, or tracing metadata may change while the requested operation remains equivalent.</p>
+    <p>The checker assumes this condition. It does not inspect wrapper runtime behavior to establish it.</p>
+
+    <h2>Soundness and precision</h2>
+    <p>Soundness asks whether the translator overclaims. <span class="identifier">PROFILE_MAXIMAL</span> asks a different question: among the sound states, does this one express the strongest Core representation the method can justify?</p>
+    <p>Maximality is only a precision measure. MCP does not require it, and <span class="identifier">SOUND_NON_MAXIMAL</span> is not a failure. The profile is concerned first with unsupported guarantees, not with forcing every translator to claim as much as possible.</p>
+
+    <h2>Comparison with reproduced defaults</h2>
+    <p>The artifact also reproduced method-default mappings from three independent implementation sources and evaluated those specific mappings under the same Core.</p>
+
+    <div class="code-block">Reproduced method-default layer         Sound methods   Unsupported active guarantees
+API7 documented defaults              5 / 5           0
+Infobip verified source defaults       2 / 5           3
+Azure App Service documented defaults  2 / 5           4</div>
+
+    <p>API7's documented defaults matched the profile-maximal mapping for all five methods. In the frozen Infobip mapping, the reproduced POST, PUT, and PATCH defaults asserted additive-only guarantees that the method alone did not justify. In the frozen Azure mapping, POST and PUT asserted additive-only guarantees, while PATCH asserted both additive-only and idempotent guarantees.</p>
+    <p>These are scoped results for the pinned method-default mappings that were reproduced. They are not ratings of API7, Infobip, or Azure as products.</p>
+
+    <h2>A second check against real operations</h2>
+    <p>The project kept a separate semantics-blind witness set so the method-level rule could also be checked against concrete, first-party-documented operations. The frozen set contains 25 method-stratified operations and eight unique operation-level evidence records. It is a witness set, not a prevalence sample.</p>
+    <p>Six matched contradiction witnesses showed POST, PUT, and PATCH operations that edit, replace, or delete existing state. Those cases give concrete counterexamples to a universal method-only rule that these methods are non-destructive.</p>
+    <p>The same annex also contains one operation-specific additive-only POST supported by a DaniWeb record. A Jumpseller support record was version-mismatched and remained non-decisive. Across the eight unique evidence records, one changed the decision, six changed the reasoning only, and one was non-decisive. The evidence favored keeping the Core static and treating operation-specific proof exceptions as a separate experiment.</p>
+
+    <h2>Result</h2>
+    <div class="callout">
+      <p><strong>Within this five-method profile,</strong> a translator that derives MCP tool hints from the HTTP method should not assert an active guarantee beyond what that method actually supports. The executable checker turns that boundary into a deterministic test.</p>
+    </div>
+    <p>The result is limited to the declared five-method HTTP-to-MCP profile. It is not a general translation theory.</p>
+
+    <h2>Where the profile stops</h2>
+    <p>The checker answers one bounded question: assuming effect-faithful translation, do the method-derived annotations claim more than the method supports? Runtime behavior, tool safety, server honesty, HTTP compliance, and MCP server trustworthiness are outside that check. The profile also does not validate explicit operation-specific annotations, cover every HTTP method, or turn the frozen implementation comparisons into product-level judgments. The 25-operation annex is not an ecosystem prevalence estimate. Version 0.2.1 remains an experimental draft for public review, not an official MCP, IETF, OpenAPI, vendor, or standards-body profile.</p>
+
+    <h2>Frozen record and reproducibility</h2>
+    <p>Version 0.2.1 clarified the applicability condition, status, framing, packaging, and machine-readable metadata. It did not change the v0.2.0 decision model, any of the 40 classifications, the substantive translator findings, or the empirical corpus.</p>
     <ul>
-      <li>The byte-frozen v0.2.0 object passes 32 of 32 baseline tests.</li>
+      <li>The separate 54-file v0.2.0 object remains byte-for-byte unchanged and passes 32 of 32 baseline tests.</li>
       <li>V0.2.1 strict typecheck, build, deterministic generation, and all 36 tests pass in the frozen record.</li>
-      <li>The 40-vector oracle and translator artifacts regenerate without byte changes.</li>
-      <li>The empirical machine artifact and sampler hashes verify exactly.</li>
-      <li>A clean extraction can install from the lockfile and run <span class="identifier">pnpm verify</span> without an upstream checkout or sibling project.</li>
+      <li>The vectors and translator artifacts were regenerated twice without byte changes.</li>
+      <li>The empirical machine artifact and frozen sampler hashes verify exactly.</li>
+      <li>A clean extraction with no sibling project or upstream checkout can install from the lockfile and pass <span class="identifier">pnpm verify</span>.</li>
       <li>Runtime dependency count is zero. TypeScript 5.9.3 is the sole pinned development dependency.</li>
     </ul>
 
-    <h2>Deeper record</h2>
+    <h2>Source record</h2>
     <div class="reference-list">
       <a href="https://github.com/risu-research/http-mcp-method-inference-soundness-profile/releases/tag/v0.2.1">Public review artifact v0.2.1</a>
       <a href="https://github.com/risu-research/http-mcp-method-inference-soundness-profile/blob/main/PROFILE.md">Normative profile</a>

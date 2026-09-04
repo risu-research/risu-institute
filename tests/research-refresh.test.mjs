@@ -117,27 +117,33 @@ test("HTTP to MCP method inference opens a dedicated explanatory profile page", 
   assert.equal(work.split('href="/work/http-mcp-method-inference/"').length - 1, 2);
   for (const expected of [
     '<link rel="canonical" href="https://risuinstitute.org/work/http-mcp-method-inference/">',
-    "The problem in plain language",
-    "The five-method claim budget",
-    "Why there are 40 states",
-    "Applicability comes first",
-    "Sound is not the same as maximal",
-    "Independent implementation witnesses",
-    "The blind witness annex",
-    "What the project established",
-    "What it does not establish",
-    "Freeze and reproducibility",
+    "The question",
+    "What each method can support",
+    "The soundness check",
+    "The 40-state oracle",
+    "The assumption behind the result",
+    "Soundness and precision",
+    "Comparison with reproduced defaults",
+    "A second check against real operations",
+    "Result",
+    "Where the profile stops",
+    "Frozen record and reproducibility",
+    "Source record",
     "14",
     "26",
     "API7 documented defaults",
     "Infobip verified source defaults",
     "Azure App Service documented defaults",
+    "DaniWeb",
+    "Jumpseller",
     methodInferenceRepoUrl,
   ]) assert.ok(profile.includes(expected), expected);
 
   assert.ok(profile.includes("effect-faithful translation"));
   assert.ok(profile.includes("Runtime dependency count is zero"));
   assert.ok(profile.includes("not an official MCP"));
+  assert.equal(profile.includes("in plain language"), false, "method-inference page should not reuse the plain-language heading template");
+  assert.doesNotMatch(profile, /\binvolv(?:e|es|ed|ing|ement)\b/iu);
   assert.equal(profile.includes("\u2014"), false, "method-inference public page contains an em dash");
 });
 

@@ -243,7 +243,8 @@ try {
   );
   assert.equal(decision.app, 'started');
   assert.equal(decision.engine, 'ready');
-  assert.match(decision.text, /Inspector 0\.5\.0 · Core 0\.1\.0/u);
+  assert.match(decision.text, /2 compatible realizations produce 2 consequences/u);
+  assert.match(decision.text, /Probe legacy capability cap-session-17/u);
 
   const challenge = await waitForPage(
     chromeState,

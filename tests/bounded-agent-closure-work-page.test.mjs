@@ -33,9 +33,9 @@ test("Bounded Agent Closure has a website-first conceptual overview", async () =
     "One clean scan is not enough",
     "What a scan must establish",
     "Four evidence domains",
-    "Verdicts are deliberately different",
+    "CLOSED, INCOMPLETE, and UNKNOWN",
     "The eight boundary cases",
-    "Where BAC sits",
+    "How BAC fits with existing lifecycle systems",
     "The Inspector",
     "Result",
     "Where the verifier stops",
@@ -64,9 +64,10 @@ test("Bounded Agent Closure has a website-first conceptual overview", async () =
   assert.match(page, /Disabling an autonomous agent stops future authority/iu);
   assert.match(page, /action report is metadata/iu);
   assert.match(page, /object may remain active/iu);
-  assert.match(page, /missing evidence is uncertainty/iu);
+  assert.match(page, /Missing evidence is uncertainty/iu);
   assert.match(page, /final two qualifying scans/iu);
   assert.match(page, /No live-runtime adapter is part of the frozen v0\.3 line/iu);
+  assert.match(page, /BAC puts principal-relative transitive attribution/iu);
 
   for (const label of [">Research</a>", ">Publications</a>", ">Tools</a>", ">About</a>"]) {
     assert.ok(page.includes(label), label);

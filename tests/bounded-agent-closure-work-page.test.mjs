@@ -65,7 +65,7 @@ test("Bounded Agent Closure has a website-first conceptual overview", async () =
   assert.match(page, /action report is metadata/iu);
   assert.match(page, /object may remain active/iu);
   assert.match(page, /Missing evidence is uncertainty/iu);
-  assert.match(page, /final two qualifying scans/iu);
+  assert.match(page, /final scan and the immediately preceding scan must both qualify/iu);
   assert.match(page, /No live-runtime adapter is part of the frozen v0\.3 line/iu);
   assert.match(page, /BAC puts principal-relative transitive attribution/iu);
 

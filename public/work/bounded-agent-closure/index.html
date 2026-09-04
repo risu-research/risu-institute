@@ -41,7 +41,7 @@
 
   <article class="reading prose">
     <div class="callout">
-      <p><strong>Core idea:</strong> Bounded Agent Closure asks a separate question after authority has been blocked: have the consequences attributable to this retiring agent reached allowed terminal dispositions, with enough evidence and stability to say so?</p>
+      <p><strong>Core idea:</strong> Bounded Agent Closure asks a separate question after authority has been blocked: have the consequences attributable to this retiring agent reached the kind of end state each one requires, with enough evidence and stability to support that conclusion?</p>
     </div>
 
     <h2>The gap after shutdown</h2>
@@ -84,7 +84,7 @@
     <h2>Silence is not closure</h2>
     <p>A clean-looking graph is not enough if the evidence surface is incomplete. Every profile domain is either covered by declared sources or explicitly marked not applicable with evidence. Covered sources must report both source coverage and attribution coverage.</p>
     <p>If a required source cannot establish what it covers, the verifier does not convert that absence of visibility into a positive result. The canonical Missing Coverage case has no known surviving residual, but the source reports coverage as unavailable. BAC returns <span class="identifier">UNKNOWN</span>, not <span class="identifier">CLOSED</span>.</p>
-    <p>This distinction is deliberate: a known live consequence is a blocker; missing evidence is uncertainty. The final verdict keeps those states separate.</p>
+    <p>A known live consequence is a blocker. Missing evidence is uncertainty. The verdict keeps those states separate.</p>
 
     <h2>Fresh evidence matters</h2>
     <p>Every reachable consequence must be freshly observed in a scan that supports closure. BAC does not carry a stale terminal state forward simply because the object looked safe earlier.</p>
@@ -116,7 +116,7 @@
       <dt>OPERATIONAL_STATE</dt><dd>Other retained, transferred, or extinguished state that remains relevant to closure.</dd>
     </dl>
 
-    <h2>Verdicts are deliberately different</h2>
+    <h2>CLOSED, INCOMPLETE, and UNKNOWN</h2>
     <dl class="spec-grid">
       <dt>CLOSED</dt><dd>Bounded closure is established within the declared profile and source contracts. Only this verdict carries a certificate.</dd>
       <dt>INCOMPLETE</dt><dd>A known blocker or unstable final semantic state prevents closure.</dd>
@@ -126,7 +126,7 @@
     <p>The exact positive certificate says: <span class="identifier">CLOSED within RISU_AGENT_CLOSURE_V0 and the declared source contracts.</span></p>
 
     <h2>The eight boundary cases</h2>
-    <p>The frozen corpus is small on purpose. Each case isolates a different failure mode or legitimate terminal state.</p>
+    <p>The frozen corpus contains eight cases, each isolating a different failure mode or legitimate terminal state.</p>
     <dl class="spec-grid">
       <dt>C1 Direct Zombie</dt><dd><span class="identifier">INCOMPLETE</span>. A directly reachable execution remains active.</dd>
       <dt>C2 Transitive Zombie</dt><dd><span class="identifier">INCOMPLETE</span>. A surviving descendant remains reachable through transitive lineage.</dd>
@@ -138,9 +138,9 @@
       <dt>C8 Fixed-Point Wind-Down</dt><dd><span class="identifier">CLOSED</span>. Stable final-pair confirmation is required after late consequences stop appearing.</dd>
     </dl>
 
-    <h2>Where BAC sits</h2>
+    <h2>How BAC fits with existing lifecycle systems</h2>
     <p>Authorization revocation, distributed termination, resource finalization, and task lifecycle systems each answer useful completion questions about the objects they govern. BAC does not replace them. It consumes facts from those layers as evidence for a different verification object: the retiring principal and the consequences attributable to it.</p>
-    <p>This is the architectural reason the verifier starts after authority quiescence. An authorization system can establish that new work is no longer permitted. Execution systems can report task state. Commitment systems can report settlement. Transfer records can report successor acceptance. BAC asks whether those local facts, taken together under explicit coverage and stability contracts, justify one bounded closure claim about the retiring agent.</p>
+    <p>This is why the verifier starts after authority quiescence. An authorization system can establish that new work is no longer permitted. Execution systems can report task state. Commitment systems can report settlement. Transfer records can report successor acceptance. BAC asks whether those local facts, taken together under explicit coverage and stability contracts, justify one bounded closure claim about the retiring agent.</p>
 
     <h2>The Inspector</h2>
     <p>The Agent Closure Inspector is a debugger for the same verifier, not a second implementation of the semantics. It exposes the consequence lineage, engine reasons, scan and convergence timeline, source scope, trust assumptions, received evidence, and the closure certificate when one exists.</p>
@@ -151,7 +151,7 @@
     <div class="callout">
       <p><strong>BAC turns agent retirement from an administrative event into a bounded evidence claim about attributable consequences.</strong> It can reject a disabled agent whose consequences remain live, accept a retiring agent whose responsibility has been validly transferred or retained, distinguish missing evidence from known failure, and require stable confirmation before issuing <span class="identifier">CLOSED</span>.</p>
     </div>
-    <p>The contribution is the executable composition: principal-relative transitive attribution, disposition-specific terminality, explicit evidence coverage, source-specific stability, fresh re-observation, and final-pair semantic convergence in one deterministic verifier.</p>
+    <p>BAC puts principal-relative transitive attribution, disposition-specific terminality, explicit evidence coverage, source-specific stability, fresh re-observation, and final-pair semantic convergence into one deterministic check.</p>
 
     <h2>Where the verifier stops</h2>
     <p>BAC starts at the evidence-bundle boundary. It does not discover live-system evidence by itself, revoke credentials, cancel jobs, settle commitments, transfer responsibility, or perform cleanup. No live-runtime adapter is part of the frozen v0.3 line.</p>

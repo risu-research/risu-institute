@@ -22,6 +22,7 @@ test("ClosureProbe has a website-first research record with the frozen rc3 ancho
     '<link rel="canonical" href="https://risuinstitute.org/work/closureprobe/">',
     "The problem",
     "What ClosureProbe follows",
+    "The protocol can succeed while the evidence gets weaker",
     "A negative needs more than zero",
     "Why the last empty page is not enough",
     "The receiver does not trust the trace at face value",
@@ -54,6 +55,7 @@ test("ClosureProbe has a website-first research record with the frozen rc3 ancho
   assert.match(page, /does not decide whether nothing exists in the world/iu);
   assert.match(page, /first observed boundary/iu);
   assert.match(page, /terminal string into an auditable evidence path/iu);
+  assert.match(page, /protocol completion, HTTP success, page length/iu);
   assert.doesNotMatch(page, /\binvolv(?:e|es|ed|ing|ement)\b/iu);
   assert.equal(page.includes("\u2014"), false, "ClosureProbe page contains an em dash");
 });

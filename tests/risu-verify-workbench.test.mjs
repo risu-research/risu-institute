@@ -25,3 +25,6 @@ test("claim boundary remains explicit",async()=>{const h=(await read("public/too
 test("homepage presents RISU Verify as a real result lifecycle",async()=>{const h=await read("public/index.html");for(const x of ["Check consequences, not appearances.","CLI / CI → .risu record → browser consumer","Open Assurance Workbench","10.5281/zenodo.22152024"])assert.ok(h.includes(x),x);});
 
 test("Workbench responds to hash navigation after initial load",async()=>{const h=await read("public/tools/index.html");for(const x of ["function routeWorkbenchFromLocation()",'window.addEventListener("hashchange",routeWorkbenchFromLocation)','hash.startsWith("#workbench")'])assert.ok(h.includes(x),x);});
+
+
+test("Workbench verification rail keeps nested content out of layout selectors",async()=>{const h=await read("public/tools/index.html");for(const x of [".rv-accepted>div{display:grid",".rv-accepted>div>div{min-width:0}",".rv-accepted>div>div>b{display:block",".rv-accepted>div>div>span{display:block",".rv-case>span:last-child>span{display:block"])assert.ok(h.includes(x),x);assert.doesNotMatch(h,/\.rv-accepted div\{display:grid/u);assert.doesNotMatch(h,/\.rv-accepted span\{display:block/u);assert.doesNotMatch(h,/\.rv-case span\{display:block/u);});

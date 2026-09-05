@@ -1,0 +1,39 @@
+name: Temporary RISU Verify Workbench polish
+
+on:
+  push:
+    branches: [risu-verify-workbench-polish]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: risu-verify-workbench-polish
+          fetch-depth: 0
+      - name: Patch scoped Workbench rail selectors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('public/tools/index.html')
+          s = p.read_text()
+          old = '.rv-accepted{display:grid;gap:10px}.rv-accepted div{display:grid;grid-template-columns:23px 1fr;gap:9px}.rv-num{width:23px;height:23px;border-radius:6px;background:#eef0f3;display:grid;place-items:center;color:var(--rv-muted);font-size:.69rem;font-weight:750}.rv-accepted b{display:block;font-size:.78rem}.rv-accepted span{display:block;margin-top:2px;color:var(--rv-muted);font-size:.72rem}'
+          new = '.rv-accepted{display:grid;gap:12px}.rv-accepted>div{display:grid;grid-template-columns:23px minmax(0,1fr);gap:11px;align-items:start}.rv-accepted>div>div{min-width:0}.rv-num{width:23px;height:23px;border-radius:6px;background:#eef0f3;display:grid;place-items:center;align-self:start;margin-top:1px;color:var(--rv-muted);font-size:.69rem;font-weight:750}.rv-accepted>div>div>b{display:block;font-size:.78rem;line-height:1.25}.rv-accepted>div>div>span{display:block;margin-top:3px;color:var(--rv-muted);font-size:.72rem;line-height:1.45}'
+          if s.count(old) != 1:
+              raise SystemExit(f'expected exactly one legacy selector block, found {s.count(old)}')
+          p.write_text(s.replace(old, new))
+          PY
+      - name: Remove temporary workflow and commit exact patch
+        run: |
+          rm .github/workflows/tmp-risu-verify-polish.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/tools/index.html .github/workflows/tmp-risu-verify-polish.yml
+          git diff --cached --check
+          git commit -m 'Fix RISU Verify Workbench verification rail layout'
+          git push origin HEAD:risu-verify-workbench-polish

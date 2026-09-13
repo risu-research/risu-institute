@@ -1,0 +1,26 @@
+name: RISU Verify Frontier Run 2
+on:
+  push:
+    branches:
+      - site/risu-verify-frontier-202609
+    paths:
+      - .github/workflows/risu-verify-frontier-run2.yml
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: site/risu-verify-frontier-202609
+      - name: Apply update
+        run: python3 scripts/risu_verify_frontier_update.py
+      - name: Commit
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/work/projection-assurance/index.html public/tools/index.html public/work/index.html tests/risu-verify-frontier.test.mjs
+          git commit -m 'Update RISU Verify public research frontier'
+          git push origin HEAD:site/risu-verify-frontier-202609

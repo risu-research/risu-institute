@@ -1,0 +1,35 @@
+name: RISU Verify Frontier Punctuation Fix
+on:
+  push:
+    branches:
+      - site/risu-verify-frontier-202609
+    paths:
+      - .github/workflows/risu-verify-frontier-fix-em-dash.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: site/risu-verify-frontier-202609
+      - name: Normalize heading and test
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in ['public/work/projection-assurance/index.html','tests/risu-verify-frontier.test.mjs']:
+              p=Path(path)
+              s=p.read_text()
+              old='Research frontier — September 2026'
+              assert old in s
+              p.write_text(s.replace(old,'Research frontier · September 2026'))
+          PY
+          git diff --check
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/work/projection-assurance/index.html tests/risu-verify-frontier.test.mjs
+          git commit -m 'Normalize RISU Verify frontier heading punctuation'
+          git push origin HEAD:site/risu-verify-frontier-202609

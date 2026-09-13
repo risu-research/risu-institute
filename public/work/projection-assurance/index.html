@@ -86,6 +86,18 @@ projected effect at H1 → merge H1</div>
     <p>Consequence-Preserving Projections v0.7.0 is the current separately archived implementation. It strengthens source-contract handling, evidence binding, proof-carrying construction, and certificate checking. It does not rewrite the frozen evaluation or retroactively enlarge the claims reported in the Technical Note.</p>
     <p>Later engineering can therefore improve how assurance artifacts are produced and checked while the evidence behind the published evaluation remains fixed.</p>
 
+    <h2 id="research-frontier">Research frontier — September 2026</h2>
+    <p>The published Projection Assurance record remains frozen. In parallel, RISU Verify is testing a narrower but harder question: when can a consequence judgment be tied to executable behavior rather than only to a declared target model?</p>
+    <div class="callout"><p><strong>Current rule:</strong> one independently grounded forbidden effect can establish regression, but preservation requires closure over the declared consequential boundary. A clean run by itself is never promoted into proof of preservation.</p></div>
+    <dl class="spec-grid">
+      <dt>Observed regression</dt><dd>For a controlled execution, a concrete forbidden effect can be bound to the exact executable, world, and observed consequence, then checked independently as a regression witness.</dd>
+      <dt>Bounded preservation</dt><dd>For an exact hermetic program and an explicit finite boundary, independent checkers reconstruct the consequence relation from the program bytes and exhaustively enumerated inputs before testing whether every realized consequence is allowed.</dd>
+      <dt>Independent checking</dt><dd>The current research path uses separately implemented checkers, fixed known-answer vectors, adversarial mutation tests, and seeded generative differential checks. The producer is not allowed to self-declare a complete realized relation.</dd>
+      <dt>Open boundary</dt><dd>Positive preservation is not yet claimed for unrestricted native software. The next research problem is how to justify a sound refinement from richer implementations into the bounded execution model without hiding or relabeling consequences.</dd>
+    </dl>
+    <p>This frontier does not replace the frozen Technical Note evaluation or the v0.7.0 scientific core. It extends the evidence architecture around the same consequence-centered discipline while keeping broader claims out of scope until a specific artifact earns them.</p>
+    <p>The checkpoint is a project-level research update, not a claim of external peer-review acceptance or a new general-purpose product release.</p>
+
     <h2>Certificate-backed external cases</h2>
     <p>RISU Verify builds a developer-facing layer over the byte-pinned v0.7.0 core rather than reimplementing its verdict logic. Before a semantic result is accepted, provenance checks bind retained evidence to declared source material. The frozen producer emits a proof-carrying certificate, and a separate compact consumer checks that certificate against the evidence root before the product derives a status.</p>
     <p>The retained external cases give the framework three useful kinds of evidence.</p>

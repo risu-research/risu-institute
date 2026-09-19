@@ -1,0 +1,71 @@
+name: G21 conditional rail design measured by ngspice
+on:
+  push:
+    branches: [research/date-g21-condition-first-20260919]
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ngspice and evaluate fixed independent netlists
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq ngspice >/dev/null
+          mkdir -p g21-results
+          ngspice --version >g21-results/version.txt 2>&1 || true
+          python3 - <<'PY'
+          from pathlib import Path
+          from itertools import product
+          p=Path('g21-results')
+          for rail,ru,mode in product((1.6,2.5,3.0,3.3,4.3,4.5),(560,6800,10000),('default','permit')):
+              # Resistive equivalent only; 285k INTERNAL is typical, not production bound;
+              # 11uA CE current is a hypothesized sink. NMOS is ideal 10-ohm resistor.
+              f=p/f'rail{str(rail).replace(".","p")}_R{ru}_{mode}.cir'
+              text=f'''G21 original R8 preserved - conditional voltage experiment
+          Vrail rail 0 {rail}
+          Rpull rail ce {ru}
+          Rorig ce 0 10000
+          RinternalTypical ce 0 285000
+          IassumedInput ce 0 11u
+          '''
+              if mode=='permit':text+='RidealSwitch ce 0 10\n'
+              text+='''.op
+          .print op v(ce) i(Vrail)
+          .end
+          '''
+              f.write_text(text)
+          PY
+          for f in g21-results/*.cir; do ngspice -b "$f" >"${f%.cir}.log" 2>&1; done
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,csv
+          p=Path('g21-results');rows=[]
+          for f in sorted(p.glob('*.log')):
+              s=f.read_text()
+              v=re.search(r'^\s*v\(ce\)\s*=\s*([-+\d.Ee]+)',s,re.M)
+              i=re.search(r'^\s*vrail#branch\s*=\s*([-+\d.Ee]+)',s,re.M)
+              if v is None or i is None:
+                  raise ValueError(f'Missing ngspice measurement: {f.name}: {s[-500:]}')
+              rows.append((f.stem,float(v.group(1)),float(i.group(1))))
+          assert len(rows)==36,len(rows)
+          with (p/'ngspice_extracted.csv').open('w',newline='') as out:
+              wr=csv.writer(out);wr.writerow(('case','V_CE','I_Vrail_signed_A'));wr.writerows(rows)
+          look={r[0]:r[1:] for r in rows}
+          assert look['rail3p0_R6800_default'][0]>1.4
+          assert look['rail1p6_R6800_default'][0]<1.4
+          assert look['rail4p5_R6800_permit'][0]<.4
+          print('NGSPICE_REAL_RUNS_PASS',len(rows))
+          print('3V_6800',look['rail3p0_R6800_default'],'1p6V_6800',look['rail1p6_R6800_default'])
+          print('4p5V_560_permit',look['rail4p5_R560_permit'],'4p5V_6800_permit',look['rail4p5_R6800_permit'])
+          PY
+      - name: Keep complete positive and negative outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g21-independent-ngspice-rail-conditional
+          path: g21-results/
+          retention-days: 30

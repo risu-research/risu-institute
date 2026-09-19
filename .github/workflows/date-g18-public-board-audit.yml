@@ -1,0 +1,45 @@
+name: G18 pinned public hardware netlists research
+on:
+  push:
+    branches: [research/date-g18-hardware-audit-20260919]
+permissions:
+  contents: read
+jobs:
+  source-audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve two predeclared original schematics at immutable commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-data
+          git clone -q https://github.com/adafruit/Adafruit-DRV8833-Motor-Driver-Breakout-PCB.git g18-motor
+          git -C g18-motor checkout -q dda79a86d6518d05a35091cb8b03b9c0d57d04e2
+          git clone -q https://github.com/adafruit/Adafruit-BQ24074-PCB.git g18-charge
+          git -C g18-charge checkout -q 844404b10e1a87820ee9cb9024d85f67f4bc4bfd
+          test "$(git -C g18-motor hash-object 'Adafruit DRV8833.sch')" = 45c1c9df03201f0afdbd563a5b9f123637de1191
+          test "$(git -C g18-charge hash-object 'Adafruit_BQ24074.sch')" = a97e12c1628a74e95eb0af333206ff6f3706126c
+          cp 'g18-motor/Adafruit DRV8833.sch' g18-data/Adafruit_DRV8833.sch
+          cp g18-charge/Adafruit_BQ24074.sch g18-data/Adafruit_BQ24074.sch
+          (git -C g18-motor rev-parse HEAD; git -C g18-charge rev-parse HEAD) >g18-data/pinned_commits.txt
+          sha256sum g18-data/*.sch >g18-data/source_sha256.txt
+          printf '%s\n' 'Adafruit original schematics; original license and copyright remain with Adafruit. These are NOT bench tests or inferred safety ratings.' >g18-data/NOTICE.txt
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          for f in sorted(Path('g18-data').glob('*.sch')):
+              root=ET.parse(f).getroot()
+              sheets=root.findall('.//drawing/schematic/sheets/sheet')
+              nets=sum(len(sh.findall('./nets/net')) for sh in sheets)
+              print(f.name,'sheets=',len(sheets),'nets=',nets)
+              assert sheets and nets > 5, 'schematic must actually contain parsable topology'
+          PY
+      - name: Preserve source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-g18-original-board-netlists
+          path: g18-data/
+          retention-days: 30

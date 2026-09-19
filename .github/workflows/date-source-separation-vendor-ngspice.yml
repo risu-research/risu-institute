@@ -1,0 +1,33 @@
+name: SOURCE separation CE test with actual Diodes vendor SPICE
+on:
+  push:
+    branches: [research/date-source-separation-20260919]
+permissions:
+  contents: read
+jobs:
+  nominal-spice:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run actual manufacturer-model ngspice, preserve negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq ngspice >/dev/null
+          cd research/date-source-separation-20260919
+          curl --retry 3 -fLsS 'https://www.diodes.com/spice/download/885/BZX84C5V1.spice.txt' -o BZX84C5V1.spice.txt
+          test "$(wc -c < BZX84C5V1.spice.txt)" -gt 600
+          sha256sum BZX84C5V1.spice.txt >vendor_model.sha256
+          python3 run_vendor_spice.py BZX84C5V1.spice.txt | tee vendor-run.log
+      - name: Preserve raw simulations including failures, excluding vendor proprietary model
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-separation-independent-ngspice
+          path: |
+            research/date-source-separation-20260919/results/vendor_spice/
+            research/date-source-separation-20260919/vendor-run.log
+            research/date-source-separation-20260919/vendor_model.sha256
+          retention-days: 30
+          if-no-files-found: warn

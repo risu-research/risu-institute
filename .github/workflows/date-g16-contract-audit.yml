@@ -1,0 +1,34 @@
+name: G16 NASA trace audit (research only)
+on:
+  push:
+    branches: [research/date-g16-contracts-20260919]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+      - name: Install public scientific reader
+        run: python3 -m pip install --user numpy scipy
+      - name: Fetch and freeze public observational data
+        run: |
+          git clone -q https://github.com/changyeon99/Battery-Data-Set.git nasa-battery
+          cd nasa-battery
+          git checkout -q 5301bd7e469dc8a1320b55719629571f2c02b6fc
+          git rev-parse HEAD > ../research/date-g16/pinned_source_commit.txt
+      - name: Audit all battery charge records, without changing their values
+        run: |
+          mkdir -p date-g16-output
+          cp research/date-g16/pinned_source_commit.txt date-g16-output/
+          python3 research/date-g16/explore_nasa.py nasa-battery date-g16-output
+      - name: Preserve complete audit, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-g16-nasa-observational-audit
+          path: date-g16-output/
+          if-no-files-found: warn
+          retention-days: 30

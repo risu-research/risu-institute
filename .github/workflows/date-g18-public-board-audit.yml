@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Retrieve two predeclared original schematics at immutable commits
+      - name: Retrieve two predeclared original schematics and PCBs at immutable commits
         shell: bash
         run: |
           set -euo pipefail
@@ -20,21 +20,29 @@ jobs:
           git clone -q https://github.com/adafruit/Adafruit-BQ24074-PCB.git g18-charge
           git -C g18-charge checkout -q 844404b10e1a87820ee9cb9024d85f67f4bc4bfd
           test "$(git -C g18-motor hash-object 'Adafruit DRV8833.sch')" = 45c1c9df03201f0afdbd563a5b9f123637de1191
+          test "$(git -C g18-motor hash-object 'Adafruit DRV8833.brd')" = b2bc1c841e3b60ba27142c3dd710f315846e6637
           test "$(git -C g18-charge hash-object 'Adafruit_BQ24074.sch')" = a97e12c1628a74e95eb0af333206ff6f3706126c
+          test "$(git -C g18-charge hash-object 'Adafruit_BQ24074.brd')" = 8e3f6d55c98d5ceff387b44aac8b9f86aff3946e
           cp 'g18-motor/Adafruit DRV8833.sch' g18-data/Adafruit_DRV8833.sch
+          cp 'g18-motor/Adafruit DRV8833.brd' g18-data/Adafruit_DRV8833.brd
           cp g18-charge/Adafruit_BQ24074.sch g18-data/Adafruit_BQ24074.sch
+          cp g18-charge/Adafruit_BQ24074.brd g18-data/Adafruit_BQ24074.brd
           (git -C g18-motor rev-parse HEAD; git -C g18-charge rev-parse HEAD) >g18-data/pinned_commits.txt
-          sha256sum g18-data/*.sch >g18-data/source_sha256.txt
-          printf '%s\n' 'Adafruit original schematics; original license and copyright remain with Adafruit. These are NOT bench tests or inferred safety ratings.' >g18-data/NOTICE.txt
+          sha256sum g18-data/*.sch g18-data/*.brd >g18-data/source_sha256.txt
+          printf '%s\n' 'Adafruit original source files; original license and copyright remain with Adafruit. Original board files document design intent, not manufactured-board electrical measurements.' >g18-data/NOTICE.txt
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
           from pathlib import Path
-          for f in sorted(Path('g18-data').glob('*.sch')):
+          for f in sorted(Path('g18-data').glob('*')):
+              if f.suffix not in ('.sch','.brd'): continue
               root=ET.parse(f).getroot()
-              sheets=root.findall('.//drawing/schematic/sheets/sheet')
-              nets=sum(len(sh.findall('./nets/net')) for sh in sheets)
-              print(f.name,'sheets=',len(sheets),'nets=',nets)
-              assert sheets and nets > 5, 'schematic must actually contain parsable topology'
+              if f.suffix=='.sch':
+                  sheets=root.findall('.//drawing/schematic/sheets/sheet')
+                  assert sheets and sum(len(sh.findall('./nets/net')) for sh in sheets)>5
+              else:
+                  signals=root.findall('.//drawing/board/signals/signal')
+                  assert len(signals)>5 and any(s.findall('./contactref') for s in signals)
+              print('PINNED_SOURCE_OK',f.name)
           PY
       - name: Preserve source evidence
         if: always()

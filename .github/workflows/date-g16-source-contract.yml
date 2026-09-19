@@ -1,0 +1,37 @@
+name: G16 pinned Zephyr actuation-contract audit
+on:
+  push:
+    branches: [research/date-g16-contracts-20260919]
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch four exact pinned source files and verify Git object identity
+        run: |
+          set -euo pipefail
+          mkdir -p g16-source date-g16-contract-output
+          BASE=https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/64437be51c302e42003b3b1dcbf45c8ad7fd1f08
+          curl -fsSL --retry 3 "$BASE/drivers/charger/charger_bq24190.c" -o g16-source/charger_bq24190.c
+          curl -fsSL --retry 3 "$BASE/drivers/charger/charger_bq25713.c" -o g16-source/charger_bq25713.c
+          curl -fsSL --retry 3 "$BASE/dts/bindings/charger/ti,bq24190.yaml" -o g16-source/ti,bq24190.yaml
+          curl -fsSL --retry 3 "$BASE/samples/drivers/charger/src/main.c" -o g16-source/sample_main.c
+          printf '%s %s\n' a57c30ec7a26f41588700f74a4338914bcc7a3fd g16-source/charger_bq24190.c ea1332cd25be07c807d75ef2afe336f75bcb43c7 g16-source/charger_bq25713.c b2e3b0d1e508a1205968617d7a8e492cf075c2dd g16-source/ti,bq24190.yaml ce061d02ca004c43519190c80da37c32f88b51dc g16-source/sample_main.c > date-g16-contract-output/expected_git_blobs.txt
+          while read -r expect file; do test "$(git hash-object "$file")" = "$expect" || { echo "SOURCE_HASH_MISMATCH $file" >&2; exit 31; }; done < date-g16-contract-output/expected_git_blobs.txt
+          sha256sum g16-source/* > date-g16-contract-output/source_sha256.txt
+      - name: Run explicit fail-closed capability audit on original source
+        run: |
+          python3 research/date-g16/source_contract_gate.py g16-source date-g16-contract-output | tee date-g16-contract-output/audit.log
+      - name: Preserve original evidence and audit (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-g16-original-zephyr-capability-audit
+          path: |
+            date-g16-contract-output/
+            g16-source/
+          if-no-files-found: warn
+          retention-days: 30

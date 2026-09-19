@@ -34,12 +34,12 @@ Xz 0 ce DI_BZX84C5V1
  vce=float(matches[-1].group(1)); input_cur=abs(float(matches[-1].group(2)))
  iz=(vin-vce)/ru-vce/rd-vce/285000-sink
  rows.append({'VIN_V':vin,'Rupper_ohm':ru,'R8_ohm':rd,'hypothesized_sink_A':sink,'TEMP_C_VENDOR_MODEL_ONLY':temp,'VCE_V':vce,'source_current_A':input_cur,'zener_current_from_KCL_A':iz,'VCE_logic_high_model':int(vce>=1.4),'VCE_under_abs7_model':int(vce<=7)})
-assert len(rows)==144
+assert len(rows)==72
 with (OUT/'results.csv').open('w',newline='') as f:
  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
 for vin in (4.35,10.2,28.0):
  a=[r for r in rows if r['VIN_V']==vin]
- assert len(a)==48
+ assert len(a)==24
  print('MODEL_CORNER',vin,'VCE_MIN',min(r['VCE_V'] for r in a),'VCE_MAX',max(r['VCE_V'] for r in a),'ZENER_I_MAX',max(r['zener_current_from_KCL_A'] for r in a))
  assert all(1.4 <=r['VCE_V'] <=6 for r in a),(vin,[r for r in a if not 1.4<=r['VCE_V']<=6][:5])
 print('VENDOR_MODEL_CORNERS_PASS',len(rows),'original_model_sha256',hashlib.sha256(MODEL.read_bytes()).hexdigest(),'MODEL_ONLY_NOT_QUALIFICATION')

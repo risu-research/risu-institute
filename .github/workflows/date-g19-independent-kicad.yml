@@ -1,0 +1,64 @@
+name: G19 independent KiCad 10 baseline
+on:
+  push:
+    branches: [research/date-g19-kicad-baseline-20260919]
+permissions:
+  contents: read
+jobs:
+  kicad-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Set up original source and KiCad 10 official PPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          mkdir -p g19-results
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends software-properties-common ca-certificates
+          sudo add-apt-repository --yes ppa:kicad/kicad-10.0-releases
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends kicad
+          kicad-cli version | tee g19-results/kicad_version.txt
+          git clone -q https://github.com/the-abra/ultra-compact-pmic-bq24074.git g19-board
+          git -C g19-board checkout -q b90c93ef6296afecae85fc99be7826cc7a0edba6
+          test "$(git -C g19-board hash-object SmartGlasses_PowerBoard.kicad_sch)" = b7b51644091a04d5cbf791945e8cc597e6a27fcd
+          test "$(git -C g19-board hash-object SmartGlasses_PowerBoard.kicad_pcb)" = 7688aca6254a9c16dbdfd4eeb0da49da16807cf2
+          git -C g19-board rev-parse HEAD >g19-results/pinned_source_commit.txt
+          sha256sum g19-board/SmartGlasses_PowerBoard.kicad_sch g19-board/SmartGlasses_PowerBoard.kicad_pcb >g19-results/sha256.txt
+      - name: Run independent official ERC / XML netlist / PCB DRC
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p g19-results
+          kicad-cli sch erc --exit-code-violations -o g19-results/schematic_erc.rpt g19-board/SmartGlasses_PowerBoard.kicad_sch >g19-results/erc.stdout 2>g19-results/erc.stderr
+          printf '%s\n' "$?" >g19-results/erc.exitcode
+          kicad-cli sch export netlist --format kicadxml --output g19-results/schematic_netlist.xml g19-board/SmartGlasses_PowerBoard.kicad_sch >g19-results/netlist.stdout 2>g19-results/netlist.stderr
+          printf '%s\n' "$?" >g19-results/netlist.exitcode
+          kicad-cli pcb drc --exit-code-violations -o g19-results/pcb_drc.rpt g19-board/SmartGlasses_PowerBoard.kicad_pcb >g19-results/drc.stdout 2>g19-results/drc.stderr
+          printf '%s\n' "$?" >g19-results/drc.exitcode
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          d=Path('g19-results')
+          net=d/'schematic_netlist.xml'
+          if net.exists():
+              root=ET.parse(net).getroot()
+              target=[]
+              for n in root.findall('.//nets/net'):
+                  members=[(x.get('ref'),x.get('pin')) for x in n.findall('node')]
+                  if ('U1','4') in members or ('U1','1') in members or ('U1','9') in members:
+                      target.append((n.get('name'),sorted(members)))
+              (d/'u1_official_netlist_evidence.txt').write_text('\n'.join(map(str,target))+'\n')
+              assert target, 'official netlist has no target charger pins'
+          print('INDEPENDENT_TOOL_EXIT_CODES',[(n,(d/(n+'.exitcode')).read_text().strip()) for n in ['erc','netlist','drc']])
+          PY
+      - name: Preserve raw official tool outputs and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g19-kicad-10-independent-baseline
+          path: g19-results/
+          retention-days: 30
+          if-no-files-found: warn

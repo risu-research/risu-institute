@@ -8,8 +8,10 @@
 #define SIZE 1
 #endif
 
-extern int32_t nd_i32(void);
-extern int8_t nd_i8(void);
+/* CBMC models reading an unconstrained local as nondeterministic.
+   Explicit bodies avoid automatically generated no-body check failures. */
+static int32_t nd_i32(void) { int32_t x; return x; }
+static int8_t nd_i8(void) { int8_t x; return x; }
 
 /* Independently coded, explicit floor-division oracle for CMSIS-NN
    SINGLE_ROUNDING, only over bounded inputs with no 64-bit overflow. */

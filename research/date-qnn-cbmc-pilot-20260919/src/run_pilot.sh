@@ -24,7 +24,7 @@ cbmc --version | tee results/cbmc_version.txt
 python3 - <<'PY'
 import json,subprocess,time,pathlib
 cases=[('lemma',1,['-DPROVE_LEMMA'],75,False),('direct_1',1,[],75,False),('direct_4',4,[],95,False),('composed_1',1,['-DCOMPOSED'],75,False),('composed_4',4,['-DCOMPOSED'],95,False),('mutant_1',1,['-DMUTANT'],75,True)]
-base=['cbmc','src/verify.c','--function','main','--unwind','7','--unwinding-assertions','--bounds-check','--pointer-check','--signed-overflow-check','--div-by-zero-check','--undefined-shift-check','--32','-I','upstream/Include','-I','upstream/Include/Internal','-I','work','-D','CMSIS_NN_USE_SINGLE_ROUNDING']
+base=['cbmc','src/verify.c','--function','main','--unwind','7','--unwinding-assertions','--bounds-check','--pointer-check','--signed-overflow-check','--div-by-zero-check','--undefined-shift-check','--64','-I','upstream/Include','-I','upstream/Include/Internal','-I','work','-D','CMSIS_NN_USE_SINGLE_ROUNDING']
 results=[]
 for name,size,defs,limit,negative in cases:
  cmd=base+['-D',f'SIZE={size}']+defs

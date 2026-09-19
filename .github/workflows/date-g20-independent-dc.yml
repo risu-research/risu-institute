@@ -25,9 +25,9 @@ jobs:
           from pathlib import Path
           import json,re,subprocess
           root=Path('g20-results')
-          # EXACT values from original Adafruit R8=10k plus proposed external parts.
-          # This is an idealized RESISTOR+SWITCH model, NOT a vendor transistor/charger/WDT model.
-          cases=[('stock_host_z',4.5,None,False,False),('new_host_z_low_rail',1.6,None,False,False),('new_host_z_high_rail',4.5,None,False,False),('new_MCU_permit',4.5,3.3,False,True),('new_watchdog_fault_MCU_stuck_high',4.5,3.3,True,True)]
+          # Original Adafruit R8=10k and proposed external components.
+          # Switch is IDEALIZED, not a vendor MOSFET/charger/watchdog silicon model.
+          cases=[('stock_host_z',4.5,None,False,False),('new_host_z_low_rail',1.6,None,False,True),('new_host_z_high_rail',4.5,None,False,True),('new_MCU_permit',4.5,3.3,False,True),('new_watchdog_fault_MCU_stuck_high',4.5,3.3,True,True)]
           out=[]
           for name,rail,mcu,wdofault,has_network in cases:
               lines=[f'G20 {name}',f'Vout out 0 DC {rail}', 'R8 ce 0 10000','Rinternal ce 0 285000']
@@ -36,7 +36,6 @@ jobs:
                   if mcu is not None: lines+=['Vmcu mcu 0 DC 3.3','Rseries mcu gate 1000']
                   if wdofault: lines+=['Vwdo wdo 0 DC 0.4','Rwdo gate wdo 0.01']
               else:
-                  # Original board has R8 pulling CE to GND, and no external GPIO.
                   lines+=['Rnoconn ce out 1e12']
               lines+=['.control','op','print v(ce)'+(' v(gate)' if has_network else ''),'quit','.endc','.end']
               path=root/(name+'.cir');path.write_text('\n'.join(lines)+'\n')

@@ -1,0 +1,34 @@
+name: G18 independent KiCad holdout (research only)
+on:
+  push:
+    branches: [research/date-g18-hardware-audit-20260919]
+permissions:
+  contents: read
+jobs:
+  holdout:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable third-party schematic and PCB without modifying them
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-holdout
+          git clone -q https://github.com/the-abra/ultra-compact-pmic-bq24074.git repo
+          git -C repo checkout -q b90c93ef6296afecae85fc99be7826cc7a0edba6
+          test "$(git -C repo hash-object SmartGlasses_PowerBoard.kicad_sch)" = b7b51644091a04d5cbf791945e8cc597e6a27fcd
+          test "$(git -C repo hash-object SmartGlasses_PowerBoard.kicad_pcb)" = 7688aca6254a9c16dbdfd4eeb0da49da16807cf2
+          cp repo/SmartGlasses_PowerBoard.kicad_sch g18-holdout/
+          cp repo/SmartGlasses_PowerBoard.kicad_pcb g18-holdout/
+          cp repo/README.md repo/LICENSE g18-holdout/
+          sha256sum g18-holdout/* >g18-holdout/sha256sum.txt
+          git -C repo rev-parse HEAD >g18-holdout/commit.txt
+          test -s g18-holdout/SmartGlasses_PowerBoard.kicad_sch
+          test -s g18-holdout/SmartGlasses_PowerBoard.kicad_pcb
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: date-g18-independent-kicad-holdout
+          path: g18-holdout/
+          retention-days: 30

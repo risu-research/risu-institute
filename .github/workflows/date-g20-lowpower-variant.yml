@@ -1,0 +1,64 @@
+name: G20 independent low-power rework comparison
+on:
+  push:
+    branches: [research/date-g20-lease-interlock-20260919]
+permissions:
+  contents: read
+jobs:
+  electrical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Install real ngspice
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ngspice
+      - name: Compare unmodified vs reworked source-derived resistor networks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python3 - <<'PY'
+          import json,re,subprocess
+          from pathlib import Path
+          base=Path('evidence')
+          # Exact R8 10k nominal from immutable Adafruit netlist; 560R and 5600R are PROPOSED not built.
+          # First two new cases assume the stock R8-to-GND remains; rework cases REMOVE R8 from GND.
+          cases=[('original_external_low_host_z',1.6,560,True,False),('rework_keep_R8_low_host_z_INVALID',1.6,5600,True,False),('rework_remove_R8_low_host_z',1.6,5600,False,False),('original_external_high_permit',4.5,560,True,True),('rework_remove_R8_high_permit',4.5,5600,False,True)]
+          results=[]
+          for name,rail,rup,has_r8,permit in cases:
+              lines=[f'G20 {name}',f'Vsupply out 0 {rail}','Rinternal ce 0 285000']
+              if has_r8: lines+=['R8 ce 0 10000']
+              lines+=[f'Rpermit out ce {rup}','Rgate gate 0 4700','Rwdopull out gate 100000','Spermit ce 0 gate 0 SWPERMIT','.model SWPERMIT SW(RON=10 ROFF=1G VT=1 VH=0)']
+              if permit: lines+=['Vmcu mcu 0 3.3','Rseries mcu gate 1000']
+              lines+=['.control','op','print v(ce) v(gate)','quit','.endc','.end']
+              (base/(name+'.cir')).write_text('\n'.join(lines)+'\n')
+              cp=subprocess.run(['ngspice','-b',str(base/(name+'.cir'))],capture_output=True,text=True,timeout=20)
+              log=(cp.stdout or '')+'\n'+(cp.stderr or '')
+              (base/(name+'.log')).write_text(log)
+              assert cp.returncode==0, (name,log)
+              ce=re.search(r'v\(ce\)\s*=\s*([+\-0-9.eE]+)',log,re.I)
+              assert ce,(name,log)
+              voltage=float(ce.group(1));current=(rail-voltage)/rup
+              results.append({'scenario':name,'vout_v':rail,'ce_v':voltage,'r8_still_connected':has_r8,'proposed_pullup_ohms':rup,'approx_pullup_current_mA':round(current*1000,6),'ideal_switch_only':True})
+              print('SPICE',name,'CE_V',voltage,'RUP_mA',round(current*1000,6))
+          r={i['scenario']:i for i in results}
+          assert r['original_external_low_host_z']['ce_v']>1.4
+          assert r['rework_keep_R8_low_host_z_INVALID']['ce_v']<1.4
+          assert r['rework_remove_R8_low_host_z']['ce_v']>1.4
+          assert r['original_external_high_permit']['ce_v']<.4
+          assert r['rework_remove_R8_high_permit']['ce_v']<.4
+          ratio=r['original_external_high_permit']['approx_pullup_current_mA']/r['rework_remove_R8_high_permit']['approx_pullup_current_mA']
+          assert ratio>9
+          print('SIMULATED_PERMIT_PULLUP_CURRENT_RATIO',round(ratio,3))
+          (base/'result.json').write_text(json.dumps({'source':'Adafruit BQ24074 nominal original R8=10k; proposed ideal passive+switch network, not physical hardware','results':results,'pullup_current_ratio_nominal':ratio},indent=2)+'\n')
+          PY
+      - name: Retain raw circuits, solver outputs, and negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-rework-counterfactual-ngspice
+          path: evidence/
+          retention-days: 30
+          if-no-files-found: error

@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Retrieve two predeclared original schematics and PCBs at immutable commits
+      - name: Retrieve pinned schematics, routed PCB, original attribution and licenses
         shell: bash
         run: |
           set -euo pipefail
@@ -25,11 +25,15 @@ jobs:
           test "$(git -C g18-charge hash-object 'Adafruit_BQ24074.brd')" = 8e3f6d55c98d5ceff387b44aac8b9f86aff3946e
           cp 'g18-motor/Adafruit DRV8833.sch' g18-data/Adafruit_DRV8833.sch
           cp 'g18-motor/Adafruit DRV8833.brd' g18-data/Adafruit_DRV8833.brd
+          cp g18-motor/README.md g18-data/MOTOR_ORIGINAL_README.md
+          cp g18-motor/license.txt g18-data/MOTOR_ORIGINAL_LICENSE.txt
           cp g18-charge/Adafruit_BQ24074.sch g18-data/Adafruit_BQ24074.sch
           cp g18-charge/Adafruit_BQ24074.brd g18-data/Adafruit_BQ24074.brd
+          cp g18-charge/README.md g18-data/CHARGER_ORIGINAL_README.md
+          cp g18-charge/license.txt g18-data/CHARGER_ORIGINAL_LICENSE.txt
           (git -C g18-motor rev-parse HEAD; git -C g18-charge rev-parse HEAD) >g18-data/pinned_commits.txt
           sha256sum g18-data/*.sch g18-data/*.brd >g18-data/source_sha256.txt
-          printf '%s\n' 'Adafruit original source files; original license and copyright remain with Adafruit. Original board files document design intent, not manufactured-board electrical measurements.' >g18-data/NOTICE.txt
+          printf '%s\n' 'Adafruit original source files; original license and copyright remain with Adafruit. Original board files document design intent, not manufactured-board electrical measurements. Original attribution and license files are bundled unchanged.' >g18-data/NOTICE.txt
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
           from pathlib import Path

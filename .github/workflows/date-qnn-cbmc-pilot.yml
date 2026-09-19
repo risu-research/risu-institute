@@ -1,0 +1,44 @@
+name: DATE QNN Source Pilot
+on:
+  push:
+    branches:
+      - research/date-qnn-cbmc-pilot-20260919
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain exact upstream source
+        uses: actions/checkout@v4
+        with:
+          repository: ARM-software/CMSIS-NN
+          ref: 22080c68d040c98139e6cb1549473e3149735f4d
+          path: research/date-qnn-cbmc-pilot-20260919/upstream
+          persist-credentials: false
+      - name: Install pinned CBMC
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 3 -o /tmp/cbmc.deb https://github.com/diffblue/cbmc/releases/download/cbmc-6.8.0/ubuntu-24.04-cbmc-6.8.0-Linux.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y /tmp/cbmc.deb
+          cbmc --version
+      - name: Run direct and compositional C proof pilot
+        shell: bash
+        working-directory: research/date-qnn-cbmc-pilot-20260919
+        run: bash src/run_pilot.sh
+      - name: Preserve original and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-qnn-cbmc-pilot
+          path: |
+            research/date-qnn-cbmc-pilot-20260919/results/
+            research/date-qnn-cbmc-pilot-20260919/work/mul_composed.c
+            research/date-qnn-cbmc-pilot-20260919/upstream/Source/BasicMathFunctions/arm_elementwise_mul_s8.c
+            research/date-qnn-cbmc-pilot-20260919/upstream/Include/arm_nnsupportfunctions.h
+          if-no-files-found: warn

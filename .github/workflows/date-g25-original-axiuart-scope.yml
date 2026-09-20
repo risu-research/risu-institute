@@ -1,0 +1,76 @@
+name: DATE G25 independent wbuart32 formal boundary
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25-original-axiuart-scope.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  uart-scope:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Unmodified third-party original stock formal, targeted formal, and real RTL native
+        shell: bash
+        run: |
+          set -u
+          mkdir -p g25-out g25-work
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25-wbuart >g25-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25-out/STATUS.txt
+          git -C /tmp/g25-wbuart checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25-out/STATUS.txt
+          git -C /tmp/g25-wbuart rev-parse HEAD >g25-out/SOURCE_COMMIT.txt
+          cp /tmp/g25-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25-work/
+          cp /tmp/g25-wbuart/bench/formal/faxil_slave.v g25-work/
+          cp research/date-g25-third-target-20260920/g25_axil_idle_tb.sv g25-work/
+          cp /tmp/g25-wbuart/bench/formal/axiluart.sby g25-out/ORIGINAL_STOCK.sby
+          sha256sum g25-work/* >g25-out/SOURCE_HASHES.txt
+          { sby --version; yosys -V; z3 --version; iverilog -V 2>&1 | head -2; } >g25-out/TOOLS.txt 2>&1
+          ROOT="$PWD"
+          (cd /tmp/g25-wbuart/bench/formal && timeout 270 sby -f -d "$ROOT/g25-out/stock-prf" axiluart.sby prf >"$ROOT/g25-out/STOCK.run.log" 2>&1)
+          echo "stock_exit=$? stock_status=$(cat g25-out/stock-prf/status 2>/dev/null || echo MISSING)" >>g25-out/STATUS.txt
+          cat >g25-work/idle.sby <<'EOF'
+          [options]
+          mode prove
+          depth 14
+          [engines]
+          smtbmc z3
+          [script]
+          read -formal -sv g25_axil_idle_tb.sv axiluart.v ufifo.v skidbuffer.v faxil_slave.v
+          prep -top g25_axil_idle_harness
+          [files]
+          g25_axil_idle_tb.sv
+          axiluart.v
+          ufifo.v
+          skidbuffer.v
+          faxil_slave.v
+          EOF
+          (cd g25-work && timeout 120 sby -f -d "$ROOT/g25-out/idle-formal" idle.sby >"$ROOT/g25-out/IDLE.run.log" 2>&1)
+          echo "idle_formal_exit=$? idle_formal_status=$(cat g25-out/idle-formal/status 2>/dev/null || echo MISSING)" >>g25-out/STATUS.txt
+          cp g25-work/idle.sby g25-out/
+          iverilog -g2012 -s g25_idle_native_tb -o g25-work/idle_native.vvp g25-work/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25-work/g25_axil_idle_tb.sv >g25-out/NATIVE.compile.log 2>&1
+          rc=$?; echo "native_compile_exit=$rc" >>g25-out/STATUS.txt
+          if [ "$rc" -eq 0 ];then
+            timeout 30 vvp g25-work/idle_native.vvp >g25-out/NATIVE.run.log 2>&1
+            echo "native_run_exit=$?" >>g25-out/STATUS.txt
+          else
+            echo "native_not_run=compile_failed" >>g25-out/STATUS.txt
+          fi
+          cp research/date-g25-third-target-20260920/PREREGISTRATION.md g25-out/
+          cp g25-work/g25_axil_idle_tb.sv g25-out/
+          cat g25-out/STATUS.txt
+          tail -10 g25-out/STOCK.run.log || true
+          tail -10 g25-out/IDLE.run.log || true
+          tail -15 g25-out/NATIVE.run.log 2>/dev/null || true
+      - name: Retain all raw positive, negative and invalid outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25-original-uart-scope-raw
+          path: g25-out/
+          retention-days: 30

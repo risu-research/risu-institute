@@ -1,0 +1,71 @@
+name: DATE G23 original SERVile symbolic scope proof
+on:
+  push:
+    branches: [research/date-g23-exhaustive-scope-20260920]
+    paths: [.github/workflows/date-g23-symbolic-servile-scope.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-pinned-symbolic:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        csr: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run complete four-property list against exact unchanged original module
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          CSR: ${{ matrix.csr }}
+        run: |
+          set -uo pipefail
+          mkdir -p g23-out g23-work
+          if [ "$REV" = parent ];then SHA=838d16615e81786062fae84b9f7c044fb8f6bbe4;else SHA=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2;fi
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g23-upstream >g23-out/CLONE.log 2>&1
+          git -C /tmp/g23-upstream checkout "$SHA" >g23-out/CHECKOUT.log 2>&1
+          git -C /tmp/g23-upstream rev-parse HEAD >g23-out/ORIGINAL_COMMIT.txt
+          git -C /tmp/g23-upstream diff 838d16615e81786062fae84b9f7c044fb8f6bbe4 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2 --name-only >g23-out/ORIGINAL_DIFF_NAMES.txt
+          cp /tmp/g23-upstream/servile/servile_rf_mem_if.v g23-work/
+          cp research/date-g23-exhaustive-scope-20260920/servile_scope_probe.sv g23-work/
+          sha256sum g23-work/* >g23-out/SOURCE_HASHES.txt
+          { sby --version; yosys -V; z3 --version; } >g23-out/TOOLS.txt 2>&1
+          echo "revision=$REV csr=$CSR" >g23-out/CONFIG.txt
+          if [ "$CSR" = 1 ];then CSRDEFINE=-DCSR_ON;else CSRDEFINE=;fi
+          for CASE in ZERO THIRTY THIRTYONE ALL;do
+            cat >g23-work/$CASE.sby <<EOF
+          [options]
+          mode prove
+          depth 4
+          [engines]
+          smtbmc z3
+          [script]
+          read -formal -sv -DCASE_${CASE} $CSRDEFINE servile_scope_probe.sv servile_rf_mem_if.v
+          prep -top servile_scope_probe
+          [files]
+          servile_scope_probe.sv
+          servile_rf_mem_if.v
+          EOF
+            (cd g23-work && timeout 55 sby -f -d result-$CASE $CASE.sby >../g23-out/$CASE.run.log 2>&1)
+            EXIT=$?
+            echo "case=$CASE cli_exit=$EXIT status=$(cat g23-work/result-$CASE/status 2>/dev/null || echo MISSING)" | tee -a g23-out/RESULTS.txt
+            cp g23-work/$CASE.sby g23-out/$CASE.sby
+            if [ -d g23-work/result-$CASE ];then tar -czf g23-out/$CASE.raw.tar.gz -C g23-work result-$CASE;fi
+          done
+          cp g23-work/servile_scope_probe.sv g23-out/
+          cp g23-work/servile_rf_mem_if.v g23-out/
+          cat g23-out/RESULTS.txt
+      - name: Archive all outcomes including expected counterexamples or errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g23-symbolic-${{ matrix.rev }}-csr${{ matrix.csr }}
+          path: g23-out/
+          retention-days: 30

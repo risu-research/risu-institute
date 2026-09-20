@@ -1,0 +1,7 @@
+# G11 real instruction-fetch control
+
+The prior SAT trace used the historical `abs_prefetch` formal abstraction and the real `mpyop` multiplier. We must not call it a native instruction-fetch trace.
+
+This note records the next distinct control. At the pinned historical parent (`128cab89f5edaae4699184f50c1334598ebe904e`) and child (`d511239e19be8fcc7f340a64554ea93699637e62`), preserve the source RTL, substitute the *original* `dblfetch.v` for `abs_prefetch.v` **only as a declared verification-model variant**, and retain the real `mpyop.v`. Build both full CPU models with all design hierarchy constraints. Search for an accepted `0x100` memory request when the old byte/word address assertion is active, with a causal single-assertion ablation and quiet debug controls. Clearly distinguish unconstrained external Wishbone responses from a bounded consistent ROM/handshake environment. SAT under native fetch plus arbitrary responses is not proof of any specific executable binary or silicon behavior.
+
+Prior false SAT omitted `zipcpu_h`; all subsequent queries must include `zipcpu_h`, `zipcpu_i`, `zipcpu_t`, `zipcpu_u`, and all applicable `zipcpu_a` except the separately identified causal ablation. Preserve timeouts, model substitutions, and negative results.

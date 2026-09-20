@@ -1,0 +1,87 @@
+name: DATE G12 SERV independent formal property matrix and baseline
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths:
+      - '.github/workflows/date-g12-serv-formal-matrix.yml'
+      - 'research/date-g12-serv-prospective/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install formal tools and recover same pinned historical source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g12-matrix
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys z3
+          yosys -V > g12-matrix/TOOLS.txt; z3 -version >> g12-matrix/TOOLS.txt
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g12-matrix-original
+          cd /tmp/g12-matrix-original
+          test "$(git rev-parse 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2^)" = '838d16615e81786062fae84b9f7c044fb8f6bbe4'
+          for PAIR in 'parent 838d16615e81786062fae84b9f7c044fb8f6bbe4' 'child 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2';do
+            set -- $PAIR
+            git show "$2:servile/servile_rf_mem_if.v" > "$GITHUB_WORKSPACE/g12-matrix/$1.v"
+          done
+          sha256sum "$GITHUB_WORKSPACE/g12-matrix/"{parent,child}.v "$GITHUB_WORKSPACE/research/date-g12-serv-prospective/servile_rf_property_matrix.v" > "$GITHUB_WORKSPACE/g12-matrix/INPUT_SHA256.txt"
+          git show 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2:serv.core > "$GITHUB_WORKSPACE/g12-matrix/serv.core"
+          git show 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2:servile.core > "$GITHUB_WORKSPACE/g12-matrix/servile.core"
+          grep -q 'servile_rf_mem_if.v' "$GITHUB_WORKSPACE/g12-matrix/servile.core"
+          ! grep -q 'servile_rf_mem_if.v' "$GITHUB_WORKSPACE/g12-matrix/serv.core"
+          echo 'PASS cheap baseline: native serv.core excludes modified file; servile.core includes it' > "$GITHUB_WORKSPACE/g12-matrix/BASELINE.txt"
+      - name: Check historical parent/post x0 x31 x1 independently, with nonvacuity cover
+        shell: bash
+        run: |
+          set -euo pipefail
+          for REV in parent child;do
+            for PROPERTY in X0 X31 X1;do
+              STEM="$REV-$PROPERTY"
+              yosys -Q -T -p "read_verilog -formal -sv -D CHECK_$PROPERTY research/date-g12-serv-prospective/servile_rf_property_matrix.v g12-matrix/$REV.v; prep -top servile_rf_property_matrix; write_smt2 -wires g12-matrix/$STEM.smt2" > "g12-matrix/$STEM-build.log" 2>&1
+              set +e
+              timeout 30 yosys-smtbmc -s z3 -t 5 --dump-vcd "g12-matrix/$STEM-assert.vcd" "g12-matrix/$STEM.smt2" > "g12-matrix/$STEM-assert.log" 2>&1
+              ASSERT_RC=$?
+              timeout 30 yosys-smtbmc -c -s z3 -t 5 --dump-vcd "g12-matrix/$STEM-cover.vcd" "g12-matrix/$STEM.smt2" > "g12-matrix/$STEM-cover.log" 2>&1
+              COVER_RC=$?
+              set -e
+              echo "$STEM ASSERT_RC=$ASSERT_RC COVER_RC=$COVER_RC" | tee -a g12-matrix/RESULTS.txt
+              grep -q 'Status: PASSED' "g12-matrix/$STEM-cover.log"
+              test "$COVER_RC" -eq 0
+              if [ "$REV" = parent ] && [ "$PROPERTY" != X1 ];then
+                test "$ASSERT_RC" -ne 0
+                grep -q 'Status: FAILED' "g12-matrix/$STEM-assert.log"
+                test -s "g12-matrix/$STEM-assert.vcd"
+              else
+                test "$ASSERT_RC" -eq 0
+                grep -q 'Status: PASSED' "g12-matrix/$STEM-assert.log"
+              fi
+            done
+          done
+          echo 'PASS parent x0 FAIL, x31 FAIL, x1 PASS; child all PASS; all six reachability covers PASS' | tee -a g12-matrix/RESULTS.txt
+          sha256sum g12-matrix/*.smt2 > g12-matrix/SMT_SHA256.txt
+      - name: Test unbounded induction for corrected child; record unsupported separately
+        shell: bash
+        run: |
+          set -uo pipefail
+          for PROPERTY in X0 X31 X1;do
+            set +e
+            timeout 50 yosys-smtbmc -i -s z3 -t 7 "g12-matrix/child-$PROPERTY.smt2" > "g12-matrix/child-$PROPERTY-induction.log" 2>&1
+            RC=$?
+            set -e
+            RESULT=INCONCLUSIVE
+            if [ "$RC" -eq 0 ] && grep -q 'Status: PASSED' "g12-matrix/child-$PROPERTY-induction.log";then RESULT=INDUCTION_PASSED;fi
+            echo "$PROPERTY induction_exit=$RC outcome=$RESULT" | tee -a g12-matrix/INDUCTION_SUMMARY.txt
+          done
+      - name: Preserve complete six-way matrix with induction and minimal source-membership baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g12-serv-sixway-formal-matrix
+          path: g12-matrix/
+          if-no-files-found: warn
+          retention-days: 30

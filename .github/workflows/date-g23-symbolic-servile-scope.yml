@@ -20,7 +20,7 @@ jobs:
       - uses: YosysHQ/setup-oss-cad-suite@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run complete four-property list against exact unchanged original module
+      - name: Run all four properties including expected counterexamples
         shell: bash
         env:
           REV: ${{ matrix.rev }}
@@ -53,8 +53,8 @@ jobs:
           servile_scope_probe.sv
           servile_rf_mem_if.v
           EOF
-            (cd g23-work && timeout 55 sby -f -d result-$CASE $CASE.sby >../g23-out/$CASE.run.log 2>&1)
-            EXIT=$?
+            # GitHub bash starts with -e: guard expected SBY FAIL so no cell is dropped.
+            if (cd g23-work && timeout 55 sby -f -d result-$CASE $CASE.sby >../g23-out/$CASE.run.log 2>&1); then EXIT=0;else EXIT=$?;fi
             echo "case=$CASE cli_exit=$EXIT status=$(cat g23-work/result-$CASE/status 2>/dev/null || echo MISSING)" | tee -a g23-out/RESULTS.txt
             cp g23-work/$CASE.sby g23-out/$CASE.sby
             if [ -d g23-work/result-$CASE ];then tar -czf g23-out/$CASE.raw.tar.gz -C g23-work result-$CASE;fi

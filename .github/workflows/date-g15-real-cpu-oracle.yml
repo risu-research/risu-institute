@@ -1,0 +1,59 @@
+name: DATE G15 unchanged real CPU versus original formal oracle
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g15-real-cpu-oracle.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpu-vs-oracle:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact unmodified CPU and oracle and source-only corrected control
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq iverilog
+          mkdir -p g15-cpu/src g15-cpu/logs
+          cp research/date-g15-oracle-cpu/PROTOCOL.md g15-cpu/PROTOCOL.md
+          cp research/date-g15-oracle-cpu/picorv32_signed_div_oracle_tb.sv g15-cpu/src/tb.sv
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g15-original-cpu
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g15-original-isa
+          git -C /tmp/g15-original-cpu show 'de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v' > g15-cpu/src/picorv32.v
+          for OP in div rem; do git -C /tmp/g15-original-isa show "c992aa61fdfe0846c5ed90324c596202a1c69b76:insns/insn_${OP}.v" > "g15-cpu/src/original_${OP}.v"; done
+          test "$(git hash-object g15-cpu/src/original_div.v)" = 08ace69977b0fd8a97d776696a354bb504f5fcad
+          test "$(git hash-object g15-cpu/src/original_rem.v)" = 699f5a65b8757de9e711ed305dd570f27c78c2a3
+          python3 - <<'PY'
+          from pathlib import Path
+          for op,sym in (('div','/'),('rem','%')):
+            s=Path(f'g15-cpu/src/original_{op}.v').read_text()
+            old=f'$signed(rvfi_rs1_rdata) {sym} $signed(rvfi_rs2_rdata);'
+            assert s.count(old)==1
+            s=s.replace(old,f'{{$signed(rvfi_rs1_rdata) {sym} $signed(rvfi_rs2_rdata)}};',1)
+            name=f'module rvfi_insn_{op} ('
+            assert s.count(name)==1
+            s=s.replace(name,f'module rvfi_insn_{op}_corrected (',1)
+            Path(f'g15-cpu/src/corrected_{op}.v').write_text(s)
+          PY
+          git hash-object g15-cpu/src/picorv32.v > g15-cpu/CPU_BLOB_SHA1.txt
+          printf '%s\n%s\n' de92ce54e8a3f24f2adc6b5d04de35e4edb873e5 c992aa61fdfe0846c5ed90324c596202a1c69b76 > g15-cpu/PINS.txt
+          iverilog -V 2>&1 | head -3 > g15-cpu/TOOLS.txt
+          sha256sum g15-cpu/src/* > g15-cpu/SOURCE_SHA256.txt
+      - name: Execute unmodified PicoRV32 on real RV32IM bus transactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          iverilog -g2012 -D RISCV_FORMAL_XLEN=32 -D RISCV_FORMAL_ILEN=32 -s picorv32_signed_div_oracle_tb -o g15-cpu/cpu_tb g15-cpu/src/{picorv32.v,original_div.v,original_rem.v,corrected_div.v,corrected_rem.v,tb.sv} > g15-cpu/logs/compile.log 2>&1
+          vvp g15-cpu/cpu_tb > g15-cpu/logs/CPU_AND_ORACLE.log 2>&1
+          grep -E '^(CASE |CPU_COMPLETED|END )' g15-cpu/logs/CPU_AND_ORACLE.log | tee g15-cpu/RESULT.txt
+          grep -q 'END actual_isa_pass=3' g15-cpu/RESULT.txt
+      - name: Preserve full source, execution traces and failed outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g15-original-cpu-versus-original-oracle
+          path: g15-cpu/
+          retention-days: 30

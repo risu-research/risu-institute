@@ -1,0 +1,50 @@
+name: DATE G13 native CPU exact barrel shifter formal parameter control
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g13-picorv32-matched-engine.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reexecute unmodified historical CPUs with alternative shift engine matching formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog
+          mkdir -p g13-matched
+          iverilog -V 2>&1 | head -4 > g13-matched/TOOL.txt || true
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g13-cpu-matched
+          git -C /tmp/g13-cpu-matched show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v > g13-matched/parent.v
+          git -C /tmp/g13-cpu-matched show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v > g13-matched/child.v
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('research/date-g13-picorv32/rv32e_shift_tb.v').read_text()
+          assert src.count('.BARREL_SHIFTER(0)')==1
+          Path('g13-matched/rv32e_shift_tb_barrel1.v').write_text(src.replace('.BARREL_SHIFTER(0)', '.BARREL_SHIFTER(1)'))
+          PY
+          sha256sum research/date-g13-picorv32/rv32e_shift_tb.v g13-matched/*.v > g13-matched/SHA256_INPUTS.txt
+          for REV in parent child;do
+            for ISA in E I;do
+              STEM="$REV-rv32$ISA-barrel1"
+              FLAGS=''; if [ "$ISA" = E ];then FLAGS='-DRV32E_MODE';fi
+              iverilog -g2012 -s rv32e_shift_tb $FLAGS -o "g13-matched/$STEM.out" g13-matched/rv32e_shift_tb_barrel1.v "g13-matched/$REV.v" > "g13-matched/$STEM-compile.log" 2>&1
+              timeout 65 vvp "g13-matched/$STEM.out" > "g13-matched/$STEM.log" 2>&1
+              grep -q 'END fetches=' "g13-matched/$STEM.log"
+              if [ "$REV" = parent ] && [ "$ISA" = E ];then grep -q 'ARCH_RESULT=FAIL' "g13-matched/$STEM.log";else grep -q 'ARCH_RESULT=PASS' "g13-matched/$STEM.log";fi
+              grep 'END fetches=\|ARCH_RESULT=' "g13-matched/$STEM.log" | tee -a g13-matched/RESULTS.txt
+            done
+          done
+      - name: Archive full proof-matched native RTL evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g13-native-barrel1-configuration-matrix
+          path: g13-matched/
+          retention-days: 30

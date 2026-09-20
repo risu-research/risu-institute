@@ -20,9 +20,14 @@ int main(void){int errors=0;
  errors+=run("WITNESS_SHIFT15",100,100,15,4,-100,100,100,-100);
  errors+=run("TAIL_SHIFT15",100,100,15,5,-100,100,100,-100);
  errors+=run("BOUNDARY_SHIFT15",127,128,15,4,-100,100,100,-100);
- /* Model-matched: TFLM INT8 MUL with fused activation NONE has full INT8
+ /* Model-matched: official TFLM INT8 MUL with fused activation NONE has
   * clamp [-128,127], offsets +100, Q31 multiplier 2^30, shift +15. */
  errors+=run("TFLM_MODEL_FULL_INT8",100,100,15,4,-128,127,127,-128);
+ /* Tight, adjacent reachable INT8 inputs within the SAME model:
+  * x=81 -> (81+100)^2=32761 <=32767: non-wrapping vshl.s32;
+  * x=82 -> (82+100)^2=33124 >32767: wrapping vshl.s32. */
+ errors+=run("MODEL_NEAR_SAFE_81",81,100,15,4,-128,127,127,127);
+ errors+=run("MODEL_NEAR_UNSAFE_82",82,100,15,4,-128,127,127,-128);
  if(errors){write0("NATIVE_MVE_RESULT_FAIL\n");return 3;}
  write0("NATIVE_MVE_RESULT_PASS\n");return 0;
 }

@@ -1,0 +1,82 @@
+name: RTL memory-port regression
+on:
+  push:
+    branches: [research/rtl-memory-bridge-20260920]
+    paths: [.github/workflows/rtl-memory-bridge.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  boundary-check:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore exact unmodified upstream revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/pico-cpu
+          git -C /tmp/pico-cpu show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/pico-cpu show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          cp research/rtl-memory-bridge/memory_bridge.sv results/memory_bridge.sv
+          { yosys -V; sby --version; iverilog -V | head -1; } >results/TOOLS.txt
+          sha256sum results/{parent.v,child.v,memory_bridge.sv} >results/SHA256SUMS.txt
+      - name: Run external-ROM native controls on both original CPUs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for rev in parent child; do
+            for op in 0 1 2; do
+              for split in 0 1; do
+                name="${rev}_${op}_${split}"
+                iverilog -g2012 -DRISCV_FORMAL -DSIM_OP=$op -DSIM_SPLIT=$split -DSIM_LOW=0 -DSIM_SHIFT=16 -s bridge_sim -o "results/$name.vvp" "results/$rev.v" results/memory_bridge.sv >"results/$name.compile.log" 2>&1
+                vvp "results/$name.vvp" >"results/$name.native.log" 2>&1
+                if [ "$rev" = parent ]; then grep -q 'EXPECTED_OLD_MISMATCH' "results/$name.native.log"; else grep -q '^RESULT ' "results/$name.native.log"; fi
+                if grep -q 'TIMEOUT\|ERROR\|FATAL' "results/$name.native.log"; then cat "results/$name.native.log"; exit 1; fi
+                tail -3 "results/$name.native.log"
+              done
+            done
+          done
+      - name: Prove the symbolic split-fetch property on the old and repaired source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for rev in parent child; do
+            dir="results/proof_${rev}_slli_split"
+            mkdir -p "$dir"
+            cp "results/$rev.v" "$dir/cpu.v"
+            cp results/memory_bridge.sv "$dir/memory_bridge.sv"
+            cat >"$dir/contract.sby" <<'EOF'
+          [options]
+          mode bmc
+          depth 76
+          expect pass,fail
+          [engines]
+          smtbmc boolector
+          [script]
+          read -sv -DRISCV_FORMAL -DBRIDGE_FORMAL memory_bridge.sv cpu.v
+          chparam -set OP 0 -set SPLIT 1 -set LOW_ONLY 0 memory_bridge
+          prep -top memory_bridge
+          [files]
+          memory_bridge.sv
+          cpu.v
+          EOF
+            (cd "$dir" && timeout 290 sby -f contract.sby) >"$dir/EXECUTION.log" 2>&1 || true
+            status="$(cat "$dir/contract/status" 2>/dev/null || echo MISSING)"
+            echo "revision=$rev status=$status" | tee "$dir/RESULT.txt"
+            if [ "$rev" = parent ]; then test "$status" = FAIL; else test "$status" = PASS; fi
+          done
+      - name: Preserve scripts, original inputs, solver traces and status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtl-memory-port-evidence
+          path: results/
+          retention-days: 30

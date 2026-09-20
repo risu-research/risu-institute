@@ -1,0 +1,61 @@
+name: DATE G20 exact SLLI cover v2 retained original failed fixture
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-exact-cover-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-cover-v2:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recover exact first script, fix only absent generated SBY working directory
+        run: |
+          set -euo pipefail
+          mkdir -p g20-cover
+          echo 'Original G20 cover run 35518243072: generator produced .sby but not materialized task directory. v2 first invokes stock make to create directory. Original DUT, predeclared probes and checker semantic constraints unchanged.' >g20-cover/AMENDMENT.txt
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g20formal
+          git -C /tmp/g20formal checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20cpu
+          for r in parent child;do
+            sha=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+            if [ "$r" = child ];then sha=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+            git -C /tmp/g20cpu show "$sha:picorv32.v" >"g20-cover/$r.v"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          raw=Path('.github/workflows/date-g20-exact-slli-cover.yml').read_text()
+          beg="          cat > /tmp/g20_exact_cover.py <<'PY'\n"
+          assert raw.count(beg)==1
+          s=textwrap.dedent(raw.split(beg,1)[1].split('\n          PY\n',1)[0])+'\n'
+          needle="            srcdir=base/'checks/insn_slli_ch0'"
+          # The source was nested inside Python for-loop and is de-indented by textwrap.
+          needle="srcdir=base/'checks/insn_slli_ch0'"
+          assert s.count(needle)==1
+          fix="""stock=subprocess.run(['timeout','90','make','-C','checks','insn_slli_ch0'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=100)
+            (out/f'stock_{rev}.log').write_text(stock.stdout)
+            (out/f'stock_{rev}_STATUS.txt').write_text(str(stock.returncode)+'\\n')
+            srcdir=base/'checks/insn_slli_ch0'"""
+          s=s.replace(needle,fix,1)
+          Path('/tmp/g20_exact_cover_v2.py').write_text(s)
+          (Path('g20-cover')/'REPAIRED_SCRIPT.py').write_text(s)
+          PY
+          set +e
+          python3 /tmp/g20_exact_cover_v2.py >g20-cover/RUN.log 2>&1
+          echo "script_exit=$?" >g20-cover/EXECUTION_STATUS.txt
+          tail -30 g20-cover/RUN.log
+          exit 0
+      - name: Persist all three exact cover cases and failed controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-exact-original-rtl-cover-v2
+          path: g20-cover/
+          retention-days: 30

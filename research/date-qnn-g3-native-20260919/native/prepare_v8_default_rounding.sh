@@ -9,19 +9,22 @@ cp upstream/Include/arm_nnsupportfunctions.h source/official_arm_nnsupportfuncti
 printf '%s  %s\n' 4365d15aa7e44dd7c85891c29f57955de09a77cde24c128ed665697561c19596 source/arm_elementwise_mul_s8.c 0d5f6dd9f81ae6361e2d0ffa7fa91ccd3ae1f84fb898942b027260609caaae6b source/official_arm_nnsupportfunctions.h | sha256sum -c -
 python3 - <<'PY'
 from pathlib import Path
+import re
 h=Path('source/official_arm_nnsupportfunctions.h').read_text()
 for name in ['arm_doubling_high_mult_mve_32x4','arm_divide_by_power_of_two_mve_32x4','arm_requantize_mve_32x4']:
  prefix='__STATIC_FORCEINLINE '
- start=h.index(prefix,h.rfind('\n',0,h.index(name+'(')))
- brace=h.index('{',start);depth=0;end=None
+ match=re.search(r'__STATIC_FORCEINLINE\s+int32x4_t\s+'+re.escape(name)+r'\s*\(',h)
+ assert match is not None,name
+ start=match.start()
+ brace=h.index('{',match.end());depth=0;end=None
  for i in range(brace,len(h)):
   if h[i]=='{':depth+=1
   elif h[i]=='}':
    depth-=1
    if depth==0:end=i+1;break
- assert end is not None
+ assert end is not None,name
  fn=h[start+len(prefix):end]
- assert name+'(' in fn and fn in h
+ assert name+'(' in fn and fn in h,name
  Path('source/native_inc/'+name+'.inc').write_text(fn+'\n')
 Path('source/native_inc/arm_nnfunctions.h').write_text('#ifndef G3_ABI_H\n#define G3_ABI_H\n#include <stdint.h>\ntypedef enum { ARM_CMSIS_NN_SUCCESS=0 } arm_cmsis_nn_status;\n#endif\n')
 Path('source/native_inc/arm_nnsupportfunctions.h').write_text('''#ifndef G3_HELPER_H

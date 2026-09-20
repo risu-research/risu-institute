@@ -1,0 +1,89 @@
+name: DATE G13 qualified RV32E SLLI proof and nonvacuity
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g13-picorv32-qualified-formal.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualified:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin real original DUT and formal framework; state exact legal-input qualification
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+        run: |
+          set -euo pipefail
+          mkdir -p g13-qualified
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g13-rvf-qualified
+          (cd /tmp/g13-rvf-qualified && git checkout c992aa61fdfe0846c5ed90324c596202a1c69b76 && git rev-parse HEAD) > g13-qualified/FORMAL_PIN.txt
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g13-cpu-qualified
+          SHA=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          if [ "$REV" = child ];then SHA=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+          git -C /tmp/g13-cpu-qualified show "$SHA:picorv32.v" > /tmp/g13-rvf-qualified/cores/picorv32/picorv32.v
+          printf '%s\n' "$SHA" > g13-qualified/DUT_PIN.txt
+          cp /tmp/g13-rvf-qualified/cores/picorv32/wrapper.sv g13-qualified/UPSTREAM_WRAPPER.sv
+          cp /tmp/g13-rvf-qualified/cores/picorv32/checks.cfg g13-qualified/UPSTREAM_CHECKS.cfg
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/g13-rvf-qualified/cores/picorv32/wrapper.sv')
+          s=p.read_text(); anchor='picorv32 #(\n'
+          assert s.count(anchor)==1
+          s=s.replace(anchor,'picorv32 #(\n    .ENABLE_REGS_16_31(0),\n',1)
+          marker='`ifdef PICORV32_CSR_RESTRICT'
+          assert s.count(marker)==1
+          qualification='''// G13 DIAGNOSTIC ONLY: ISA-legal RV32E SLLI requires rd and rs1 in x0..x15.
+          // Do not constrain shamt[4], which is a legal SLLI immediate bit, not rs2.
+          always @(posedge clock) begin
+            if (!reset && rvfi_valid && rvfi_insn[6:0] == 7'h13 && rvfi_insn[14:12] == 3'b001) begin
+              assume (!rvfi_insn[19]); // rs1[4] == 0
+              assume (!rvfi_insn[11]); // rd[4] == 0
+              cover (rvfi_insn[24:20] >= 5'd16 && rvfi_insn[19:15] == 5'd1 && rvfi_insn[11:7] == 5'd2);
+            end
+          end
+          '''
+          s=s.replace(marker, qualification+marker,1)
+          p.write_text(s)
+          PY
+          cp /tmp/g13-rvf-qualified/cores/picorv32/wrapper.sv g13-qualified/QUALIFIED_WRAPPER.sv
+          sha256sum /tmp/g13-rvf-qualified/cores/picorv32/{picorv32.v,wrapper.sv,checks.cfg} > g13-qualified/INPUT_SHA256.txt
+          yosys -V >> g13-qualified/FORMAL_PIN.txt
+          sby --version >> g13-qualified/FORMAL_PIN.txt
+          echo 'RV32E qualifier: only for SLLI, rs1[4]=0 rd[4]=0, shamt[4] unconstrained. Upstream checker ISA rv32imc otherwise unchanged. Qualified check not an upstream unmodified proof.' > g13-qualified/QUALIFICATION.txt
+      - name: Exercise exact existing instruction property with legal RV32E register numbers
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd /tmp/g13-rvf-qualified/cores/picorv32
+          python3 ../../checks/genchecks.py > "$GITHUB_WORKSPACE/g13-qualified/GENERATOR.log" 2>&1
+          GR=$?
+          echo "generator_exit=$GR" > "$GITHUB_WORKSPACE/g13-qualified/STATUS.txt"
+          if [ "$GR" -eq 0 ];then
+            timeout 170 make -C checks insn_slli_ch0 > "$GITHUB_WORKSPACE/g13-qualified/SLLI_RUN.log" 2>&1
+            RC=$?
+            echo "make_exit=$RC" >> "$GITHUB_WORKSPACE/g13-qualified/STATUS.txt"
+            if [ -d checks/insn_slli_ch0 ];then
+              find checks/insn_slli_ch0 -maxdepth 2 -name status -exec cat {} \; > "$GITHUB_WORKSPACE/g13-qualified/SBY_RESULT.txt"
+              tar -czf "$GITHUB_WORKSPACE/g13-qualified/SLLI_FULL.tar.gz" -C checks insn_slli_ch0
+            fi
+            tail -32 "$GITHUB_WORKSPACE/g13-qualified/SLLI_RUN.log" > "$GITHUB_WORKSPACE/g13-qualified/SLLI_TAIL.txt"
+          fi
+          exit 0
+      - name: Preserve successful and failed results rather than rely on make exit 0
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g13-qualified-slli-${{ matrix.rev }}
+          path: g13-qualified/
+          retention-days: 30

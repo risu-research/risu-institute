@@ -1,0 +1,63 @@
+name: DATE G30C original compressed predecode assembly-boundary control
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g30c-assembly-boundary.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formal:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [parent, child]
+        op: [slli, srli, srai]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retrieve historical riscv-formal and actual PicoRV32 commits
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "g30-out/$REV-$OP"
+          cp research/date-g30-compressed-alignment-20260920/{PREREGISTRATION.md,G30B_ERRATUM.md,G30C_BOUNDARY_FREEZE.md} "g30-out/$REV-$OP/"
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g30-rvf
+          git -C /tmp/g30-rvf checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g30cpu
+          SHA=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          if [ "$REV" = child ];then SHA=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+          git -C /tmp/g30cpu show "$SHA:picorv32.v" >/tmp/g30-rvf/cores/picorv32/picorv32.v
+          printf '%s\n' "$SHA" >"g30-out/$REV-$OP/ORIGINAL_CPU_COMMIT.txt"
+          git hash-object /tmp/g30-rvf/cores/picorv32/picorv32.v >"g30-out/$REV-$OP/ORIGINAL_GIT_BLOB.txt"
+          git -C /tmp/g30-rvf rev-parse HEAD >"g30-out/$REV-$OP/FRAMEWORK_COMMIT.txt"
+          sha256sum /tmp/g30-rvf/cores/picorv32/picorv32.v >"g30-out/$REV-$OP/SOURCE_SHA256.txt"
+          { yosys -V; sby --version; } >"g30-out/$REV-$OP/TOOLS.txt"
+      - name: Execute predecode assembly rule under the one frozen original hardware configuration
+        if: always()
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        shell: bash
+        run: |
+          set +e
+          python3 research/date-g30-compressed-alignment-20260920/g30c_assembly_boundary.py >"g30-out/$REV-$OP/EXECUTION.log" 2>&1
+          rc=$?
+          echo "script_exit=$rc" >"g30-out/$REV-$OP/SCRIPT_EXIT.txt"
+          cp g30c_derived_driver.py g30c_derived_rule.sv g30c_DRIVER_SHA.txt "g30-out/$REV-$OP/" 2>/dev/null || true
+          tail -25 "g30-out/$REV-$OP/EXECUTION.log"
+          exit 0
+      - name: Archive original and failed proof artifacts, exact cover witnesses and checker source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g30c-${{ matrix.revision }}-${{ matrix.op }}
+          path: g30-out/
+          retention-days: 30

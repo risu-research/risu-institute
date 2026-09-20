@@ -17,7 +17,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y iverilog python3
           iverilog -V | head -3
-      - name: Pin historical sources and apply only simulation compatibility changes
+      - name: Pin historical sources and record three separate simulation compatibility edits
         shell: bash
         run: |
           set -euo pipefail
@@ -43,12 +43,22 @@ jobs:
           assert s.count(needle)==1,'formal guard anchor not unique'
           s=s.replace(needle,'`endif\n\n`ifdef FORMAL\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))')
           p.write_text(s)
-          for name in ('rtl/core/zipcpu.v','rtl/ex/wbdblpriarb.v'):
+          # In original 2018 pipemem OPT_ALIGNMENT_ERR defaults to 0. Icarus
+          # finds no sensitivity for the constant-only always @(*) block and
+          # leaves misaligned X. Explicit initial 0 is the disabled alignment
+          # predicate, NOT a forced address or a change to the comparison.
+          for p in (root/'rtl/core/pipemem.v',pathlib.Path('/tmp/child-pipemem.v')):
+              s=p.read_text()
+              anchor='\treg\tmisaligned;\n'
+              assert s.count(anchor)==1,('unexpected original misaligned declaration',p)
+              assert 'OPT_ALIGNMENT_ERR=1\'b0;' in s,('not the expected default alignment setting',p)
+              p.write_text(s.replace(anchor,anchor+"\tinitial misaligned = 1'b0; // simulation-only constant-combinational initialization\n"))
+          for name in ('rtl/core/zipcpu.v','rtl/ex/wbdblpriarb.v','rtl/core/pipemem.v'):
               q=root/name
               print('SIM_ONLY_PATCH',name,hashlib.sha256(q.read_bytes()).hexdigest(),flush=True)
           PY
-          sha256sum rtl/core/zipcpu.v rtl/ex/wbdblpriarb.v rtl/core/pipemem.v > "$GITHUB_WORKSPACE/date-g11-deterministic-results/CONTROLLED_SOURCE_SHA256.txt"
-      - name: Compile and run three concrete programs on both historical revisions
+          sha256sum rtl/core/zipcpu.v rtl/ex/wbdblpriarb.v rtl/core/pipemem.v /tmp/child-pipemem.v > "$GITHUB_WORKSPACE/date-g11-deterministic-results/CONTROLLED_SOURCE_SHA256.txt"
+      - name: Run exact-program child and parent, preserving complete failure logs
         shell: bash
         run: |
           set -u
@@ -62,8 +72,6 @@ jobs:
             for MODE in IMMEDIATE LDI OLD; do
               LABEL="${REV}-${MODE}"
               mkdir -p "$RESULTS/$LABEL"
-              # Do not compile rtl/ex/fwb_*.v: these are standalone formal-only
-              # modules with SVA unsupported by Icarus, never instantiated here.
               iverilog -g2012 -s native_program_tb -Irtl -Irtl/core -Irtl/ex \
                 -DOPT_DOUBLE_FETCH -DOPT_PIPELINED -DOPT_PIPELINED_BUS_ACCESS \
                 "-DTEST_${MODE}" -o "$RESULTS/$LABEL/program.vvp" \
@@ -80,15 +88,15 @@ jobs:
               fi
               echo "SIMULATION_EXIT=$RUN" >> "$RESULTS/$LABEL/run.log"
               echo "$LABEL compile=$BUILD simulation=$RUN" | tee -a "$RESULTS/summary.txt"
-              grep -E 'FETCH_VALID|PIPE |NATIVE_FETCH_WITNESS|NO_NATIVE_WITNESS|NATIVE_RTL_WITNESS_PASS|SUMMARY|FATAL' "$RESULTS/$LABEL/run.log" | head -45 || true
+              grep -E 'FETCH_VALID|PIPE |NATIVE_FETCH_WITNESS|NO_NATIVE_WITNESS|NATIVE_RTL_WITNESS_PASS|SUMMARY|FATAL' "$RESULTS/$LABEL/run.log" | head -40 || true
             done
           done
-          echo 'Non-FORMAL RTL simulation; an observed old predicate failure does not assert an upstream historical formal run PASS or physical hardware bug.'
-      - name: Upload logs, waveforms, exact build and source hashes even on failure
+          echo 'SIMULATION-ONLY modified parent/child vs original must be distinguished; non-FORMAL cannot prove historical full-CPU formal PASS.'
+      - name: Upload all logs and VCD even if no witness
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: date-g11-deterministic-program-replay
+          name: date-g11-alignment-initialization-control
           path: date-g11-deterministic-results/
           if-no-files-found: warn
           retention-days: 30

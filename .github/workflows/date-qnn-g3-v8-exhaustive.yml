@@ -1,0 +1,39 @@
+name: DATE QNN v8 native exhaustive model domain
+on:
+  push:
+    branches: [research/date-qnn-g3-v8-exhaustive-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exhaustive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ARM-software/CMSIS-NN
+          ref: 13c97dbb6f781d4aab38ed34e6e441f42b79aff4
+          path: research/date-qnn-g3-native-20260919/upstream
+          persist-credentials: false
+      - name: Install Cortex-M55 QEMU and LLVM
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y qemu-system-arm llvm
+      - name: Rebuild original v8 source and execute all 65,536 valid model input pairs
+        shell: bash
+        working-directory: research/date-qnn-g3-native-20260919
+        run: bash native/run_exhaustive.sh
+      - name: Preserve positive and negative execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-qnn-g3-v8-65536-native-pairs
+          path: |
+            research/date-qnn-g3-native-20260919/results/v8/
+            research/date-qnn-g3-native-20260919/results/exhaustive/
+            research/date-qnn-g3-native-20260919/source/
+            research/date-qnn-g3-native-20260919/native/exhaustive_driver.c
+            research/date-qnn-g3-native-20260919/native/run_exhaustive.sh
+          if-no-files-found: warn

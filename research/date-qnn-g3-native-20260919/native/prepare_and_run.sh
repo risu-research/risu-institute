@@ -3,11 +3,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p source/native_inc results/native
 cp upstream/Source/BasicMathFunctions/arm_elementwise_mul_s8.c source/arm_elementwise_mul_s8.c
-cp upstream/Include/arm_nnsupportfunctions.h source/arm_nnsupportfunctions.h
-printf '%s  %s\n' 4365d15aa7e44dd7c85891c29f57955de09a77cde24c128ed665697561c19596 source/arm_elementwise_mul_s8.c 891f62fca60714634eb3036ec226ea0408be4daf040d73e34fed864372f77793 source/arm_nnsupportfunctions.h | sha256sum -c -
+cp upstream/Include/arm_nnsupportfunctions.h source/official_arm_nnsupportfunctions.h
+printf '%s  %s\n' 4365d15aa7e44dd7c85891c29f57955de09a77cde24c128ed665697561c19596 source/arm_elementwise_mul_s8.c 891f62fca60714634eb3036ec226ea0408be4daf040d73e34fed864372f77793 source/official_arm_nnsupportfunctions.h | sha256sum -c -
 python3 - <<'PY'
 from pathlib import Path
-h=Path('source/arm_nnsupportfunctions.h').read_text()
+h=Path('source/official_arm_nnsupportfunctions.h').read_text()
 for name in ['arm_nn_requantize','arm_requantize_mve_32x4']:
  prefix='__STATIC_FORCEINLINE '
  start=h.index(prefix, h.rfind('\n',0,h.index(name+'(')))
@@ -49,7 +49,7 @@ FLAGS=(--target=thumbv8.1m.main-none-eabi -march=armv8.1-m.main+mve -mfloat-abi=
 "$C" "${FLAGS[@]}" -nostdlib -fuse-ld=lld -Wl,-T,native/an547.ld -Wl,-Map,results/native/mve_kernel.map results/native/{startup,driver,scalar,mve}.o -o results/native/mve_kernel.elf
 llvm-objdump -d results/native/mve_kernel.elf > results/native/mve_kernel.disasm
 for mnemonic in 'vshl.s32' 'vqdmulh.s32' 'vrshl.s32';do grep -Fq "$mnemonic" results/native/mve_kernel.disasm;done
-sha256sum source/arm_elementwise_mul_s8.c source/arm_nnsupportfunctions.h results/native/{mve_kernel.elf,scalar.o,mve.o} >results/native/SHA256SUMS
+sha256sum source/arm_elementwise_mul_s8.c source/official_arm_nnsupportfunctions.h results/native/{mve_kernel.elf,scalar.o,mve.o} >results/native/SHA256SUMS
 printf 'BUILD_NATIVE_MVE_ELF_PASS\n'
 qemu-system-arm --version | tee results/native/qemu_version.txt
 clang --version | head -1 | tee results/native/clang_version.txt

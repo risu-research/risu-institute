@@ -31,7 +31,6 @@ jobs:
           python3 - <<'PY'
           import pathlib,hashlib
           root=pathlib.Path('/tmp/zipcpu-original')
-          # Do not change the CPU datapath or the historical pipemem comparison.
           p=root/'rtl/core/zipcpu.v'
           s=p.read_text()
           before="initial\talu_gie = 1'b0;"
@@ -53,6 +52,7 @@ jobs:
         shell: bash
         run: |
           set -u
+          set +e
           RESULTS="$GITHUB_WORKSPACE/date-g11-deterministic-results"
           cd /tmp/zipcpu-original
           cp rtl/core/pipemem.v /tmp/g11-parent-pipemem.v
@@ -62,13 +62,13 @@ jobs:
             for MODE in IMMEDIATE LDI OLD; do
               LABEL="${REV}-${MODE}"
               mkdir -p "$RESULTS/$LABEL"
-              # Retain pipelined memory access while selecting the actual dblfetch.
-              # This combination is an explicit controlled configuration, not the unchanged default.
+              # Do not compile rtl/ex/fwb_*.v: these are standalone formal-only
+              # modules with SVA unsupported by Icarus, never instantiated here.
               iverilog -g2012 -s native_program_tb -Irtl -Irtl/core -Irtl/ex \
                 -DOPT_DOUBLE_FETCH -DOPT_PIPELINED -DOPT_PIPELINED_BUS_ACCESS \
                 "-DTEST_${MODE}" -o "$RESULTS/$LABEL/program.vvp" \
                 "$GITHUB_WORKSPACE/research/date-g11-deterministic-program/native_program_tb.v" \
-                rtl/core/*.v rtl/ex/*.v > "$RESULTS/$LABEL/compile.log" 2>&1
+                rtl/core/*.v rtl/ex/wbdblpriarb.v > "$RESULTS/$LABEL/compile.log" 2>&1
               BUILD=$?
               echo "COMPILATION_EXIT=$BUILD" >> "$RESULTS/$LABEL/compile.log"
               if [ "$BUILD" -eq 0 ]; then
@@ -83,7 +83,7 @@ jobs:
               grep -E 'FETCH_VALID|PIPE |NATIVE_FETCH_WITNESS|NO_NATIVE_WITNESS|NATIVE_RTL_WITNESS_PASS|SUMMARY|FATAL' "$RESULTS/$LABEL/run.log" | head -45 || true
             done
           done
-          echo 'RESULTS ARE DIAGNOSTIC: OLD is expected to be a nonwitness; formal assertion checks are not enabled in this non-FORMAL simulation.'
+          echo 'Non-FORMAL RTL simulation; an observed old predicate failure does not assert an upstream historical formal run PASS or physical hardware bug.'
       - name: Upload logs, waveforms, exact build and source hashes even on failure
         if: always()
         uses: actions/upload-artifact@v4

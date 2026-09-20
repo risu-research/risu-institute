@@ -1,0 +1,93 @@
+name: DATE G11 source-level reset guard V2 audited
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g11-reset-guard-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build historical source-level reset-guard formal models and run matched three-way test
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-reset-guard-v2-evidence"; mkdir -p "$OUT"
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys python3-pip gcc
+          python3 -m pip install --user --quiet 'z3-solver==4.13.3.0'
+          LIBPATH="$(python3 - <<'PY'
+          import z3,pathlib
+          assert z3.get_version()==(4,13,3,0)
+          d=pathlib.Path(z3.__file__).resolve().parent/'lib'
+          libs=sorted(x for x in d.glob('libz3.so*') if x.is_file());assert libs
+          print(libs[0])
+          PY
+          )"
+          gcc -O2 "$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/z3_smt_driver.c" "$LIBPATH" -Wl,-rpath,"$(dirname "$LIBPATH")" -o "$GITHUB_WORKSPACE/z3-driver"
+          yosys -V | tee "$OUT/TOOL_VERSIONS.txt"
+          python3 -c 'import z3;print(z3.get_version())' | tee -a "$OUT/TOOL_VERSIONS.txt"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/g11-v2
+          cd /tmp/g11-v2
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git rev-parse HEAD > "$OUT/PARENT_COMMIT.txt"
+          git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > /tmp/g11-child.v
+          cp rtl/core/pipemem.v /tmp/g11-parent.v
+          sha256sum /tmp/g11-{parent,child}.v rtl/core/{zipcpu,cpuops,dblfetch,mpyop}.v bench/formal/zipcpu.ys > "$OUT/ORIGINAL_SHA256.txt"
+          python3 "$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/reset_guard_experiment.py" /tmp/g11-v2 | tee "$OUT/SOURCE_PATCH.txt"
+          python3 - <<'PY'
+          import pathlib
+          r=pathlib.Path('/tmp/g11-v2')
+          for path,a,b in [('rtl/core/zipcpu.v','abs_prefetch\t#(ADDRESS_WIDTH)','dblfetch\t#(ADDRESS_WIDTH)'),('rtl/core/cpuops.v','`define\tMPYOP\tabs_mpy','`define\tMPYOP\tmpyop')]:
+              p=r/path;s=p.read_text();assert s.count(a)==1;p.write_text(s.replace(a,b))
+          p=r/'bench/formal/zipcpu.ys';s=p.read_text()
+          for a,b in [('read_verilog -D ZIPCPU -formal abs_prefetch.v','read_verilog -D ZIPCPU -formal ../../rtl/core/dblfetch.v'),('read_verilog -D ZIPCPU -formal abs_mpy.v','read_verilog -D ZIPCPU -formal ../../rtl/core/mpyop.v')]:
+              assert s.count(a)==1;s=s.replace(a,b)
+          p.write_text(s)
+          PY
+          sha256sum rtl/core/{zipcpu,cpuops,dblfetch,mpyop}.v bench/formal/zipcpu.ys > "$OUT/CONTROLLED_SHA256.txt"
+          for REV in child parent; do
+            cp "/tmp/g11-$REV.v" rtl/core/pipemem.v
+            (cd bench/formal && timeout 180 yosys -s zipcpu.ys > "$OUT/$REV-yosys.log" 2>&1)
+            test -s bench/formal/zipcpu.smt2
+            cp bench/formal/zipcpu.smt2 "$OUT/$REV.smt2"
+            sha256sum "$OUT/$REV.smt2" >> "$OUT/MODEL_SHA256.txt"
+          done
+          GEN="$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/reset_guard_query.py"
+          for CASE in child parent parent_relaxed; do
+            MODEL=parent; if [ "$CASE" = child ];then MODEL=child;fi
+            python3 "$GEN" "$OUT/$MODEL.smt2" "$OUT/$CASE-query.smt2" --case "$CASE" --pulse keep --min-target 12 --max-target 12 --single-fetch-anchor > "$OUT/$CASE-generator.log" 2>&1
+            if [ "$CASE" = parent ];then
+              python3 - "$OUT/$CASE-query.smt2" <<'PY'
+          import pathlib,sys
+          p=pathlib.Path(sys.argv[1]);s=p.read_text();assert s.count('(check-sat)')==1;p.write_text(s.split('(check-sat)',1)[0]+'(check-sat)\n')
+          PY
+            fi
+            timeout 100 "$GITHUB_WORKSPACE/z3-driver" "$OUT/$CASE-query.smt2" > "$OUT/$CASE-solver.log" 2> "$OUT/$CASE-stderr.log"
+            echo "$CASE $(head -1 "$OUT/$CASE-solver.log")" | tee -a "$OUT/SUMMARY.txt"
+          done
+          python3 - "$OUT" <<'PY'
+          import pathlib,sys,re
+          d=pathlib.Path(sys.argv[1]); expected={'child':'sat','parent':'unsat','parent_relaxed':'sat'}
+          for name,verdict in expected.items():
+              txt=(d/f'{name}-solver.log').read_text();assert txt.splitlines()[0]==verdict,(name,txt[:150])
+              q=(d/f'{name}-query.smt2').read_text();assert q.count('(assert (|zipcpu_h| s12))')==1
+              assert '  (|$paramod/dblfetch/ADDRESS_WIDTH=30_u 1| state)' in q
+              assert '  true ; DIAGNOSTIC ONLY: omit dblfetch.v:350' not in q
+              for b in ('00010100100000000000000100000000','00011100100000000000000100000000'):assert '#b'+b in q
+          txt=(d/'parent_relaxed-solver.log').read_text()
+          assert re.search(r'\(\(\|[^|]*pipemem[^|]*_a 4\| \(\|zipcpu_h domem\| s13\)\) false\)',txt)
+          print('PASS: source-level reset-qualified guard, no new-PC clause removed, fixed ROM, matched SAT/UNSAT/SAT')
+          PY
+      - name: Upload complete evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-reset-guard-v2-evidence
+          path: g11-reset-guard-v2-evidence/
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,86 @@
+name: DATE QNN G4 targeted public int8 MUL panel
+on:
+  push:
+    branches: [research/date-qnn-g4-public-model-audit-20260919]
+    paths: ['.github/workflows/date-qnn-g4-targeted-public-mul.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  targeted:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch fixed diverse natural models and inspect original FlatBuffers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/date-qnn-g4/{targeted_models,targeted_results}
+          python3 - <<'PY'
+          import sys,json,hashlib,urllib.request,pathlib
+          root=pathlib.Path('research/date-qnn-g4');sys.path.insert(0,str(root));from audit import screen
+          sha='104342d2d3480b3e66203073dac24f4e2dbb4c41';repo='google-coral/test_data'
+          # Fixed by architecture / task, not by opening their contents. Different from prior corpus.
+          names=[
+           'tf2_mobilenet_v3_edgetpu_1.0_224_ptq.tflite',
+           'efficientnet-edgetpu-S_quant.tflite',
+           'efficientnet-edgetpu-M_quant.tflite',
+           'efficientdet_lite0_320_ptq.tflite',
+           'keras_post_training_unet_mv2_128_quant.tflite',
+           'keras_lstm_mnist_ptq.tflite',
+           'movenet_single_pose_lightning_ptq.tflite',
+           'posenet/posenet_mobilenet_v1_075_353_481_16_quant_decoder.tflite',
+           'tf2_ssd_mobilenet_v2_coco17_ptq.tflite',
+           'ssdlite_mobiledet_coco_qat_postprocess.tflite',
+           'inception_v1_224_quant.tflite',
+           'mobilenet_v1_0.25_128_quant.tflite',
+           'tools/split_concat.tflite',
+           'tf2_mobilenet_v2_1.0_224_ptq.tflite',
+           'keras_post_training_unet_mv2_256_quant.tflite',
+           'posenet/bodypix_mobilenet_v1_075_512_512_16_quant_decoder.tflite']
+          assert len(set(names))==len(names)
+          def get(url):
+           with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'RISU-G4-targeted-public-panel'}),timeout=50) as h:return h.read()
+          tree=json.loads(get('https://api.github.com/repos/google-coral/test_data/git/trees/'+sha+'?recursive=1'))
+          assert not tree.get('truncated')
+          meta={x['path']:x for x in tree['tree']}
+          records=[];rows=[]
+          for i,name in enumerate(names):
+           rec={'path':name,'repo':repo,'ref':sha,'git_blob_expected':meta.get(name,{}).get('sha'),'source':'targeted_before_binary_inspection'}
+           url='https://raw.githubusercontent.com/'+repo+'/'+sha+'/'+name;rec['url']=url
+           try:
+            blob=get(url);rec['size']=len(blob);rec['sha256']=hashlib.sha256(blob).hexdigest()
+            rec['git_blob_actual']=hashlib.sha1(b'blob '+str(len(blob)).encode()+b'\0'+blob).hexdigest()
+            if rec['git_blob_actual']!=rec['git_blob_expected']:raise ValueError('Git blob mismatch')
+            if blob[4:8]!=b'TFL3':raise ValueError('not TFL3')
+            rec['local']='targeted_models/%02d_%s'%(i,pathlib.Path(name).name)
+            (root/rec['local']).write_bytes(blob)
+            r=screen(blob,name);r.update({'source':'targeted_nonrepresentative','sha':sha})
+            rec['status']='scanned';rows.append(r)
+            print('MODEL',name,'ops',r['ops'],'MUL',len(r['mul']),'ELIGIBLE',sum(m['status']=='eligible_unverified_backend' for m in r['mul']),
+                 'PRESHIFT_RISK',sum(m['preshift_wrap_possible'] is True for m in r['mul']))
+            for m in r['mul']:
+             print('MUL_GATE',name,m['op'],m['status'],'shift',m.get('shift'),'risk',m['preshift_wrap_possible'])
+           except Exception as ex:rec['status']='failed';rec['error']=repr(ex);print('FAILED',name,repr(ex))
+           records.append(rec)
+          (root/'targeted_results'/'manifest.json').write_text(json.dumps(records,indent=2))
+          (root/'targeted_results'/'model_scan.json').write_text(json.dumps(rows,indent=2))
+          summary={'planned':len(names),'scanned':len(rows),'failed':[r['path'] for r in records if r['status']=='failed'],
+             'models_with_mul':sum(bool(r['mul']) for r in rows),'mul_total':sum(len(r['mul']) for r in rows),
+             'mul_eligible':sum(m['status']=='eligible_unverified_backend' for r in rows for m in r['mul']),
+             'mul_preshift_risk':sum(m['preshift_wrap_possible'] is True for r in rows for m in r['mul'])}
+          (root/'targeted_results'/'summary.json').write_text(json.dumps(summary,indent=2))
+          print('TARGETED_SUMMARY',json.dumps(summary))
+          assert rows,'No models screened'
+          PY
+      - name: Preserve all original binaries, source code and failures
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: date-qnn-g4-targeted-16-public-models
+          path: |
+            research/date-qnn-g4/audit.py
+            research/date-qnn-g4/targeted_models/
+            research/date-qnn-g4/targeted_results/
+          retention-days: 90

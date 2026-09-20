@@ -1,0 +1,36 @@
+name: DATE QNN G3 Genuine Model
+on:
+  push:
+    branches: [research/date-qnn-g3-model-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  model-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: tensorflow/tflite-micro
+          ref: 0ee39f5fc6629b7403166d325da374f01d890cf1
+          path: research/date-qnn-g3-native-20260919/tflm
+          persist-credentials: false
+      - name: Install upstream schema compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y flatbuffers-compiler libflatbuffers-dev
+      - name: Construct genuine TFLite FlatBuffer and execute official TFLM Prepare
+        shell: bash
+        working-directory: research/date-qnn-g3-native-20260919
+        run: bash model/build_and_verify.sh
+      - name: Preserve model, source identities, and diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-qnn-g3-real-flatbuffer-model
+          path: |
+            research/date-qnn-g3-native-20260919/results/model/
+            research/date-qnn-g3-native-20260919/model/
+          if-no-files-found: warn

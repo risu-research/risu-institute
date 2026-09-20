@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "operator_codes": [{"deprecated_builtin_code": "MUL", "version": 1, "builtin_code": "MUL"}],
+  "subgraphs": [{
+    "tensors": [
+      {"shape": [4], "type": "INT8", "buffer": 0, "name": "input_a", "quantization": {"scale": [0.5], "zero_point": [-100]}},
+      {"shape": [4], "type": "INT8", "buffer": 0, "name": "input_b", "quantization": {"scale": [0.5], "zero_point": [-100]}},
+      {"shape": [4], "type": "INT8", "buffer": 0, "name": "output", "quantization": {"scale": [0.0000152587890625], "zero_point": [0]}}
+    ],
+    "inputs": [0, 1], "outputs": [2],
+    "operators": [{"opcode_index": 0, "inputs": [0, 1], "outputs": [2], "builtin_options_type": "MulOptions", "builtin_options": {"fused_activation_function": "NONE"}}],
+    "name": "adversarial_int8_mul_no_broadcast"
+  }],
+  "description": "Research-controlled valid metadata, not an independently observed production model. Two input elements 100, zero points -100, scales 0.5; output scale 2^-16, zero point 0. The resulting saturation is intentionally extreme.",
+  "buffers": [{}]
+}

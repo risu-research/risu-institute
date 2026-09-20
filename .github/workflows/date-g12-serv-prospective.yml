@@ -1,0 +1,92 @@
+name: DATE G12 prospectively selected independent SERV natural case
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths:
+      - '.github/workflows/date-g12-serv-prospective.yml'
+      - 'research/date-g12-serv-prospective/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain pinned natural-history sources and original formal scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g12-evidence
+          sha256sum research/date-g12-serv-prospective/PREREGISTRATION.md > g12-evidence/PREREG_SHA256.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog yosys z3
+          iverilog -V 2>&1 | head -4 > g12-evidence/TOOLS.txt || true
+          yosys -V >> g12-evidence/TOOLS.txt
+          z3 -version >> g12-evidence/TOOLS.txt
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g12-serv
+          cd /tmp/g12-serv
+          CHILD=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2
+          PARENT=838d16615e81786062fae84b9f7c044fb8f6bbe4
+          test "$(git rev-parse "$CHILD^")" = "$PARENT"
+          git diff --name-only "$PARENT" "$CHILD" > "$GITHUB_WORKSPACE/g12-evidence/CHANGED_FILES.txt"
+          git diff "$PARENT" "$CHILD" -- servile/servile_rf_mem_if.v > "$GITHUB_WORKSPACE/g12-evidence/NATURAL_FIX.diff"
+          cat "$GITHUB_WORKSPACE/g12-evidence/NATURAL_FIX.diff"
+          test "$(cat "$GITHUB_WORKSPACE/g12-evidence/CHANGED_FILES.txt")" = 'servile/servile_rf_mem_if.v'
+          for REV in parent child; do
+            SHA="$PARENT"; if [ "$REV" = child ];then SHA="$CHILD";fi
+            git show "$SHA:servile/servile_rf_mem_if.v" > "$GITHUB_WORKSPACE/g12-evidence/$REV-servile_rf_mem_if.v"
+            printf '%s %s\n' "$REV" "$SHA" >> "$GITHUB_WORKSPACE/g12-evidence/COMMITS.txt"
+          done
+          git show "$CHILD:serv.core" > "$GITHUB_WORKSPACE/g12-evidence/ORIGINAL_SERV_CORE.txt"
+          git show "$CHILD:.github/workflows/formal.yml" > "$GITHUB_WORKSPACE/g12-evidence/ORIGINAL_FORMAL_CI.yml"
+          if grep -q 'servile_rf_mem_if' "$GITHUB_WORKSPACE/g12-evidence/ORIGINAL_SERV_CORE.txt";then echo 'SCOPED_IN';exit 1;else echo 'SCOPED_OUT: servile_rf_mem_if absent from serv.core native formal' | tee "$GITHUB_WORKSPACE/g12-evidence/NATIVE_SCOPE.txt";fi
+          sha256sum "$GITHUB_WORKSPACE/g12-evidence/"*servile_rf_mem_if.v >> "$GITHUB_WORKSPACE/g12-evidence/SOURCE_SHA256.txt"
+      - name: Exercise actual historical RTL with external SRAM writes and architectural reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          for REV in parent child;do
+            FLAGS=''
+            if [ "$REV" = child ];then FLAGS='-DEXPECT_NEW';fi
+            iverilog -g2012 -s servile_x0_tb $FLAGS -o "g12-evidence/$REV-sim" research/date-g12-serv-prospective/servile_x0_tb.v "g12-evidence/$REV-servile_rf_mem_if.v"
+            (cd g12-evidence && vvp "$REV-sim" > "$REV-simulation.log" 2>&1)
+            cat "g12-evidence/$REV-simulation.log"
+            grep -q 'RF_READ addr=0 ' "g12-evidence/$REV-simulation.log"
+            grep -q 'RF_READ addr=1 ' "g12-evidence/$REV-simulation.log"
+            grep -q 'RF_READ addr=4 ' "g12-evidence/$REV-simulation.log"
+            grep -q 'RF_READ addr=124 ' "g12-evidence/$REV-simulation.log"
+          done
+          grep -q 'PASS PRE CHARACTERIZATION' g12-evidence/parent-simulation.log
+          grep -q 'PASS POST:' g12-evidence/child-simulation.log
+      - name: Check same native hierarchy formal x0 obligation on both commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          for REV in parent child;do
+            yosys -Q -T -l "g12-evidence/$REV-yosys.log" -p "read_verilog -formal -sv research/date-g12-serv-prospective/servile_x0_formal.v g12-evidence/$REV-servile_rf_mem_if.v; prep -top servile_x0_formal; write_smt2 -wires g12-evidence/$REV.smt2" > "g12-evidence/$REV-formal-build.log" 2>&1
+            set +e
+            timeout 75 yosys-smtbmc -s z3 -t 5 --dump-vcd "g12-evidence/$REV-formal.vcd" "g12-evidence/$REV.smt2" > "g12-evidence/$REV-formal.log" 2>&1
+            RC=$?
+            set -e
+            echo "$REV FORMAL_EXIT=$RC" | tee -a g12-evidence/FORMAL_SUMMARY.txt
+            cat "g12-evidence/$REV-formal.log"
+            if [ "$REV" = parent ];then
+              test "$RC" -ne 0
+              grep -q 'Status: FAILED' "g12-evidence/$REV-formal.log"
+            else
+              test "$RC" -eq 0
+              grep -q 'Status: PASSED' "g12-evidence/$REV-formal.log"
+            fi
+          done
+          echo 'PASS native module: parent x0 property FAILED with witness, child PASSED at depth 5' | tee -a g12-evidence/FORMAL_SUMMARY.txt
+          sha256sum g12-evidence/*.smt2 research/date-g12-serv-prospective/servile_x0*.v > g12-evidence/HARNESS_QUERY_SHA256.txt
+      - name: Preserve all source, simulation and formal evidence even if testing fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g12-serv-preregistered-native-rtl-evidence
+          path: g12-evidence/
+          retention-days: 30
+          if-no-files-found: warn

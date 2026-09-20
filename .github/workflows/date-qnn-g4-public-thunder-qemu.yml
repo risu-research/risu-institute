@@ -1,0 +1,92 @@
+name: DATE QNN G4 public Thunder genuine QEMU cross-check
+on:
+  push:
+    branches: [research/date-qnn-g4-public-model-audit-20260919]
+    paths: ['.github/workflows/date-qnn-g4-public-thunder-qemu.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  thunder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ARM-software/CMSIS-NN
+          ref: 13c97dbb6f781d4aab38ed34e6e441f42b79aff4
+          path: research/date-qnn-g3-native-20260919/upstream
+          persist-credentials: false
+      - name: Retrieve public Thunder model and independently check pinned data before generating test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib,urllib.request,sys
+          root=Path('research/date-qnn-g4');model=root/'thunder_model_original.tflite';rdir=root/'thunder_results';rdir.mkdir(exist_ok=True)
+          sha='104342d2d3480b3e66203073dac24f4e2dbb4c41';url='https://raw.githubusercontent.com/google-coral/test_data/'+sha+'/movenet_single_pose_thunder_ptq.tflite'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'RISU-public-Thunder-independent-test'}),timeout=60) as f:data=f.read()
+          expected='b72fed22707cd6fb94b5a248b9bddb9c062b9f445471b4fa263407cf6d222011'
+          assert hashlib.sha256(data).hexdigest()==expected
+          assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()=='42330c1bcbe4daeb51f3eabd95090d854455d094'
+          model.write_bytes(data)
+          sys.path.insert(0,str(root));from audit import screen
+          scanned=screen(data,'pinned_public_thunder')
+          m={x['op']:x for x in scanned['mul']}
+          expected_ops={87:([128,128,-128],1111240190,-7),117:([-8,-8,-128],1908773596,-6),120:([2,2,-128],2108567525,-6)}
+          for k,(off,mult,shift) in expected_ops.items():
+            x=m[k];assert x['status']=='eligible_unverified_backend' and x['offsets']==off and x['multiplier']==mult and x['shift']==shift and x['preshift_wrap_possible'] is False
+            assert (x['inputs'][0]==x['inputs'][1])==(k in (117,120))
+          (rdir/'model_provenance_and_scan.json').write_text(json.dumps({'source_url':url,'sha256':expected,'source_repo_commit':sha,'screen':scanned},indent=2))
+          driver=(root/'natural_mul_driver.c').read_text()
+          replacements={
+             '{87,128,128,-128,1144452516,-7,0}':'{87,128,128,-128,1111240190,-7,0}',
+             '{117,-10,-10,-128,1839963009,-6,1}':'{117,-8,-8,-128,1908773596,-6,1}',
+             '{120,1,1,-128,2136868535,-6,1}':'{120,2,2,-128,2108567525,-6,1}'}
+          for a,b in replacements.items():assert driver.count(a)==1;driver=driver.replace(a,b)
+          (rdir/'driver_thunder.c').write_text(driver)
+          print('PUBLIC_THUNDER_ORIGINAL_MODEL_AND_ALL_3_PARAMETERS_VERIFIED',expected)
+          PY
+      - name: Install Cortex-M55 QEMU and LLVM
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y qemu-system-arm llvm
+      - name: Run entire admissible input domains against original source v8 scalar and MVE
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/date-qnn-g3-native-20260919
+          bash native/prepare_v8_control.sh
+          mkdir -p results/public_thunder
+          C=clang
+          FLAGS=(--target=thumbv8.1m.main-none-eabi -march=armv8.1-m.main+mve -mfloat-abi=hard -O1 -ffreestanding -fno-builtin -fno-unwind-tables -fno-asynchronous-unwind-tables -DCMSIS_NN_USE_SINGLE_ROUNDING -Isource/native_inc)
+          "$C" "${FLAGS[@]}" -c ../date-qnn-g4/thunder_results/driver_thunder.c -o results/public_thunder/driver.o
+          "$C" "${FLAGS[@]}" -nostdlib -fuse-ld=lld -Wl,-T,native/an547.ld results/v8/{startup,scalar,mve}.o results/public_thunder/driver.o -o results/public_thunder/thunder.elf
+          llvm-objdump -d results/public_thunder/thunder.elf > results/public_thunder/thunder.disasm
+          for ins in vshl.s32 vqdmulh.s32 vrshl.s32; do grep -Fq "$ins" results/public_thunder/thunder.disasm; done
+          set +e
+          timeout 75s qemu-system-arm -M mps3-an547 -cpu cortex-m55 -nographic -monitor none -serial none -semihosting-config enable=on,target=native -kernel results/public_thunder/thunder.elf > results/public_thunder/qemu.log 2>&1
+          rc=$?
+          set -e
+          cat results/public_thunder/qemu.log
+          echo "QEMU_EXIT_CODE=$rc" | tee results/public_thunder/qemu_exit.txt
+          sha256sum results/v8/{scalar,mve,startup}.o results/public_thunder/{driver.o,thunder.elf} > results/public_thunder/binary_sha256.txt
+          [[ $rc == 0 ]] && grep -Fqx 'NATURAL_MUL_QEMU_PASS' results/public_thunder/qemu.log
+          grep -Fqx 'NATURAL_MUL_TEST_ERRORS=0' results/public_thunder/qemu.log
+          grep -Fq 'NATURAL_MUL op=87 admissible_pairs=65536' results/public_thunder/qemu.log
+          grep -Fq 'NATURAL_MUL op=117 admissible_pairs=256' results/public_thunder/qemu.log
+          grep -Fq 'NATURAL_MUL op=120 admissible_pairs=256' results/public_thunder/qemu.log
+          printf 'THUNDER_ORIGINAL_V8_FULL_DOMAIN_EXECUTED\n'
+      - name: Preserve Thunder provenance, original kernels, disassembly, and negative or positive results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: date-qnn-g4-public-thunder-original-v8-qemu
+          path: |
+            research/date-qnn-g4/thunder_results/
+            research/date-qnn-g3-native-20260919/results/public_thunder/
+            research/date-qnn-g3-native-20260919/results/v8/
+            research/date-qnn-g3-native-20260919/source/
+          retention-days: 90

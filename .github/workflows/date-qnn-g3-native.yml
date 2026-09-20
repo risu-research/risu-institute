@@ -17,10 +17,11 @@ jobs:
           ref: 22080c68d040c98139e6cb1549473e3149735f4d
           path: research/date-qnn-g3-native-20260919/upstream
           persist-credentials: false
-      - name: Install QEMU Cortex-M55
+      - name: Install QEMU Cortex-M55 and LLVM disassembler
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y qemu-system-arm
+          sudo apt-get install -y qemu-system-arm llvm
+          command -v llvm-objdump || ls /usr/bin/llvm-objdump*
       - name: Build and execute unchanged CMSIS-NN C through Arm MVE
         shell: bash
         working-directory: research/date-qnn-g3-native-20260919

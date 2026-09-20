@@ -1,0 +1,88 @@
+name: DATE G13 pinned native riscv-formal SLLI configuration proof
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths:
+      - '.github/workflows/date-g13-picorv32-original-formal.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-riscv-formal:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 13
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        regs: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recover pinned CPU and formal framework; alter only original wrapper config
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          REGS: ${{ matrix.regs }}
+        run: |
+          set -euo pipefail
+          mkdir -p g13-formal-evidence
+          echo "rev=$REV regs=$REGS" > g13-formal-evidence/CONFIG.txt
+          yosys -V >> g13-formal-evidence/CONFIG.txt
+          z3 -version >> g13-formal-evidence/CONFIG.txt
+          sby --version >> g13-formal-evidence/CONFIG.txt
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g13-rvf
+          (cd /tmp/g13-rvf && git checkout c992aa61fdfe0846c5ed90324c596202a1c69b76 && git rev-parse HEAD) >> g13-formal-evidence/CONFIG.txt
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g13-cpu
+          PARENT=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          CHILD=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5
+          SHA="$PARENT"; if [ "$REV" = child ];then SHA="$CHILD";fi
+          (cd /tmp/g13-cpu && git rev-parse "$SHA" && git show "$SHA:picorv32.v") > /tmp/g13-cpu-output.tmp
+          tail -n +2 /tmp/g13-cpu-output.tmp > /tmp/g13-rvf/cores/picorv32/picorv32.v
+          printf '%s\n' "$SHA" >> g13-formal-evidence/CONFIG.txt
+          cp /tmp/g13-rvf/cores/picorv32/wrapper.sv g13-formal-evidence/ORIGINAL_WRAPPER.sv
+          if [ "$REGS" = 0 ];then
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/g13-rvf/cores/picorv32/wrapper.sv')
+          s=p.read_text(); anchor='picorv32 #(\n'
+          assert s.count(anchor)==1, 'unexpected wrapper: refuse guessed edit'
+          p.write_text(s.replace(anchor,'picorv32 #(\n    .ENABLE_REGS_16_31(0),\n',1))
+          PY
+          fi
+          cp /tmp/g13-rvf/cores/picorv32/wrapper.sv g13-formal-evidence/TEST_WRAPPER.sv
+          cp /tmp/g13-rvf/cores/picorv32/checks.cfg g13-formal-evidence/ORIGINAL_CHECKS.cfg
+          sha256sum /tmp/g13-rvf/cores/picorv32/{picorv32.v,wrapper.sv,checks.cfg} > g13-formal-evidence/INPUT_SHA256.txt
+          grep -n 'ENABLE_REGS_16_31\|picorv32 #\|BARREL_SHIFTER' /tmp/g13-rvf/cores/picorv32/wrapper.sv >> g13-formal-evidence/CONFIG.txt
+      - name: Run real upstream SLLI formal check, saving PASS, FAIL, UNKNOWN and errors distinctly
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          REGS: ${{ matrix.regs }}
+        run: |
+          set -uo pipefail
+          cd /tmp/g13-rvf/cores/picorv32
+          python3 ../../checks/genchecks.py > "$GITHUB_WORKSPACE/g13-formal-evidence/GENERATE.log" 2>&1
+          GRC=$?
+          echo "generator_exit=$GRC" | tee -a "$GITHUB_WORKSPACE/g13-formal-evidence/STATUS.txt"
+          if [ "$GRC" -ne 0 ];then exit 0;fi
+          timeout 210 make -C checks insn_slli_ch0 > "$GITHUB_WORKSPACE/g13-formal-evidence/FORMAL_RUN.log" 2>&1
+          RC=$?
+          echo "checker_exit=$RC" | tee -a "$GITHUB_WORKSPACE/g13-formal-evidence/STATUS.txt"
+          if [ -d checks/insn_slli_ch0 ];then
+            find checks/insn_slli_ch0 -maxdepth 3 -name status -type f -print -exec cat {} \; > "$GITHUB_WORKSPACE/g13-formal-evidence/SBY_STATUSES.txt"
+            find checks/insn_slli_ch0 -name '*trace*' -o -name 'logfile.txt' | head -30 > "$GITHUB_WORKSPACE/g13-formal-evidence/EVIDENCE_INDEX.txt"
+            tar -czf "$GITHUB_WORKSPACE/g13-formal-evidence/INSN_SLLI_CHECK.tar.gz" -C checks insn_slli_ch0
+          fi
+          tail -45 "$GITHUB_WORKSPACE/g13-formal-evidence/FORMAL_RUN.log" | tee "$GITHUB_WORKSPACE/g13-formal-evidence/FORMAL_TAIL.txt"
+          exit 0
+      - name: Always retain formal proof, counterexample and all aborted attempts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g13-rvfi-slli-${{ matrix.rev }}-regs${{ matrix.regs }}
+          path: g13-formal-evidence/
+          retention-days: 30
+          if-no-files-found: warn

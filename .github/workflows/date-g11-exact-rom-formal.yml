@@ -1,0 +1,91 @@
+name: DATE G11 exact two-word ROM full-CPU formal audit
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths:
+      - '.github/workflows/date-g11-exact-rom-formal.yml'
+      - 'research/date-g11-exact-rom-formal/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 38
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install original formal tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys z3 python3
+          yosys -V
+          z3 -version
+      - name: Rebuild both historical full CPU models from pinned original source
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-exact-rom-results"
+          mkdir -p "$OUT"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/g11-z-original
+          cd /tmp/g11-z-original
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git rev-parse HEAD > "$OUT/parent_commit.txt"
+          git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > /tmp/g11-child-pipemem.v
+          cp rtl/core/pipemem.v /tmp/g11-parent-pipemem.v
+          sha256sum /tmp/g11-{parent,child}-pipemem.v rtl/core/{zipcpu,cpuops,dblfetch,mpyop}.v bench/formal/zipcpu.ys > "$OUT/original_source_sha256.txt"
+          python3 - <<'PY'
+          import pathlib
+          root=pathlib.Path('/tmp/g11-z-original')
+          p=root/'rtl/core/zipcpu.v';s=p.read_text();a='abs_prefetch\t#(ADDRESS_WIDTH)';b='dblfetch\t#(ADDRESS_WIDTH)';assert s.count(a)==1;s=s.replace(a,b);p.write_text(s)
+          p=root/'rtl/core/cpuops.v';s=p.read_text();a='`define\tMPYOP\tabs_mpy';b='`define\tMPYOP\tmpyop';assert s.count(a)==1;s=s.replace(a,b);p.write_text(s)
+          p=root/'bench/formal/zipcpu.ys';s=p.read_text()
+          for a,b in [('read_verilog -D ZIPCPU -formal abs_prefetch.v','read_verilog -D ZIPCPU -formal ../../rtl/core/dblfetch.v'),('read_verilog -D ZIPCPU -formal abs_mpy.v','read_verilog -D ZIPCPU -formal ../../rtl/core/mpyop.v')]:
+              assert s.count(a)==1;s=s.replace(a,b)
+          p.write_text(s)
+          PY
+          sha256sum rtl/core/{zipcpu,cpuops,dblfetch,mpyop}.v bench/formal/zipcpu.ys > "$OUT/controlled_formal_source_sha256.txt"
+          for REV in child parent; do
+            cp "/tmp/g11-$REV-pipemem.v" rtl/core/pipemem.v
+            (cd bench/formal && timeout 650 yosys -s zipcpu.ys > "$OUT/$REV-yosys.log" 2>&1)
+            test -s bench/formal/zipcpu.smt2
+            cp bench/formal/zipcpu.smt2 "$OUT/$REV.smt2"
+            sha256sum "$OUT/$REV.smt2" >> "$OUT/model_sha256.txt"
+            echo "$REV model built $(wc -c < "$OUT/$REV.smt2") bytes"
+          done
+      - name: Evaluate exact same ROM under full assertions and single-assertion isolation
+        shell: bash
+        run: |
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-exact-rom-results"
+          GEN="$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/make_query.py"
+          for CASE in child parent parent_relaxed; do
+            MODEL=parent
+            if [ "$CASE" = child ]; then MODEL=child; fi
+            for SPEC in '14 12 12' '18 10 17'; do
+              set -- $SPEC
+              DEPTH="$1"; FIRST="$2"; LAST="$3"
+              LABEL="$CASE-depth$DEPTH"
+              python3 "$GEN" "$OUT/$MODEL.smt2" "$OUT/$LABEL.smt2" --case "$CASE" --depth "$DEPTH" --first "$FIRST" --last "$LAST" > "$OUT/$LABEL-provenance.log" 2>&1
+              GENCODE=$?
+              if [ "$GENCODE" -ne 0 ]; then
+                echo "$LABEL generator_exit=$GENCODE" | tee -a "$OUT/SUMMARY.txt"
+                continue
+              fi
+              timeout 210 z3 -smt2 "$OUT/$LABEL.smt2" > "$OUT/$LABEL-solver.log" 2>&1
+              SOLVECODE=$?
+              RESULT=$(grep -m1 -E '^(sat|unsat|unknown)$' "$OUT/$LABEL-solver.log" || true)
+              echo "$LABEL generator=0 solver_exit=$SOLVECODE solver_result=${RESULT:-NO_RESULT}" | tee -a "$OUT/SUMMARY.txt"
+              if [ "$CASE" = child ] && [ "$RESULT" = sat ]; then break; fi
+              if [ "$CASE" = parent_relaxed ] && [ "$RESULT" = sat ]; then break; fi
+              if [ "$CASE" = parent ] && [ "$RESULT" = unsat ]; then break; fi
+            done
+          done
+          echo 'RESULTS ARE MODEL-/DEPTH-/BUS-CONDITIONAL. A timeout or unknown is not UNSAT.'
+      - name: Preserve successful queries, full proof logs, failure logs, and both models
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-exact-rom-fullcpu-evidence
+          path: g11-exact-rom-results/
+          retention-days: 30
+          if-no-files-found: warn

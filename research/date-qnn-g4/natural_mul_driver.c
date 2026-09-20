@@ -7,7 +7,7 @@
  */
 #include <stdint.h>
 extern int scalar_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
-extern int mve_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
+extern int mve_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
 static void w(const char*s){__asm volatile("mov r0,#4\nmov r1,%0\nbkpt #0xab"::"r"(s):"r0","r1","memory");}
 static void n(int v){char b[16];int k=0;unsigned u;if(v<0){b[k++]='-';u=(unsigned)(-v);}else u=(unsigned)v;char r[12];int x=0;do{r[x++]=(char)('0'+u%10);u/=10;}while(u);while(x)b[k++]=r[--x];b[k]=0;w(b);}
 static int8_t aa[256],bb[256],ss[257],vv[257];

@@ -1,0 +1,71 @@
+name: DATE G11 full-CPU causal and native multiplier controls
+on:
+  push:
+    branches: [research/date-g11-causal-native-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source_control:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [parent_address_only, real_multiplier_parent, real_multiplier_child]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install formal tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys z3 python3
+          yosys -V && z3 -version
+      - name: Build source-pinned diagnostic variant
+        shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/g11-$VARIANT"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/zipcpu-source
+          cd /tmp/zipcpu-source
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          if [ "$VARIANT" = real_multiplier_child ]; then
+            git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > rtl/core/pipemem.v
+          fi
+          sha256sum rtl/core/pipemem.v rtl/core/cpuops.v bench/formal/abs_mpy.v bench/formal/zipcpu.ys > "$GITHUB_WORKSPACE/g11-$VARIANT/BEFORE.txt"
+          python3 - <<'PY'
+          import os,pathlib
+          v=os.environ['VARIANT']
+          if v=='parent_address_only':
+            p=pathlib.Path('rtl/core/pipemem.v');s=p.read_text()
+            old1='i_addr == o_wb_addr)';old2='i_addr == o_wb_addr+1)'
+            assert s.count(old1)==1 and s.count(old2)==1
+            p.write_text(s.replace(old1,'i_addr[(AW+1):2] == o_wb_addr)').replace(old2,'i_addr[(AW+1):2] == o_wb_addr+1)'))
+            print('ONLY TWO FORMAL ADDRESS EXPRESSIONS CHANGED IN PARENT pipemem.v')
+          else:
+            p=pathlib.Path('rtl/core/cpuops.v');s=p.read_text()
+            assert s.count('`define\tMPYOP\tabs_mpy')==1
+            p.write_text(s.replace('`define\tMPYOP\tabs_mpy','`define\tMPYOP\tmpyop'))
+            p=pathlib.Path('bench/formal/zipcpu.ys');s=p.read_text()
+            assert s.count('read_verilog -D ZIPCPU -formal abs_mpy.v')==1
+            p.write_text(s.replace('read_verilog -D ZIPCPU -formal abs_mpy.v','read_verilog -D ZIPCPU -formal ../../rtl/core/mpyop.v'))
+            print('ORIGINAL IMPLEMENTATION mpyop.v SELECTED IN PLACE OF FORMAL abs_mpy.v')
+          PY
+          sha256sum rtl/core/pipemem.v rtl/core/cpuops.v bench/formal/abs_mpy.v bench/formal/zipcpu.ys > "$GITHUB_WORKSPACE/g11-$VARIANT/AFTER.txt"
+          cd bench/formal
+          set +e
+          timeout 630 yosys -s zipcpu.ys > "$GITHUB_WORKSPACE/g11-$VARIANT/build.log" 2>&1
+          RESULT=$?
+          set -e
+          echo "YOSYS_EXIT=$RESULT" | tee -a "$GITHUB_WORKSPACE/g11-$VARIANT/build.log"
+          if [ -s zipcpu.smt2 ]; then cp zipcpu.smt2 "$GITHUB_WORKSPACE/g11-$VARIANT/$VARIANT-zipcpu.smt2"; fi
+          echo 'Controlled research model only; not historical original-engine signoff or physical silicon evidence.' > "$GITHUB_WORKSPACE/g11-$VARIANT/SCOPE.txt"
+      - name: Preserve all outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-causal-${{ matrix.variant }}
+          path: g11-${{ matrix.variant }}/
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,0 +1,60 @@
+name: DATE G18 RVFI compressed ISA negative control
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-rvfi-isa-negative-control.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compressed-control:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore identical immutable RTL and source harness; change only COMPRESSED_ISA parameter
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-rvfi-control/src g18-rvfi-control/logs g18-rvfi-control/timing
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g18-rvfi-control
+          git -C /tmp/g18-rvfi-control show aaa9e25756c1765353e6ff42da82cbedeecf62cd:picorv32.v >g18-rvfi-control/src/parent_original.v
+          git -C /tmp/g18-rvfi-control show f33ddd3654faf1571ef765d898040f24cf092355:picorv32.v >g18-rvfi-control/src/child_original.v
+          test "$(git hash-object g18-rvfi-control/src/child_original.v)" = e3dd7086d4ac4155cc4cceee5444b79769e2d196
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,textwrap,subprocess,time,json
+          c=Path('.github/workflows/date-g18-picorv32-rvfi-prospective.yml').read_text()
+          m=re.search(r"cat >g18-rvfi/src/tb.v <<'SV'\n(.*?)\n[ \t]*SV(?:\n|$)",c,re.S)
+          assert m,'original v1 testbench not located'
+          tb=textwrap.dedent(m.group(1))+'\n'
+          assert tb.count('.COMPRESSED_ISA(1)')==1
+          results=[]
+          for isa in (1,0):
+            modified=tb.replace('.COMPRESSED_ISA(1)',f'.COMPRESSED_ISA({isa})',1)
+            Path(f'g18-rvfi-control/src/ISA{isa}_tb.v').write_text(modified)
+            for rev in ('parent','child'):
+              src=f'g18-rvfi-control/src/{rev}_original.v'; obj=f'g18-rvfi-control/{rev}_ISA{isa}.vvp'
+              command=['iverilog','-g2012','-DRISCV_FORMAL','-s','tb','-o',obj,src,f'g18-rvfi-control/src/ISA{isa}_tb.v']
+              t=time.monotonic();p=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=45)
+              results.append(dict(rev=rev,compressed_isa=isa,phase='compile',wall_seconds=round(time.monotonic()-t,6),exit=p.returncode))
+              Path(f'g18-rvfi-control/logs/{rev}_ISA{isa}_compile.log').write_text(p.stdout)
+              if p.returncode:continue
+              t=time.monotonic();p=subprocess.run(['vvp',obj],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=30)
+              results.append(dict(rev=rev,compressed_isa=isa,phase='native',wall_seconds=round(time.monotonic()-t,6),exit=p.returncode))
+              Path(f'g18-rvfi-control/logs/{rev}_ISA{isa}_native.log').write_text(p.stdout)
+              print('CONTROL_RESULT',rev,isa,p.returncode,re.findall(r'FINAL[^\n]*',p.stdout))
+          Path('g18-rvfi-control/timing/matrix.json').write_text(json.dumps(results,indent=2))
+          Path('g18-rvfi-control/CONTROL_NOTE.txt').write_text('Post-hoc negative control: vary only COMPRESSED_ISA=1/0 on exact original parent/child and the same native bus program. Diagnostic only. Changes in both would show commit title is narrower than observable behavior; not a new bug discovery.\n')
+          PY
+          sha256sum g18-rvfi-control/src/* >g18-rvfi-control/SOURCE_SHA256.txt
+      - name: Preserve control and all failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-rvfi-original-isa-on-off-control
+          path: g18-rvfi-control/
+          retention-days: 30

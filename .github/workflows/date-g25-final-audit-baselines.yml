@@ -1,0 +1,66 @@
+name: DATE G25 final independent baseline and solver audit
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25-final-audit-baselines.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recheck original DUT hash, all 256 ordinary simulations, and alternate formal engine
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25-final-out g25-final-work
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25-final-upstream >g25-final-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25-final-out/STATUS.txt
+          git -C /tmp/g25-final-upstream checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25-final-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25-final-out/STATUS.txt
+          git -C /tmp/g25-final-upstream rev-parse HEAD >g25-final-out/ORIGINAL_COMMIT.txt
+          cp /tmp/g25-final-upstream/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25-final-work/
+          cp research/date-g25-third-target-20260920/{g25d_symbolic_frame_tb.sv,g25_final_exhaustive_native.py,FINAL_AUDIT_BASELINE_FREEZE.md} g25-final-work/
+          sha256sum g25-final-work/* >g25-final-out/SOURCE_HASHES.txt
+          { sby --version; yosys -V; z3 --version; boolector --version; iverilog -V 2>&1 | head -2; } >g25-final-out/TOOLS.txt 2>&1
+          python3 g25-final-work/g25_final_exhaustive_native.py g25-final-work g25-final-out >g25-final-out/BASELINE.stdout.log 2>&1
+          echo "native256_exit=$?" >>g25-final-out/STATUS.txt
+          cp g25-final-work/{g25_final_native_adapter.sv,g25d_symbolic_frame_tb.sv,g25_final_exhaustive_native.py,FINAL_AUDIT_BASELINE_FREEZE.md} g25-final-out/
+          cat >g25-final-work/boolector.sby <<'SBY'
+          [options]
+          mode bmc
+          depth 60
+          [engines]
+          smtbmc boolector
+          [script]
+          read_verilog -sv axiluart.v ufifo.v skidbuffer.v txuart.v rxuart.v
+          read_verilog -formal -sv -DFORMAL_CHECK g25d_symbolic_frame_tb.sv
+          prep -top g25d_symbolic_frame_harness
+          [files]
+          axiluart.v
+          ufifo.v
+          skidbuffer.v
+          txuart.v
+          rxuart.v
+          g25d_symbolic_frame_tb.sv
+          SBY
+          ROOT="$PWD"
+          (cd g25-final-work && timeout 190 sby -f -d "$ROOT/g25-final-out/boolector-task" boolector.sby >"$ROOT/g25-final-out/BOOLECTOR.run.log" 2>&1)
+          echo "boolector_exit=$? boolector_status=$(cat g25-final-out/boolector-task/status 2>/dev/null || echo MISSING)" >>g25-final-out/STATUS.txt
+          cp g25-final-work/boolector.sby g25-final-out/
+          cat g25-final-out/STATUS.txt
+          cat g25-final-out/NATIVE_256_SUMMARY.txt 2>/dev/null || true
+          tail -10 g25-final-out/BOOLECTOR.run.log 2>/dev/null || true
+      - name: Archive full raw original source, all cases, and alternate proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25-final-256-native-boolector-raw
+          path: g25-final-out/
+          retention-days: 30

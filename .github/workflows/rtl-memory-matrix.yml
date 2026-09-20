@@ -1,0 +1,41 @@
+name: CPU memory interface matrix
+on:
+  push:
+    branches: [research/rtl-memory-bridge-20260920]
+    paths: [.github/workflows/rtl-memory-matrix.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-matrix:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retrieve pinned upstream implementations
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/cpu-source
+          git -C /tmp/cpu-source show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/cpu-source show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          cp research/rtl-memory-bridge/{memory_bridge.sv,run_matrix.py} results/
+          sha256sum results/parent.v results/child.v results/memory_bridge.sv results/run_matrix.py >results/SHA256SUMS.txt
+          { yosys -V; sby --version; } >results/TOOLS.txt
+      - name: Run all fixed symbolic cases and save each original solver output
+        run: |
+          set -euo pipefail
+          python3 research/rtl-memory-bridge/run_matrix.py | tee results/MATRIX_EXECUTION.log
+          tail -6 results/MATRIX_EXECUTION.log
+      - name: Preserve source, configurations, solver models, traces and matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-memory-interface-matrix
+          path: results/
+          retention-days: 30

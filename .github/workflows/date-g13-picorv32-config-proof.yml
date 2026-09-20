@@ -1,0 +1,84 @@
+name: DATE G13 pinned PicoRV32 native CPU configuration matrix
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths:
+      - '.github/workflows/date-g13-picorv32-config-proof.yml'
+      - 'research/date-g13-picorv32/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical-cpu:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact natural-history files, original formal scope and tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g13-evidence
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog yosys z3
+          (iverilog -V 2>&1 | head -2; yosys -V; z3 -version) > g13-evidence/TOOLS.txt || true
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g13-picorv32
+          cd /tmp/g13-picorv32
+          CHILD=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5
+          PARENT=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          test "$(git rev-parse "$CHILD^")" = "$PARENT"
+          git diff --name-only "$PARENT" "$CHILD" > "$GITHUB_WORKSPACE/g13-evidence/CHANGED_FILES.txt"
+          test "$(cat "$GITHUB_WORKSPACE/g13-evidence/CHANGED_FILES.txt")" = picorv32.v
+          git diff "$PARENT" "$CHILD" -- picorv32.v > "$GITHUB_WORKSPACE/g13-evidence/HISTORICAL_FIX.patch"
+          git show "$PARENT:picorv32.v" > "$GITHUB_WORKSPACE/g13-evidence/parent.v"
+          git show "$CHILD:picorv32.v" > "$GITHUB_WORKSPACE/g13-evidence/child.v"
+          git show "$PARENT:.github/workflows/ci.yml" > "$GITHUB_WORKSPACE/g13-evidence/original_parent_ci.yml"
+          git show "$CHILD:.github/workflows/ci.yml" > "$GITHUB_WORKSPACE/g13-evidence/original_child_ci.yml"
+          cmp "$GITHUB_WORKSPACE/g13-evidence/"original_{parent,child}_ci.yml
+          git rev-parse "$PARENT" "$CHILD" > "$GITHUB_WORKSPACE/g13-evidence/COMMITS.txt"
+          cat "$GITHUB_WORKSPACE/g13-evidence/HISTORICAL_FIX.patch"
+          sha256sum "$GITHUB_WORKSPACE/g13-evidence/"{parent,child}.v "$GITHUB_WORKSPACE/research/date-g13-picorv32/rv32e_shift_tb.v" > "$GITHUB_WORKSPACE/g13-evidence/SHA256_INPUTS.txt"
+          test "$(git hash-object "$GITHUB_WORKSPACE/research/date-g13-picorv32/rv32e_shift_tb.v")" = '98667d6ed404cd437ae25fa5005ad11bc00d7b9e'
+      - name: Run unchanged parent and child full CPUs under identical RV32E and RV32I programs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for REV in parent child;do
+            for ISA in E I;do
+              STEM="$REV-rv32$ISA"
+              DEF=''
+              if [ "$ISA" = E ];then DEF='-DRV32E_MODE';fi
+              iverilog -g2012 -s rv32e_shift_tb $DEF -o "g13-evidence/$STEM.out" research/date-g13-picorv32/rv32e_shift_tb.v "g13-evidence/$REV.v" > "g13-evidence/$STEM-compile.log" 2>&1
+              timeout 65 vvp "g13-evidence/$STEM.out" > "g13-evidence/$STEM-sim.log" 2>&1
+              tail -10 "g13-evidence/$STEM-sim.log"
+              grep -q 'END fetches=' "g13-evidence/$STEM-sim.log"
+              grep -q 'STORE addr=00000080' "g13-evidence/$STEM-sim.log"
+              grep -q 'STORE addr=00000090' "g13-evidence/$STEM-sim.log"
+              if [ "$ISA" = E ] && [ "$REV" = parent ];then
+                grep -q 'ARCH_RESULT=FAIL' "g13-evidence/$STEM-sim.log"
+              else
+                grep -q 'ARCH_RESULT=PASS' "g13-evidence/$STEM-sim.log"
+              fi
+              echo "$STEM: $(grep ARCH_RESULT "g13-evidence/$STEM-sim.log")" | tee -a g13-evidence/RESULTS.txt
+            done
+          done
+      - name: Check actual riscv-formal default parameter rather than assume source membership equals configuration coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g13-riscv-formal
+          cd /tmp/g13-riscv-formal
+          git rev-parse HEAD > "$GITHUB_WORKSPACE/g13-evidence/RISCV_FORMAL_PIN.txt"
+          cp cores/picorv32/wrapper.sv "$GITHUB_WORKSPACE/g13-evidence/FORMAL_WRAPPER.sv"
+          cp cores/picorv32/checks.cfg "$GITHUB_WORKSPACE/g13-evidence/FORMAL_CHECKS.cfg"
+          grep -n 'picorv32\|ENABLE_REGS_16_31\|ENABLE_FAST_MUL\|BARREL_SHIFTER' cores/picorv32/wrapper.sv > "$GITHUB_WORKSPACE/g13-evidence/FORMAL_SCOPE.txt"
+          if grep -q 'ENABLE_REGS_16_31' cores/picorv32/wrapper.sv;then echo 'EXPLICIT_REGS_PARAMETER_IN_WRAPPER' >> "$GITHUB_WORKSPACE/g13-evidence/FORMAL_SCOPE.txt";else echo 'DEFAULT_REGS_PARAMETER_IN_WRAPPER: 1 (source RTL default)' >> "$GITHUB_WORKSPACE/g13-evidence/FORMAL_SCOPE.txt";fi
+          cat "$GITHUB_WORKSPACE/g13-evidence/FORMAL_SCOPE.txt"
+      - name: Preserve source, controls, logs, and unsuccessful attempts without hiding them
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g13-picorv32-pinned-cpu-matrix
+          path: g13-evidence/
+          retention-days: 30
+          if-no-files-found: warn

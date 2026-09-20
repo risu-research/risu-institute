@@ -1,0 +1,108 @@
+name: DATE G20 three-instruction 18-task existing formal matrix
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-formal-shift-matrix.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-matrix:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [parent, child]
+        op: [slli, srli, srai]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin original historical RTL and modern original instruction-checker framework
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        run: |
+          set -euo pipefail
+          mkdir -p "g20-formal/$REV-$OP"
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g20rvf
+          git -C /tmp/g20rvf checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20cpu
+          SHA=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          if [ "$REV" = child ];then SHA=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+          git -C /tmp/g20cpu show "$SHA:picorv32.v" > /tmp/g20rvf/cores/picorv32/picorv32.v
+          git hash-object /tmp/g20rvf/cores/picorv32/picorv32.v >"g20-formal/$REV-$OP/ORIGINAL_GIT_BLOB.txt"
+          cp /tmp/g20rvf/cores/picorv32/wrapper.sv "g20-formal/$REV-$OP/UPSTREAM_WRAPPER.sv"
+          cp /tmp/g20rvf/cores/picorv32/checks.cfg "g20-formal/$REV-$OP/UPSTREAM_CHECKS.cfg"
+          yosys -V >"g20-formal/$REV-$OP/TOOLS.txt";sby --version >>"g20-formal/$REV-$OP/TOOLS.txt"
+      - name: Six source-matched tasks per two original revisions; statuses and counterexamples kept
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        run: |
+          set -euo pipefail
+          cat >/tmp/g20formal_matrix.py <<'PY'
+          from pathlib import Path
+          import os,subprocess,time,csv,re,shutil,tarfile
+          rev=os.environ['REV'];op=os.environ['OP']
+          base=Path('/tmp/g20rvf/cores/picorv32'); dest=Path('g20-formal')/f'{rev}-{op}'
+          orig=(base/'wrapper.sv').read_text(); cfg=(base/'checks.cfg').read_text()
+          cases=[]
+          for mode in ('rv32i_upstream','rv32e_param_only','rv32e_legal_shift'):
+            w=orig
+            if mode!='rv32i_upstream':
+              assert w.count('picorv32 #(\n')==1
+              w=w.replace('picorv32 #(\n','picorv32 #(\n    .ENABLE_REGS_16_31(0),\n',1)
+            if mode=='rv32e_legal_shift':
+              mark='`ifdef PICORV32_CSR_RESTRICT';assert w.count(mark)==1
+              form={'slli':"rvfi_insn[14:12] == 3'b001 && rvfi_insn[31:25] == 7'b0000000",'srli':"rvfi_insn[14:12] == 3'b101 && rvfi_insn[31:25] == 7'b0000000",'srai':"rvfi_insn[14:12] == 3'b101 && rvfi_insn[31:25] == 7'b0100000"}[op]
+              qualification=f'''// G20 diagnostic legality ONLY for retired {op.upper()} with rs1 and rd x0..x15.
+          always @(posedge clock) if (!reset && rvfi_valid && rvfi_insn[6:0] == 7'h13 && ({form})) begin
+            assume (!rvfi_insn[19]);
+            assume (!rvfi_insn[11]);
+          end
+          '''
+              w=w.replace(mark,qualification+mark,1)
+            (base/'wrapper.sv').write_text(w);(base/'checks.cfg').write_text(cfg)
+            (dest/f'{mode}_WRAPPER.sv').write_text(w)
+            if (base/'checks').exists(): shutil.rmtree(base/'checks')
+            genstart=time.monotonic();gen=subprocess.run(['python3','../../checks/genchecks.py'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
+            gentime=time.monotonic()-genstart
+            (dest/f'{mode}_generator.log').write_text(gen.stdout)
+            result=dict(revision=rev,op=op,mode=mode,generator_exit=gen.returncode,generator_s=round(gentime,6),make_exit=None,tool_s=None,sby_status='NOT_RUN',trace=False)
+            if gen.returncode==0:
+              start=time.monotonic()
+              try:
+                r=subprocess.run(['timeout','130','make','-C','checks',f'insn_{op}_ch0'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=140)
+                result['make_exit']=r.returncode;result['tool_s']=round(time.monotonic()-start,6)
+                (dest/f'{mode}_RUN.log').write_text(r.stdout)
+              except subprocess.TimeoutExpired as ex:
+                (dest/f'{mode}_RUN.log').write_text(str(ex));result['sby_status']='TIMEOUT'
+              task=base/'checks'/f'insn_{op}_ch0'
+              if task.exists():
+                st=task/'status'
+                if st.exists():result['sby_status']=st.read_text().strip()
+                elif result['sby_status']!='TIMEOUT': result['sby_status']='NO_STATUS'
+                result['trace']=bool(list(task.glob('engine_0/trace*.vcd')))
+                with tarfile.open(dest/f'{mode}_SINGLE_TASK.tar.gz','w:gz') as archive: archive.add(task,arcname=task.name)
+            cases.append(result)
+            print(result,flush=True)
+          with (dest/'FORMAL_MATRIX.csv').open('w',newline='') as f:
+            wr=csv.DictWriter(f,fieldnames=cases[0]);wr.writeheader();wr.writerows(cases)
+          (base/'wrapper.sv').write_text(orig);(base/'checks.cfg').write_text(cfg)
+          assert len(cases)==3
+          PY
+          set +e
+          python3 /tmp/g20formal_matrix.py >"g20-formal/$REV-$OP/MATRIX_RUN.log" 2>&1
+          echo "script_exit=$?" >"g20-formal/$REV-$OP/EXECUTION_STATUS.txt"
+          tail -7 "g20-formal/$REV-$OP/MATRIX_RUN.log"
+          exit 0
+      - name: Preserve all original SBY results, qualifiers and all failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-formal-${{ matrix.revision }}-${{ matrix.op }}
+          path: g20-formal/
+          retention-days: 30

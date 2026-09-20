@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Reuse independently audited ROM generator; restore source-level new-PC guard.
-Allow exactly the historical parent address assertion to be omitted in the
-parent_relaxed counterfactual; fail closed for all other model changes.
+"""Reuse audited exact-ROM generator, restoring the reset-qualified source contract.
+Only the single historical parent address assertion may differ in parent_relaxed.
 """
 import sys,pathlib,subprocess,hashlib,re
 argv=sys.argv[1:]
@@ -21,7 +20,7 @@ assert s.count(needle)==1 and orig.count(restored)==1,(case,'expected exactly on
 s=s.replace(needle,restored,1)
 expected=orig
 if case=='parent_relaxed':
-    hit=re.findall(r'^\(define-fun \|([^|]*pipemem[^|]*_a [0-9]+)\| .*; \$assert\$.*pipemem\.v:352$',orig,re.M)
+    hit=re.findall(r'^\(define-fun \|([^|]*pipemem[^|]*_a [0-9]+)\| .*; \$assert\$.*pipemem\.v:352',orig,re.M)
     assert len(hit)==1,hit
     target='  (|'+hit[0]+'| state)\n'
     marker='  true ; DIAGNOSTIC ONLY: omit pipemem.v:352 OLD address assertion\n'

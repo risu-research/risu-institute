@@ -1,0 +1,110 @@
+name: DATE G14 original DIV REM oracle signedness and consistency
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g14-oracle-divrem.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-division-oracle:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin original Verilog and make separately named signed-context corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq iverilog
+          mkdir -p g14-divrem/src g14-divrem/logs
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g14-divrem-git
+          git -C /tmp/g14-divrem-git checkout c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git -C /tmp/g14-divrem-git rev-parse HEAD > g14-divrem/REVISION.txt
+          for OP in div rem;do git -C /tmp/g14-divrem-git show "c992aa61fdfe0846c5ed90324c596202a1c69b76:insns/insn_${OP}.v" > "g14-divrem/src/original_${OP}.v";done
+          test "$(git hash-object g14-divrem/src/original_div.v)" = 08ace69977b0fd8a97d776696a354bb504f5fcad
+          test "$(git hash-object g14-divrem/src/original_rem.v)" = 699f5a65b8757de9e711ed305dd570f27c78c2a3
+          python3 - <<'PY'
+          from pathlib import Path
+          for op,sym in (('div','/'),('rem','%')):
+            s=Path(f'g14-divrem/src/original_{op}.v').read_text()
+            old=f'$signed(rvfi_rs1_rdata) {sym} $signed(rvfi_rs2_rdata);'
+            assert s.count(old)==1, 'source changed'
+            s=s.replace(old,f'{{$signed(rvfi_rs1_rdata) {sym} $signed(rvfi_rs2_rdata)}};',1)
+            name=f'module rvfi_insn_{op} ('
+            assert s.count(name)==1
+            s=s.replace(name,f'module rvfi_insn_{op}_corrected (',1)
+            Path(f'g14-divrem/src/corrected_{op}.v').write_text(s)
+          PY
+          sha256sum g14-divrem/src/*.v > g14-divrem/SOURCE_SHA256.txt
+          iverilog -V | head -3 > g14-divrem/TOOLS.txt
+      - name: Generate independent reference vectors and execute real checker source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          vals=[(7,3),(-1,2),(-7,3),(7,-3),(-7,-3),(-2147483647,3),(-2147483648,1),(1,-2),(1,2),(-4,2),(-4,-2),(0,2),(10,0),(-1,0),(-2147483648,-1),(-2147483648,2),(2147483647,-3),(-7,2),(7,2),(2147483647,1),(-1,-2)]
+          def ground(a,b):
+            if b==0:return (-1,a)
+            if a==-2147483648 and b==-1:return (a,0)
+            q=(abs(a)//abs(b)) * (1 if (a>=0)==(b>=0) else -1)
+            return q,a-b*q
+          out=[]
+          for i,(a,b) in enumerate(vals):
+            q,r=ground(a,b)
+            out.append(f'check(32\'h{a & 0xffffffff:08x},32\'h{b & 0xffffffff:08x},32\'h{q & 0xffffffff:08x},32\'h{r & 0xffffffff:08x},{i});')
+          Path('g14-divrem/src/vectors.svh').write_text('\n'.join(out)+'\n')
+          Path('g14-divrem/REFERENCE.txt').write_text('\n'.join(f'{i} a={a} b={b} q={ground(a,b)[0]} r={ground(a,b)[1]}' for i,(a,b) in enumerate(vals))+'\n')
+          PY
+          cat > g14-divrem/src/tb.sv <<'SV'
+          `timescale 1ns/1ps
+          module tb;
+            reg [31:0] a=0,b=0;
+            localparam [31:0] DIV_INSN={7'd1,5'd2,5'd1,3'b100,5'd3,7'h33};
+            localparam [31:0] REM_INSN={7'd1,5'd2,5'd1,3'b110,5'd3,7'h33};
+            wire [31:0] q_original,r_original,q_fixed,r_fixed;
+            wire valid_div,valid_rem;
+            rvfi_insn_div d0(.rvfi_valid(1'b1),.rvfi_insn(DIV_INSN),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(a),.rvfi_rs2_rdata(b),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(q_original),.spec_valid(valid_div));
+            rvfi_insn_div_corrected d1(.rvfi_valid(1'b1),.rvfi_insn(DIV_INSN),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(a),.rvfi_rs2_rdata(b),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(q_fixed));
+            rvfi_insn_rem r0(.rvfi_valid(1'b1),.rvfi_insn(REM_INSN),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(a),.rvfi_rs2_rdata(b),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(r_original),.spec_valid(valid_rem));
+            rvfi_insn_rem_corrected r1(.rvfi_valid(1'b1),.rvfi_insn(REM_INSN),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(a),.rvfi_rs2_rdata(b),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(r_fixed));
+            integer tests=0,old_q_miss=0,old_r_miss=0,corrected_miss=0,identity_old_pass=0,sign_rem_failure=0;
+            reg [31:0] arithmetic;
+            task automatic check(input [31:0] in_a,in_b,exp_q,exp_r,input integer id);
+              begin
+                a=in_a;b=in_b;#3;
+                if(valid_div!==1'b1 || valid_rem!==1'b1) $fatal(1,"valid RISC-V DIV/REM check not activated");
+                if(q_original!==exp_q) old_q_miss=old_q_miss+1;
+                if(r_original!==exp_r) old_r_miss=old_r_miss+1;
+                if(q_fixed!==exp_q || r_fixed!==exp_r) begin
+                  corrected_miss=corrected_miss+1;
+                  $fatal(1,"corrected source differs from independent M-extension result id=%0d q=%08h r=%08h expected q=%08h r=%08h",id,q_fixed,r_fixed,exp_q,exp_r);
+                end
+                arithmetic=b*q_original+r_original;
+                if(arithmetic===a) identity_old_pass=identity_old_pass+1;
+                if(b!=0 && r_original!=0 && a[31] != r_original[31]) sign_rem_failure=sign_rem_failure+1;
+                $display("id=%0d dividend=%08h divisor=%08h q_original=%08h r_original=%08h q_correct=%08h r_correct=%08h reference_q=%08h reference_r=%08h old_pair_identity=%0d remainder_sign_bad=%0d",id,a,b,q_original,r_original,q_fixed,r_fixed,exp_q,exp_r,arithmetic===a,b!=0 && r_original!=0 && a[31] != r_original[31]);
+                tests=tests+1;
+              end
+            endtask
+            initial begin
+              `include "vectors.svh"
+              if(tests!=21 || old_q_miss<4 || old_r_miss<4 || corrected_miss!=0 || identity_old_pass!=tests || sign_rem_failure<2)
+                $fatal(1,"expected original checker bug or paired consistency negative control missing tests=%0d qmiss=%0d rmiss=%0d fixmiss=%0d identity=%0d remsign=%0d",tests,old_q_miss,old_r_miss,corrected_miss,identity_old_pass,sign_rem_failure);
+              $display("DIV_REM_ORACLE_SUCCESS tests=%0d div_wrong=%0d rem_wrong=%0d fixed_wrong=%0d paired_identity_pass=%0d negative_rem_sign_wrong=%0d",tests,old_q_miss,old_r_miss,corrected_miss,identity_old_pass,sign_rem_failure);
+              $finish;
+            end
+          endmodule
+          SV
+          iverilog -g2012 -D RISCV_FORMAL_XLEN=32 -D RISCV_FORMAL_ILEN=32 -I g14-divrem/src -s tb -o g14-divrem/checker_tb g14-divrem/src/{original_div.v,original_rem.v,corrected_div.v,corrected_rem.v,tb.sv} > g14-divrem/logs/compile.log 2>&1
+          vvp g14-divrem/checker_tb > g14-divrem/logs/original_verilog_div_rem.log 2>&1
+          grep DIV_REM_ORACLE_SUCCESS g14-divrem/logs/original_verilog_div_rem.log | tee g14-divrem/RESULT.txt
+          sha256sum g14-divrem/src/* > g14-divrem/ALL_SOURCE_SHA256.txt
+      - name: Preserve full source and solver traces, including unsuccessful attempts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g14-riscv-formal-native-div-rem-oracle
+          path: g14-divrem/
+          retention-days: 30

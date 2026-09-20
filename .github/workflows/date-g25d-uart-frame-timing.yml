@@ -1,0 +1,39 @@
+name: DATE G25D original AXI serial frame exploratory timing
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25d-uart-frame-timing.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-physical-timing:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Execute full unmodified physical UART one-write 0xA5 reference
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25d-timing
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25d-wbuart >g25d-timing/CLONE.log 2>&1
+          git -C /tmp/g25d-wbuart checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25d-timing/CHECKOUT.log 2>&1
+          git -C /tmp/g25d-wbuart rev-parse HEAD >g25d-timing/ORIGINAL_COMMIT.txt
+          sha256sum /tmp/g25d-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v >g25d-timing/HASHES.txt
+          cp research/date-g25-third-target-20260920/{FRAME_PREREGISTRATION.md,g25d_frame_timing_tb.sv} g25d-timing/
+          iverilog -g2012 -s g25d_frame_timing_tb -o g25d-timing/sim.vvp /tmp/g25d-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v research/date-g25-third-target-20260920/g25d_frame_timing_tb.sv >g25d-timing/COMPILE.log 2>&1
+          echo "compile_exit=$?" >g25d-timing/STATUS.txt
+          if [ -f g25d-timing/sim.vvp ];then timeout 30 vvp g25d-timing/sim.vvp >g25d-timing/SIM.log 2>&1; echo "run_exit=$?" >>g25d-timing/STATUS.txt;fi
+          cat g25d-timing/STATUS.txt
+          cat g25d-timing/SIM.log 2>/dev/null || true
+      - name: Archive invalid and successful timing results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25d-original-frame-timing
+          path: g25d-timing/
+          retention-days: 30

@@ -1,0 +1,59 @@
+name: DATE G11 original RTL self-initializing program replay
+on:
+  push:
+    branches: [research/date-g11-causal-native-20260919]
+    paths: ['.github/workflows/date-g11-self-initializing-rom.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [parent, child]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog python3
+      - name: Replay historical RTL and three original-ISA instructions
+        shell: bash
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-selfinit-$VERSION";mkdir -p "$OUT"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/z; cd /tmp/z
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          if [ "$VERSION" = child ];then git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > rtl/core/pipemem.v;fi
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v rtl/ex/wbdblpriarb.v rtl/cpudefs.v > "$OUT/ORIGINAL_SHA256.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('rtl/core/zipcpu.v');s=p.read_text()
+          a='`ifdef\tFORMAL\n\tabs_prefetch\t#(ADDRESS_WIDTH)';assert s.count(a)==1
+          s=s.replace(a,'`ifdef\tG11_NATIVE_FETCH\n\tdblfetch\t#(ADDRESS_WIDTH)')
+          a="\tinitial\talu_gie = 1'b0;";assert s.count(a)==1
+          s=s.replace(a,"\tinitial\tr_alu_gie = 1'b0;");p.write_text(s)
+          p=Path('rtl/ex/wbdblpriarb.v');s=p.read_text()
+          a='`endif\n\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))';assert s.count(a)==1
+          p.write_text(s.replace(a,'`endif\n\n`ifdef FORMAL\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))'))
+          print('Only native fetch selection, historical register initialization typo and formal-guard compatibility edits; parent/child pipemem unchanged')
+          PY
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v rtl/ex/wbdblpriarb.v rtl/cpudefs.v > "$OUT/CONTROLLED_SHA256.txt"
+          cp "$GITHUB_WORKSPACE/research/g11/native_fetch_initialized_program_tb.v" "$OUT/tb.v"
+          set +e
+          iverilog -g2012 -D G11_NATIVE_FETCH -s native_fetch_initialized_program_tb -I rtl -o "$OUT/replay.vvp" "$OUT/tb.v" rtl/core/zipcpu.v rtl/core/cpuops.v rtl/core/memops.v rtl/core/pipemem.v rtl/core/idecode.v rtl/core/div.v rtl/core/dblfetch.v rtl/core/mpyop.v rtl/ex/wbdblpriarb.v > "$OUT/compile.log" 2>&1
+          CODE=$?;echo "IVERILOG_EXIT=$CODE" | tee -a "$OUT/compile.log"
+          if [ "$CODE" -eq 0 ]; then cd "$OUT"; timeout 90 vvp replay.vvp > simulation.log 2>&1;echo "VVP_EXIT=$?" >> simulation.log;grep -E 'NATIVE_FETCH_WITNESS|SUMMARY|NO_SIM_WITNESS|FETCH_VALID|PIPE_REQ' simulation.log | head -60 || true;fi
+          exit 0
+      - name: Preserve successful and unsuccessful experiment records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-selfinit-${{ matrix.version }}
+          path: g11-selfinit-${{ matrix.version }}/
+          retention-days: 14
+          if-no-files-found: warn

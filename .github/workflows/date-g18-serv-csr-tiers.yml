@@ -1,0 +1,132 @@
+name: DATE G18 prospective SERV CSR tiered audit
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-serv-csr-tiers.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  serv-csr:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Source-verified tiers and genuine original-module native regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-serv/sources g18-serv/logs g18-serv/timing
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g18-srv
+          git -C /tmp/g18-srv show 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15^:rtl/serv_debug.v > g18-serv/sources/parent_serv_debug.v
+          git -C /tmp/g18-srv show 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15:rtl/serv_debug.v > g18-serv/sources/child_serv_debug.v
+          git -C /tmp/g18-srv show 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15:.github/workflows/formal.yml > g18-serv/sources/historical_formal.yml
+          git -C /tmp/g18-srv show 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15:serv.core > g18-serv/sources/historical_serv.core
+          git -C /tmp/g18-srv rev-parse 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15^ > g18-serv/PARENT_PIN.txt
+          test "$(git hash-object g18-serv/sources/child_serv_debug.v)" = af3c34f70924989f0834b76fc0b4791ed9cd04ea
+          grep 'rtl/serv_debug.v' g18-serv/sources/historical_serv.core > g18-serv/logs/FILESET.txt
+          grep 'insn_.*_ch0' g18-serv/sources/historical_formal.yml > g18-serv/logs/HISTORICAL_CHECKS.txt
+          if grep -Eq 'insn_(csr|csrr)' g18-serv/logs/HISTORICAL_CHECKS.txt;then echo CSR_IN_HISTORIC_CHECKS;else echo NO_CSR_IN_HISTORIC_CHECKS;fi | tee g18-serv/logs/CSR_CHECK_SCOPE.txt
+          cat > g18-serv/sources/csr_tb.v <<'SV'
+          `timescale 1ns/1ps
+          module csr_tb;
+            reg clk=0; always #5 clk=~clk;
+            reg rst=0, ibus_ack=0, cnt_en=0, csr_in=0, csr_en=0, wen0=0, cnt_done=0;
+            reg [1:0] csr_addr=0;
+            reg [4:0] rd_addr=0;
+            reg csr_mstatus_en=0,csr_mie_en=0,csr_mcause_en=0;
+            reg [31:0] ibus_rdt=32'h00000013;
+            integer i;
+            serv_debug #(.W(1)) dut(.i_clk(clk),.i_rst(rst),.i_ibus_rdt(ibus_rdt),.i_ibus_ack(ibus_ack),
+             .i_rd_addr(rd_addr),.i_cnt_en(cnt_en),.i_csr_in(csr_in),
+             .i_csr_mstatus_en(csr_mstatus_en),.i_csr_mie_en(csr_mie_en),.i_csr_mcause_en(csr_mcause_en),
+             .i_csr_en(csr_en),.i_csr_addr(csr_addr),.i_wen0(wen0),.i_wdata0(1'b0),.i_cnt_done(cnt_done));
+            task automatic write_csr(input bitval,input write_to_rf,input csr_requested);
+              begin
+                for(i=0;i<32;i=i+1) begin
+                  @(negedge clk);
+                  cnt_en=1; csr_in=bitval; wen0=write_to_rf; csr_en=csr_requested; cnt_done=(i==31);
+                end
+                @(negedge clk); cnt_en=0; wen0=0; csr_en=0; cnt_done=0;
+                repeat(2) @(negedge clk);
+              end
+            endtask
+            initial begin
+              repeat(3) @(negedge clk);
+              write_csr(1'b1,1'b1,1'b1);
+              $display("INITIAL_CSR=%08h",dut.dbg_mscratch);
+              if(dut.dbg_mscratch!==32'hffffffff) $fatal(1,"control initialization invalid");
+              write_csr(1'b0,1'b0,1'b1);
+              $display("CSR_WRITE_WITHOUT_GPR_WRITE=%08h",dut.dbg_mscratch);
+          `ifdef PARENT
+              if(dut.dbg_mscratch!==32'hffffffff) $fatal(1,"historical parent no GPR-write guard missing");
+          `else
+              if(dut.dbg_mscratch!==32'h00000000) $fatal(1,"historical child independently enabled CSR update missing");
+          `endif
+              write_csr(1'b1,1'b0,1'b0);
+              $display("NO_CSR_ENABLE_CONTROL=%08h",dut.dbg_mscratch);
+          `ifdef PARENT
+              if(dut.dbg_mscratch!==32'hffffffff) $fatal(1,"control mutated parent");
+          `else
+              if(dut.dbg_mscratch!==32'h00000000) $fatal(1,"control mutated child");
+          `endif
+              $display("G18_SERV_CSR_NATIVE_SUCCESS rev=%s",`ifdef PARENT "parent" `else "child" `endif );
+              $finish;
+            end
+          endmodule
+          SV
+          python3 - <<'PY'
+          import subprocess,time,json,pathlib
+          base=pathlib.Path('g18-serv'); results=[]
+          for rev in ('parent','child'):
+            src=base/'sources'/f'{rev}_serv_debug.v'; obj=base/f'{rev}_sim'
+            commands=[('compile',['iverilog','-g2012','-s','csr_tb',*(['-DPARENT'] if rev=='parent' else []),'-o',str(obj),str(src),str(base/'sources/csr_tb.v')]),('native',['vvp',str(obj)])]
+            for phase,cmd in commands:
+              t=time.monotonic(); p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
+              dt=time.monotonic()-t
+              (base/'logs'/f'{rev}_{phase}.log').write_text(p.stdout)
+              results.append(dict(rev=rev,phase=phase,seconds=round(dt,6),exit=p.returncode,command=cmd))
+              if p.returncode: raise SystemExit(f'{rev} {phase} failed: '+p.stdout[-1500:])
+              if phase=='native' and 'G18_SERV_CSR_NATIVE_SUCCESS' not in p.stdout:raise SystemExit('no actual regression success')
+          (base/'timing'/'native_elapsed.json').write_text(json.dumps(results,indent=2))
+          print(json.dumps(results,indent=2))
+          PY
+          sha256sum g18-serv/sources/* > g18-serv/SOURCE_SHA256.txt
+      - name: Existing upstream riscv-formal ADDI checker for both original revisions; preserve exact SBY statuses
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p g18-serv/formal
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g18-rvf
+          git -C /tmp/g18-rvf checkout c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git -C /tmp/g18-rvf rev-parse HEAD > g18-serv/formal/FRAMEWORK_PIN.txt
+          for REV in parent child;do
+            cp g18-serv/sources/${REV}_serv_debug.v /tmp/g18-rvf/cores/serv/serv-src/rtl/serv_debug.v 2>/dev/null || true
+            mkdir -p /tmp/g18-rvf/cores/serv/serv-src/rtl
+            git -C /tmp/g18-srv archive $(if [ "$REV" = parent ];then echo e97bdaf7a1175ad02bc3ba3adb4b1b26d6204fad;else echo 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15;fi) | tar -x -C /tmp/g18-rvf/cores/serv/serv-src
+            cp /tmp/g18-rvf/cores/serv/serv-src/rtl/serv_debug.v g18-serv/formal/${REV}_USED_SOURCE.v
+            cd /tmp/g18-rvf/cores/serv
+            python3 ../../checks/genchecks.py > "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_generator.log" 2>&1
+            GEN=$?
+            echo "generator_exit=$GEN" > "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_STATUS.txt"
+            if [ "$GEN" -eq 0 ];then
+              /usr/bin/time -f '%e' -o "$GITHUB_WORKSPACE/g18-serv/timing/${REV}_formal_seconds.txt" timeout 150 make -C checks insn_addi_ch0 > "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_make.log" 2>&1
+              RC=$?
+              echo "make_exit=$RC" >> "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_STATUS.txt"
+              find checks/insn_addi_ch0 -name status -exec cat {} \; > "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_SBY_STATUS.txt" 2>/dev/null
+              tar -czf "$GITHUB_WORKSPACE/g18-serv/formal/${REV}_proof.tar.gz" -C checks insn_addi_ch0
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done
+          sha256sum g18-serv/formal/* > g18-serv/formal/INPUTS_SHA256.txt
+          exit 0
+      - name: Archive positive, negative, and tool-failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-prospective-serv-csr-native-and-stock-formal
+          path: g18-serv/
+          retention-days: 30

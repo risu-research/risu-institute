@@ -1,0 +1,35 @@
+name: DATE G27 fair exhaustive native baseline
+on:
+  push:
+    branches: [research/date-g27-fair-baselines-20260920]
+    paths: [.github/workflows/date-g27-fair-native-baseline.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-interface-baseline:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run frozen four original upstream configurations and validate every RTL output
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p g27-out
+          python3 research/date-g27-fair-baselines-20260920/run_g27.py g27-out >g27-out/RUN.stdout.log 2>g27-out/RUN.stderr.log
+          rc=$?
+          echo "runner_exit=$rc" >g27-out/STATUS.txt
+          cat g27-out/RUN.stdout.log
+          cat g27-out/RUN.stderr.log
+          exit "$rc"
+      - name: Retain failures and passing independent original RTL baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g27-fair-baseline-raw
+          path: g27-out/
+          retention-days: 30

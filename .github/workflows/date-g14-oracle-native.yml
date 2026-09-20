@@ -1,0 +1,152 @@
+name: DATE G14 original ISA oracle metamorphic countercheck
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g14-oracle-native.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-oracle:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact original checker modules and construct isolated source repair controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq iverilog
+          mkdir -p g14-oracle/src g14-oracle/logs
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g14-original
+          git -C /tmp/g14-original checkout c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git -C /tmp/g14-original rev-parse HEAD > g14-oracle/REVISION.txt
+          for WIDTH in 4 8; do
+            git -C /tmp/g14-original show "c992aa61fdfe0846c5ed90324c596202a1c69b76:insns/insn_xperm${WIDTH}.v" > "g14-oracle/src/original${WIDTH}.v"
+          done
+          test "$(git hash-object g14-oracle/src/original4.v)" = 3d3c6af2821a78aeb3bd22c45330cb0409eb7aad
+          test "$(git hash-object g14-oracle/src/original8.v)" = 0f0b8f79d4113a1e5bac8069e9f15080fa68ffde
+          python3 - <<'PY'
+          from pathlib import Path
+          for w in (4,8):
+              path=Path(f'g14-oracle/src/original{w}.v')
+              s=path.read_text()
+              old=f'>> rvfi_rs2_rdata[i+:{w}]'
+              assert s.count(old)==1, 'unexpected original model'
+              good=s.replace(old,f'>> ({w}*rvfi_rs2_rdata[i+:{w}])',1)
+              name=f'module rvfi_insn_xperm{w} ('
+              assert good.count(name)==1
+              good=good.replace(name,f'module rvfi_insn_xperm{w}_corrected (',1)
+              Path(f'g14-oracle/src/corrected{w}.v').write_text(good)
+          PY
+          sha256sum g14-oracle/src/*.v > g14-oracle/SOURCE_SHA256.txt
+          iverilog -V | head -3 > g14-oracle/TOOLS.txt
+      - name: Run genuine original Verilog checker modules with identity and independent ISA oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > g14-oracle/src/tb.sv <<'SV'
+          `timescale 1ns/1ps
+          module tb;
+            reg [31:0] word=0, selector=0;
+            localparam [31:0] INSN4={7'h14,5'd2,5'd1,3'b010,5'd3,7'h33};
+            localparam [31:0] INSN8={7'h14,5'd2,5'd1,3'b100,5'd3,7'h33};
+            wire [31:0] old4,new4,old8,new8;
+            wire valid4,valid8;
+            rvfi_insn_xperm4 a(.rvfi_valid(1'b1),.rvfi_insn(INSN4),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(word),.rvfi_rs2_rdata(selector),.rvfi_mem_rdata(32'd0),.spec_valid(valid4),.spec_rd_wdata(old4));
+            rvfi_insn_xperm4_corrected b(.rvfi_valid(1'b1),.rvfi_insn(INSN4),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(word),.rvfi_rs2_rdata(selector),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(new4));
+            rvfi_insn_xperm8 c(.rvfi_valid(1'b1),.rvfi_insn(INSN8),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(word),.rvfi_rs2_rdata(selector),.rvfi_mem_rdata(32'd0),.spec_valid(valid8),.spec_rd_wdata(old8));
+            rvfi_insn_xperm8_corrected d(.rvfi_valid(1'b1),.rvfi_insn(INSN8),.rvfi_pc_rdata(32'd0),.rvfi_rs1_rdata(word),.rvfi_rs2_rdata(selector),.rvfi_mem_rdata(32'd0),.spec_rd_wdata(new8));
+            integer old_miss4=0,old_miss8=0,corrected_miss=0,identity_detected=0,smoke_pass=0,ntests=0;
+            function automatic [31:0] official4(input [31:0] data, input [31:0] indices);
+              reg [31:0] out;
+              integer i,j;
+              begin
+                out=0;
+                for(i=0;i<8;i=i+1) begin
+                  j=(indices>>(4*i)) & 15;
+                  if(j<8) out=out | (((data>>(4*j)) & 15)<<(4*i));
+                end
+                official4=out;
+              end
+            endfunction
+            function automatic [31:0] official8(input [31:0] data,input [31:0] indices);
+              reg [31:0] out;
+              integer i,j;
+              begin
+                out=0;
+                for(i=0;i<4;i=i+1) begin
+                  j=(indices>>(8*i)) & 255;
+                  if(j<4) out=out | (((data>>(8*j)) & 255)<<(8*i));
+                end
+                official8=out;
+              end
+            endfunction
+            task automatic check4(input [31:0] dta,input [31:0] sel,input [63:0] caselabel,input integer isidentity,input integer issmoke);
+              reg [31:0] expected;
+              begin
+                word=dta; selector=sel; #2;
+                expected=official4(dta,sel);
+                if(valid4!==1'b1) $fatal(1,"XPERM4 original instruction not selected");
+                if(isidentity && expected!==dta) $fatal(1,"independent identity oracle wrong 4");
+                if(new4!==expected) begin corrected_miss=corrected_miss+1; $fatal(1,"corrected 4 disagrees with official element semantics"); end
+                if(old4!==expected) begin
+                  old_miss4=old_miss4+1;
+                  if(isidentity) identity_detected=identity_detected+1;
+                end else if(issmoke) smoke_pass=smoke_pass+1;
+                ntests=ntests+1;
+                $display("WIDTH=4 case=%s data=%08h index=%08h original=%08h corrected=%08h official=%08h identity=%0d smoke=%0d",caselabel,word,selector,old4,new4,expected,isidentity,issmoke);
+              end
+            endtask
+            task automatic check8(input [31:0] dta,input [31:0] sel,input [63:0] caselabel,input integer isidentity,input integer issmoke);
+              reg [31:0] expected;
+              begin
+                word=dta; selector=sel; #2;
+                expected=official8(dta,sel);
+                if(valid8!==1'b1) $fatal(1,"XPERM8 original instruction not selected");
+                if(isidentity && expected!==dta) $fatal(1,"independent identity oracle wrong 8");
+                if(new8!==expected) begin corrected_miss=corrected_miss+1; $fatal(1,"corrected 8 disagrees with official element semantics"); end
+                if(old8!==expected) begin
+                  old_miss8=old_miss8+1;
+                  if(isidentity) identity_detected=identity_detected+1;
+                end else if(issmoke) smoke_pass=smoke_pass+1;
+                ntests=ntests+1;
+                $display("WIDTH=8 case=%s data=%08h index=%08h original=%08h corrected=%08h official=%08h identity=%0d smoke=%0d",caselabel,word,selector,old8,new8,expected,isidentity,issmoke);
+              end
+            endtask
+            initial begin
+              check4(32'h89abcdef,32'h76543210,"identity",1,0);
+              check4(32'h01234567,32'h76543210,"identity",1,0);
+              check4(32'h89abcdef,32'h00000000,"zero",0,1);
+              check4(32'h01234567,32'h00000000,"zero",0,1);
+              check4(32'h89abcdef,32'h01234567,"reverse",0,0);
+              check4(32'h01234567,32'h01234567,"reverse",0,0);
+              check4(32'h89abcdef,32'h88888888,"outbound",0,0);
+              check4(32'h01234567,32'h88888888,"outbound",0,0);
+              check8(32'h89abcdef,32'h03020100,"identity",1,0);
+              check8(32'h01234567,32'h03020100,"identity",1,0);
+              check8(32'h89abcdef,32'h00000000,"zero",0,1);
+              check8(32'h01234567,32'h00000000,"zero",0,1);
+              check8(32'h89abcdef,32'h00010203,"reverse",0,0);
+              check8(32'h01234567,32'h00010203,"reverse",0,0);
+              check8(32'h89abcdef,32'h04040404,"outbound",0,0);
+              check8(32'h01234567,32'h04040404,"outbound",0,0);
+              if(ntests!=16 || corrected_miss!=0 || old_miss4<2 || old_miss8<2 || identity_detected!=4 || smoke_pass!=4)
+                $fatal(1,"oracle research controls not satisfied");
+              $display("ORACLE_MATRIX_SUCCESS tests=%0d xperm4_original_misses=%0d xperm8_original_misses=%0d corrected_misses=%0d identity_detected=%0d smoke_controls_pass=%0d", ntests,old_miss4,old_miss8,corrected_miss,identity_detected,smoke_pass);
+              $finish;
+            end
+          endmodule
+          SV
+          iverilog -g2012 -D RISCV_FORMAL_XLEN=32 -D RISCV_FORMAL_ILEN=32 -s tb -o g14-oracle/oracle_tb g14-oracle/src/{original4.v,original8.v,corrected4.v,corrected8.v,tb.sv} > g14-oracle/logs/compile.log 2>&1
+          vvp g14-oracle/oracle_tb > g14-oracle/logs/ORIGINAL_RTL_ORACLE_MATRIX.log 2>&1
+          grep 'ORACLE_MATRIX_SUCCESS' g14-oracle/logs/ORIGINAL_RTL_ORACLE_MATRIX.log | tee g14-oracle/RESULT.txt
+          sha256sum g14-oracle/src/* > g14-oracle/ALL_SOURCE_SHA256.txt
+      - name: Archive immutable original model and actual simulation (including failure logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g14-riscv-formal-oracle-independent-source
+          path: g14-oracle/
+          retention-days: 30

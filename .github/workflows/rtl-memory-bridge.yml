@@ -44,7 +44,7 @@ jobs:
               done
             done
           done
-      - name: Prove the symbolic split-fetch property on the old and repaired source
+      - name: Prove symbolic split-fetch on old and repaired source
         shell: bash
         run: |
           set -euo pipefail
@@ -69,7 +69,7 @@ jobs:
           cpu.v
           EOF
             (cd "$dir" && timeout 290 sby -f contract.sby) >"$dir/EXECUTION.log" 2>&1 || true
-            status="$(cat "$dir/contract/status" 2>/dev/null || echo MISSING)"
+            status="$(awk '{print $1}' "$dir/contract/status" 2>/dev/null || echo MISSING)"
             echo "revision=$rev status=$status" | tee "$dir/RESULT.txt"
             if [ "$rev" = parent ]; then test "$status" = FAIL; else test "$status" = PASS; fi
           done

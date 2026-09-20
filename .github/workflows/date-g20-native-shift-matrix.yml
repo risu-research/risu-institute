@@ -1,0 +1,152 @@
+name: DATE G20 fixed 60-cell original-CPU shift matrix
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-native-shift-matrix.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin original unmodified parent/child RTL
+        run: |
+          set -euo pipefail
+          mkdir -p g20-native/src g20-native/logs
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20-native-cpu
+          git -C /tmp/g20-native-cpu show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >g20-native/src/parent.v
+          git -C /tmp/g20-native-cpu show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >g20-native/src/child.v
+          git hash-object g20-native/src/parent.v >g20-native/PARENT_GIT_BLOB.txt
+          git hash-object g20-native/src/child.v >g20-native/CHILD_GIT_BLOB.txt
+          yosys -V >g20-native/TOOLS.txt; iverilog -V 2>&1 | head -1 >>g20-native/TOOLS.txt
+      - name: Real reset to instruction bus to store; no internal force
+        run: |
+          set -euo pipefail
+          cat >g20-native/src/tb.sv <<'SV'
+          `timescale 1ns/1ps
+          module g20_tb;
+            reg clk=0,resetn=0,mem_ready=0;
+            always #5 clk=~clk;
+            wire trap,mem_valid,mem_instr;
+            wire [31:0] mem_addr,mem_wdata;
+            wire [3:0] mem_wstrb;
+            reg [31:0] mem_rdata=0;
+            reg [31:0] mem[0:255];
+            integer i,op=0,amt=0,fetches=0,stores=0;
+            function [31:0] insn_shift(input integer which, sh);
+              reg [6:0] f7;reg [2:0] f3;
+              begin f7=(which==2) ? 7'b0100000 : 7'b0000000;
+                    f3=(which==0)? 3'b001 : 3'b101;
+                    insn_shift={f7,sh[4:0],5'd1,f3,5'd2,7'h13}; end
+            endfunction
+            function [31:0] insn_sw(input [4:0] rs,input [11:0] off);
+              insn_sw={off[11:5],rs,5'd0,3'b010,off[4:0],7'h23};
+            endfunction
+            picorv32 #(
+            `ifdef G20_E
+              .ENABLE_REGS_16_31(0),
+            `else
+              .ENABLE_REGS_16_31(1),
+            `endif
+            `ifdef G20_BARREL
+              .BARREL_SHIFTER(1),
+            `else
+              .BARREL_SHIFTER(0),
+            `endif
+              .COMPRESSED_ISA(0),.ENABLE_MUL(0),.ENABLE_DIV(0),.REGS_INIT_ZERO(1)) dut (
+                .clk(clk),.resetn(resetn),.trap(trap),.mem_valid(mem_valid),.mem_instr(mem_instr),
+                .mem_ready(mem_ready),.mem_addr(mem_addr),.mem_wdata(mem_wdata),.mem_wstrb(mem_wstrb),
+                .mem_rdata(mem_rdata),.irq(32'd0),.pcpi_wr(1'b0),.pcpi_rd(32'd0),.pcpi_wait(1'b0),.pcpi_ready(1'b0));
+            initial begin
+              if(!$value$plusargs("OP=%d",op))op=0;
+              if(!$value$plusargs("SH=%d",amt))amt=0;
+              for(i=0;i<256;i=i+1)mem[i]=32'h00000013;
+              mem[0]={20'h80010,5'd1,7'h37}; // LUI x1,0x80010 -> 0x80010000
+              mem[1]={12'd1,5'd1,3'd0,5'd1,7'h13}; // ADDI x1,x1,1
+              mem[2]=insn_shift(op,amt);
+              mem[3]=insn_sw(2,12'd128);
+              mem[4]={12'd7,5'd0,3'd0,5'd3,7'h13}; // ADDI x3,x0,7 negative control
+              mem[5]=insn_sw(3,12'd132);
+              mem[6]=32'h00100073; // EBREAK
+              repeat(10) @(negedge clk);resetn=1;
+              repeat(1600) @(negedge clk);
+              $fatal(1,"TIMEOUT before CPU end");
+            end
+            always @(posedge clk) begin
+              mem_ready<=0;
+              if(mem_valid && !mem_ready && mem_addr<1024)begin
+                mem_ready<=1;mem_rdata<=mem[mem_addr>>2];
+                if(mem_wstrb[0])mem[mem_addr>>2][7:0]<=mem_wdata[7:0];
+                if(mem_wstrb[1])mem[mem_addr>>2][15:8]<=mem_wdata[15:8];
+                if(mem_wstrb[2])mem[mem_addr>>2][23:16]<=mem_wdata[23:16];
+                if(mem_wstrb[3])mem[mem_addr>>2][31:24]<=mem_wdata[31:24];
+              end
+              if(resetn && mem_valid && mem_ready)begin
+                if(mem_instr) fetches=fetches+1;
+                else if(|mem_wstrb)stores=stores+1;
+              end
+              if(resetn && trap)begin
+                #1;
+                $display("G20_RESULT op=%0d sh=%0d data=%08h control=%08h fetches=%0d stores=%0d",op,amt,mem[32],mem[33],fetches,stores);
+                if(stores!=2 || fetches<7 || mem[33]!==32'd7)$fatal(1,"INVALID protocol/control");
+                $finish;
+              end
+            end
+          endmodule
+          SV
+          cat > /tmp/g20native.py <<'PY'
+          from pathlib import Path
+          import subprocess,time,csv,re,json
+          p=Path('g20-native'); data=[]; comp=[]
+          A=0x80010001
+          for revision in ('parent','child'):
+            for e in (0,1):
+              for barrel in (0,1):
+                name=f'{revision}_e{e}_barrel{barrel}'
+                cmd=['iverilog','-g2012','-s','g20_tb','-o',str(p/f'{name}.vvp'),str(p/'src'/f'{revision}.v'),str(p/'src/tb.sv')]
+                if e:cmd.insert(1,'-DG20_E')
+                if barrel:cmd.insert(1,'-DG20_BARREL')
+                t=time.monotonic(); run=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=40)
+                comp.append(dict(name=name,exit=run.returncode,seconds=round(time.monotonic()-t,6)))
+                (p/'logs'/f'{name}_compile.log').write_text(run.stdout)
+                for op in range(3):
+                  for amount in (0,15,16,17,31):
+                    row=dict(revision=revision,rv32e=e,barrel=barrel,opcode=('SLLI','SRLI','SRAI')[op],shamt=amount,valid=False,expected='',actual='',arch_match='',control='',seconds='',exit=run.returncode)
+                    if run.returncode==0:
+                      t=time.monotonic(); exe=subprocess.run(['vvp',str(p/f'{name}.vvp'),f'+OP={op}',f'+SH={amount}'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=15)
+                      row['seconds']=round(time.monotonic()-t,6);row['exit']=exe.returncode
+                      file=f'{name}_{row["opcode"]}_{amount}.log';(p/'logs'/file).write_text(exe.stdout)
+                      m=re.search(r'G20_RESULT op=(\d+) sh=(\d+) data=([0-9a-fA-F]{8}) control=([0-9a-fA-F]{8}) fetches=(\d+) stores=(\d+)',exe.stdout)
+                      if m:
+                        row['actual']=f'0x{int(m.group(3),16):08x}';row['control']=f'0x{int(m.group(4),16):08x}'
+                        row['valid']=exe.returncode==0 and int(m.group(1))==op and int(m.group(2))==amount and int(m.group(5))>=7 and int(m.group(6))==2 and int(m.group(4),16)==7
+                        signed=A if A<2**31 else A-2**32
+                        expect=((A << amount)&0xffffffff) if op==0 else (A >> amount) if op==1 else ((signed >> amount)&0xffffffff)
+                        row['expected']=f'0x{expect:08x}';row['arch_match']=row['valid'] and int(m.group(3),16)==expect
+                    data.append(row)
+          with (p/'MATRIX.csv').open('w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=data[0].keys());w.writeheader();w.writerows(data)
+          (p/'COMPILE_COST.json').write_text(json.dumps(comp,indent=2))
+          print('FIXED_DENOMINATOR',len(data),'VALID',sum(x['valid'] for x in data),'MATCH',sum(x['arch_match'] is True for x in data),'MISMATCH',sum(x['valid'] and not x['arch_match'] for x in data),'COMPILE',comp)
+          for x in data:
+            if x['valid'] and not x['arch_match']:print('MISMATCH',x)
+          assert len(data)==60
+          PY
+          set +e
+          python3 /tmp/g20native.py >g20-native/RUN.log 2>&1
+          echo "script_exit=$?" >g20-native/EXECUTION_STATUS.txt
+          cat g20-native/RUN.log
+          exit 0
+      - name: Archive all 60 cases, hashes and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-original-cpu-native-shift-60
+          path: g20-native/
+          retention-days: 30

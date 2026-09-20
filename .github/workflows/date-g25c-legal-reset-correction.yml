@@ -1,0 +1,70 @@
+name: DATE G25C original UART lawful reset correction
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25c-legal-reset-correction.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lawful-reset:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Replay untouched full physical RTL under lawful single-write AXI reset
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25c-legal-out g25c-legal-work
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25c-legal-upstream >g25c-legal-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25c-legal-out/STATUS.txt
+          git -C /tmp/g25c-legal-upstream checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25c-legal-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25c-legal-out/STATUS.txt
+          git -C /tmp/g25c-legal-upstream rev-parse HEAD >g25c-legal-out/ORIGINAL_COMMIT.txt
+          cp /tmp/g25c-legal-upstream/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25c-legal-work/
+          cp research/date-g25-third-target-20260920/{g25c_legal_reset_tb.sv,LEGAL_RESET_CORRECTION_FREEZE.md} g25c-legal-work/
+          sha256sum g25c-legal-work/* >g25c-legal-out/HASHES.txt
+          iverilog -g2012 -s g25c_legal_reset_native_tb -o g25c-legal-work/native.vvp g25c-legal-work/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25c-legal-work/g25c_legal_reset_tb.sv >g25c-legal-out/NATIVE.compile.log 2>&1
+          echo "native_compile_exit=$?" >>g25c-legal-out/STATUS.txt
+          if [ -f g25c-legal-work/native.vvp ];then timeout 30 vvp g25c-legal-work/native.vvp >g25c-legal-out/NATIVE.run.log 2>&1;echo "native_run_exit=$?" >>g25c-legal-out/STATUS.txt;fi
+          ROOT="$PWD"
+          for CASE in prove cover;do
+            if [ "$CASE" = prove ];then MODE=bmc;DEPTH=32;DEFINE=;else MODE=cover;DEPTH=26;DEFINE=-DCOVER_ONLY;fi
+            cat >g25c-legal-work/$CASE.sby <<SBY
+          [options]
+          mode $MODE
+          depth $DEPTH
+          [engines]
+          smtbmc z3
+          [script]
+          read_verilog -sv axiluart.v ufifo.v skidbuffer.v txuart.v rxuart.v
+          read_verilog -formal -sv -DFORMAL_CHECK $DEFINE g25c_legal_reset_tb.sv
+          prep -top g25c_legal_reset_harness
+          [files]
+          axiluart.v
+          ufifo.v
+          skidbuffer.v
+          txuart.v
+          rxuart.v
+          g25c_legal_reset_tb.sv
+          SBY
+            (cd g25c-legal-work && timeout 150 sby -f -d "$ROOT/g25c-legal-out/$CASE-task" $CASE.sby >"$ROOT/g25c-legal-out/$CASE.run.log" 2>&1)
+            echo "${CASE}_exit=$? ${CASE}_status=$(cat g25c-legal-out/$CASE-task/status 2>/dev/null || echo MISSING)" >>g25c-legal-out/STATUS.txt
+            cp g25c-legal-work/$CASE.sby g25c-legal-out/
+          done
+          cp g25c-legal-work/{g25c_legal_reset_tb.sv,LEGAL_RESET_CORRECTION_FREEZE.md} g25c-legal-out/
+          cat g25c-legal-out/STATUS.txt
+          tail -10 g25c-legal-out/NATIVE.run.log 2>/dev/null || true
+          tail -7 g25c-legal-out/prove.run.log 2>/dev/null || true
+          tail -7 g25c-legal-out/cover.run.log 2>/dev/null || true
+      - name: Retain both outcomes and counterexamples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25c-original-lawful-reset-reaudit
+          path: g25c-legal-out/
+          retention-days: 30

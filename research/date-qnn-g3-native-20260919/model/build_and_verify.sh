@@ -9,8 +9,8 @@ flatc --version | tee results/model/flatc_version.txt
 git -C tflm rev-parse HEAD | tee results/model/tflm_commit.txt
 [[ "$(cat results/model/tflm_commit.txt)" = 0ee39f5fc6629b7403166d325da374f01d890cf1 ]]
 sha256sum "$ORIGINAL_SCHEMA" "$MODEL" > results/model/model_sources_sha256.txt
-# Flatc 2.0.8 predates enum (deprecated) metadata. Normalize only those six
-# annotations; preserve the original schema and both source hashes.
+# Flatc 2.0.8 predates enum (deprecated) metadata. Normalize only six
+# annotations; preserve original schema and both source hashes.
 python3 - <<'PY'
 from pathlib import Path
 p=Path('tflm/tensorflow/compiler/mlir/lite/schema/schema.fbs');s=p.read_text()
@@ -22,7 +22,6 @@ PY
 sha256sum "$SCHEMA" >> results/model/model_sources_sha256.txt
 flatc -b --strict-json -o results/model "$SCHEMA" "$MODEL"
 [[ -f results/model/quantized_mul_adversarial.tflite ]]
-# '--' is required to tell flatc that the following input is a binary file.
 flatc -t --raw-binary --strict-json -o results/model "$SCHEMA" -- results/model/quantized_mul_adversarial.tflite
 python3 - <<'PY'
 from pathlib import Path
@@ -32,10 +31,13 @@ assert b[4:8]==b'TFL3' and len(b)>150
 m=json.loads(Path('results/model/quantized_mul_adversarial.json').read_text())
 assert m['version']==3 and len(m['subgraphs'])==1
 s=m['subgraphs'][0];assert s['inputs']==[0,1] and s['outputs']==[2]
-assert len(s['operators'])==1 and s['operators'][0]['builtin_options_type'] in ('MulOptions', 'BuiltinOptions_MulOptions')
+assert len(s['operators'])==1 and s['operators'][0]['builtin_options_type']=='MulOptions'
 for t,scale,zp in zip(s['tensors'],[.5,.5,2**-16],[-100,-100,0]):
  assert t['type'] in ('INT8',9) and t['shape']==[4]
- assert t['quantization']['scale']==[scale] and t['quantization']['zero_point']==[zp]
+ # Flatc 2.0 JSON printer defaults to six decimal places even for an exact
+ # binary float32. This is a loose structural check, NOT precision evidence.
+ assert abs(t['quantization']['scale'][0]-scale)<3e-7
+ assert t['quantization']['zero_point']==[zp]
 print('GENUINE_TFLITE_FLATBUFFER_ROUNDTRIP_PASS bytes',len(b))
 PY
 sha256sum results/model/quantized_mul_adversarial.tflite >> results/model/model_sources_sha256.txt

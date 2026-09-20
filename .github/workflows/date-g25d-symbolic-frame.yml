@@ -1,0 +1,74 @@
+name: DATE G25D end-to-end symbolic AXI-to-serial byte
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25d-symbolic-frame.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-physical:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Execute one legal master, native reference, complete symbolic byte, cover, and negative control
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25d-out g25d-work
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25d-upstream >g25d-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25d-out/STATUS.txt
+          git -C /tmp/g25d-upstream checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25d-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25d-out/STATUS.txt
+          git -C /tmp/g25d-upstream rev-parse HEAD >g25d-out/ORIGINAL_COMMIT.txt
+          cp /tmp/g25d-upstream/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25d-work/
+          cp research/date-g25-third-target-20260920/g25d_symbolic_frame_tb.sv g25d-work/
+          cp research/date-g25-third-target-20260920/{FRAME_PREREGISTRATION.md,FRAME_TIMING_ERRATUM.md,FRAME_PROPERTY_FREEZE.md} g25d-out/
+          sha256sum g25d-work/* >g25d-out/HASHES.txt
+          { sby --version; yosys -V; z3 --version; iverilog -V 2>&1 | head -2; } >g25d-out/TOOLS.txt 2>&1
+          iverilog -g2012 -s g25d_native_frame_tb -o g25d-work/native.vvp g25d-work/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25d-work/g25d_symbolic_frame_tb.sv >g25d-out/NATIVE.compile.log 2>&1
+          echo "native_compile_exit=$?" >>g25d-out/STATUS.txt
+          if [ -f g25d-work/native.vvp ];then timeout 30 vvp g25d-work/native.vvp >g25d-out/NATIVE.run.log 2>&1;echo "native_run_exit=$?" >>g25d-out/STATUS.txt;fi
+          ROOT="$PWD"
+          for CASE in prove cover negative;do
+            if [ "$CASE" = prove ];then MODE=bmc;DEPTH=60;DEFINE=;elif [ "$CASE" = cover ];then MODE=cover;DEPTH=57;DEFINE=-DCOVER_ONLY;else MODE=bmc;DEPTH=26;DEFINE=-DNEGATIVE_CASE;fi
+            cat >g25d-work/$CASE.sby <<EOF
+          [options]
+          mode $MODE
+          depth $DEPTH
+          [engines]
+          smtbmc z3
+          [script]
+          read_verilog -sv axiluart.v ufifo.v skidbuffer.v txuart.v rxuart.v
+          read_verilog -formal -sv -DFORMAL_CHECK $DEFINE g25d_symbolic_frame_tb.sv
+          prep -top g25d_symbolic_frame_harness
+          [files]
+          axiluart.v
+          ufifo.v
+          skidbuffer.v
+          txuart.v
+          rxuart.v
+          g25d_symbolic_frame_tb.sv
+          EOF
+            (cd g25d-work && timeout 185 sby -f -d "$ROOT/g25d-out/$CASE-task" $CASE.sby >"$ROOT/g25d-out/$CASE.run.log" 2>&1)
+            echo "${CASE}_exit=$? ${CASE}_status=$(cat g25d-out/$CASE-task/status 2>/dev/null || echo MISSING)" >>g25d-out/STATUS.txt
+            cp g25d-work/$CASE.sby g25d-out/
+          done
+          cp g25d-work/g25d_symbolic_frame_tb.sv g25d-out/
+          cp g25d-work/{axiluart,txuart,ufifo,skidbuffer,rxuart}.v g25d-out/
+          cat g25d-out/STATUS.txt
+          tail -14 g25d-out/NATIVE.run.log 2>/dev/null || true
+          tail -8 g25d-out/prove.run.log 2>/dev/null || true
+          tail -8 g25d-out/cover.run.log 2>/dev/null || true
+          tail -8 g25d-out/negative.run.log 2>/dev/null || true
+      - name: Archive all proof status, cover witness, negative witness, original files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25d-original-uart-symbolic-frame-raw
+          path: g25d-out/
+          retention-days: 30

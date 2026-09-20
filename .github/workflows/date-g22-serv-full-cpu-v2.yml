@@ -1,0 +1,71 @@
+name: DATE G22 original full SERV CSR vs debug-shadow v2
+on:
+  push:
+    branches: [research/date-g22-independent-cpu-scope-20260920]
+    paths: [.github/workflows/date-g22-serv-full-cpu-v2.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-core:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Same untouched CPU / exact program; initialized RF and post-commit observer sample
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+        run: |
+          set -uo pipefail
+          mkdir -p g22-data
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g22-serv >g22-data/CLONE.log 2>&1
+          if [ "$REV" = parent ];then SHA=e97bdaf7a1175ad02bc3ba3adb4b1b26d6204fad;else SHA=1e4ea0527e0c7a3737bc501aa5d93bb16508ec15;fi
+          git -C /tmp/g22-serv checkout "$SHA" >g22-data/CHECKOUT.log 2>&1
+          git -C /tmp/g22-serv rev-parse HEAD >g22-data/SOURCE_COMMIT.txt
+          git -C /tmp/g22-serv diff e97bdaf7a1175ad02bc3ba3adb4b1b26d6204fad 1e4ea0527e0c7a3737bc501aa5d93bb16508ec15 --name-only >g22-data/ONLY_CHANGED_FILES.txt
+          sha256sum /tmp/g22-serv/rtl/{serv_debug.v,serv_top.v,serv_rf_top.v,serv_csr.v,serv_rf_ram.v} > g22-data/SOURCE_HASHES.txt
+          cp research/date-g22-independent-cpu-scope-20260920/serv_core_csr_tb.v g22-data/FIRST_TESTBENCH.v
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('g22-data/EXACT_TESTBENCH_v2.v')
+          s=Path('g22-data/FIRST_TESTBENCH.v').read_text()
+          marker='    if (cycles==4000) begin'
+          assert s.count(marker)==1
+          sample='''    if (cycles==111) begin
+              $display("POST_CSR_STABLE cycle=%0d mirror=%08h",cycles,dut.cpu.gen_debug.debug.dbg_mscratch);
+          `ifdef PARENT
+              if (dut.cpu.gen_debug.debug.dbg_mscratch !== 32'h00000001) $fatal(1,"parent shadow not stale after CSR-only update");
+          `else
+              if (dut.cpu.gen_debug.debug.dbg_mscratch !== 32'h00000002) $fatal(1,"child shadow not updated after CSR-only update");
+          `endif
+            end
+          '''
+          s=s.replace(marker,sample+marker)
+          p.write_text(s)
+          PY
+          cp /tmp/g22-serv/rtl/{serv_debug.v,serv_top.v,serv_rf_top.v,serv_csr.v,serv_rf_ram.v} g22-data/
+          iverilog -V | head -2 > g22-data/TOOLS.txt
+          /usr/bin/time -f 'compile_wall_s=%e' -o g22-data/COMPILE_TIME.txt iverilog -g2012 -DRISCV_FORMAL -DSERV_CLEAR_RAM -s serv_core_csr_tb -D$(if [ "$REV" = parent ];then echo PARENT;else echo CHILD;fi) -o g22-data/full_cpu.vvp /tmp/g22-serv/rtl/*.v g22-data/EXACT_TESTBENCH_v2.v >g22-data/COMPILE.log 2>&1
+          rc=$?; echo "compile_exit=$rc" >g22-data/STATUS.txt
+          if [ "$rc" -eq 0 ];then
+            timeout 65 /usr/bin/time -f 'sim_wall_s=%e' -o g22-data/SIM_TIME.txt vvp g22-data/full_cpu.vvp >g22-data/SIM.log 2>&1
+            rc=$?; echo "simulation_exit=$rc" >>g22-data/STATUS.txt
+          else echo 'simulation_not_run=compile_error' >>g22-data/STATUS.txt;fi
+          grep -E 'CSR_ONLY_RETIRE|POST_CSR|STORE|FULL_CPU|TIMEOUT|FATAL' g22-data/SIM.log 2>/dev/null | tail -30 || true
+          cat g22-data/STATUS.txt
+          exit 0
+      - name: Preserve all source-pinned traces and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g22-serv-fullcore-v2-${{ matrix.rev }}
+          path: g22-data/
+          retention-days: 30

@@ -1,0 +1,46 @@
+name: DATE G25B real original UART midframe reset
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25b-uart-active-reset.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-midframe:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compile exact original full AXI-UART and execute real bus write followed by reset
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25b-out
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25b-wbuart >g25b-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25b-out/STATUS.txt
+          git -C /tmp/g25b-wbuart checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25b-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25b-out/STATUS.txt
+          git -C /tmp/g25b-wbuart rev-parse HEAD >g25b-out/ORIGINAL_COMMIT.txt
+          cp research/date-g25-third-target-20260920/RESET_PREREGISTRATION.md g25b-out/
+          cp research/date-g25-third-target-20260920/g25_reset_midframe_tb.sv g25b-out/
+          cp /tmp/g25b-wbuart/rtl/axiluart.v /tmp/g25b-wbuart/rtl/txuart.v g25b-out/
+          sha256sum /tmp/g25b-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v >g25b-out/HASHES.txt
+          iverilog -g2012 -s g25_reset_midframe_tb -o g25b-out/sim.vvp /tmp/g25b-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v research/date-g25-third-target-20260920/g25_reset_midframe_tb.sv >g25b-out/COMPILE.log 2>&1
+          rc=$?; echo "compile_exit=$rc" >>g25b-out/STATUS.txt
+          if [ "$rc" -eq 0 ];then
+             timeout 30 vvp g25b-out/sim.vvp >g25b-out/SIM.log 2>&1
+             echo "run_exit=$?" >>g25b-out/STATUS.txt
+          fi
+          cat g25b-out/STATUS.txt
+          tail -35 g25b-out/SIM.log 2>/dev/null || true
+      - name: Retain success failure or timeout as original evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25b-original-midframe-reset-raw
+          path: g25b-out/
+          retention-days: 30

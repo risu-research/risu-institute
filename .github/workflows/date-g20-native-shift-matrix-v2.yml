@@ -1,0 +1,57 @@
+name: DATE G20 corrected 120-cell original-CPU native matrix
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-native-shift-matrix-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-accounting-v2:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Replay first whole CPU harness exactly, correcting final arithmetic only
+        run: |
+          set -euo pipefail
+          mkdir -p g20-native/src g20-native/logs
+          cp research/date-g20-scope-matrix-20260920/DENOMINATOR_ERRATUM.md g20-native/
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20-native-cpu
+          git -C /tmp/g20-native-cpu show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >g20-native/src/parent.v
+          git -C /tmp/g20-native-cpu show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >g20-native/src/child.v
+          git hash-object g20-native/src/parent.v >g20-native/PARENT_GIT_BLOB.txt
+          git hash-object g20-native/src/child.v >g20-native/CHILD_GIT_BLOB.txt
+          yosys -V >g20-native/TOOLS.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          raw=Path('.github/workflows/date-g20-native-shift-matrix.yml').read_text()
+          a="          cat >g20-native/src/tb.sv <<'SV'\n"
+          b="\n          SV\n"
+          assert raw.count(a)==1
+          bench=textwrap.dedent(raw.split(a,1)[1].split(b,1)[0])+'\n'
+          Path('g20-native/src/tb.sv').write_text(bench)
+          a="          cat > /tmp/g20native.py <<'PY'\n"; b="\n          PY\n"
+          assert raw.count(a)==1
+          script=textwrap.dedent(raw.split(a,1)[1].split(b,1)[0])+'\n'
+          assert script.count('assert len(data)==60')==1
+          script=script.replace('assert len(data)==60','assert len(data)==120')
+          Path('/tmp/g20native.py').write_text(script)
+          Path('g20-native/src/ORIGINAL_SCRIPT_CORRECTED_ONLY_DENOMINATOR.py').write_text(script)
+          PY
+          set +e
+          python3 /tmp/g20native.py >g20-native/RUN.log 2>&1
+          echo "script_exit=$?" >g20-native/EXECUTION_STATUS.txt
+          tail -21 g20-native/RUN.log
+          exit 0
+      - name: Archive corrected 120 real CPU observations and failed first run declaration
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-original-cpu-native-shift-120-v2
+          path: g20-native/
+          retention-days: 30

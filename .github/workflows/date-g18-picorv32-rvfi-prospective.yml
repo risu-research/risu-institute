@@ -1,0 +1,148 @@
+name: DATE G18 frozen 2017 PicoRV32 RVFI observability case
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-picorv32-rvfi-prospective.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rvfi:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lock original RVFI historical source and no-workflow fileset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-rvfi/src g18-rvfi/logs g18-rvfi/timing g18-rvfi/formal
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g18-rvfi-original
+          git -C /tmp/g18-rvfi-original show aaa9e25756c1765353e6ff42da82cbedeecf62cd:picorv32.v >g18-rvfi/src/parent.v
+          git -C /tmp/g18-rvfi-original show f33ddd3654faf1571ef765d898040f24cf092355:picorv32.v >g18-rvfi/src/child.v
+          test "$(git hash-object g18-rvfi/src/child.v)" = e3dd7086d4ac4155cc4cceee5444b79769e2d196
+          git -C /tmp/g18-rvfi-original diff --name-only aaa9e25756c1765353e6ff42da82cbedeecf62cd f33ddd3654faf1571ef765d898040f24cf092355 >g18-rvfi/CHANGED_FILES.txt
+          git -C /tmp/g18-rvfi-original ls-tree --name-only f33ddd3654faf1571ef765d898040f24cf092355 >g18-rvfi/HISTORICAL_ROOT.txt
+          grep -n 'parameter.*COMPRESSED_ISA\|ifdef RISCV_FORMAL' g18-rvfi/src/child.v | head -12 >g18-rvfi/CONFIG_GUARDS.txt
+          sha256sum g18-rvfi/src/* >g18-rvfi/SOURCE_SHA256.txt
+      - name: Bus-only genuine CPU with LW followed by a stalled instruction fetch and RVFI output sampling
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >g18-rvfi/src/tb.v <<'SV'
+          `timescale 1ns/1ps
+          module tb;
+            reg clk=0,resetn=0,mem_ready=0;
+            always #5 clk=~clk;
+            wire trap,mem_valid,mem_instr;
+            wire [31:0] mem_addr,mem_wdata;
+            wire [3:0] mem_wstrb;
+            wire [3:0] rvfi_mem_rmask,rvfi_mem_wmask;
+            wire rvfi_valid;
+            wire [31:0] rvfi_insn,rvfi_mem_addr,rvfi_mem_rdata;
+            reg [31:0] mem_rdata=0,ram[0:255];
+            integer j,fetches=0,reads=0,stalled_after_load=0,mask_high_on_stall=0,mask_zero_on_stall=0,retired=0;
+            integer stall=0,seen_load=0;
+            function [31:0] addi(input [4:0] rd,rs,input [11:0] imm);
+              addi={imm,rs,3'b000,rd,7'h13};
+            endfunction
+            function [31:0] lw(input [4:0] rd,rs,input [11:0] imm);
+              lw={imm,rs,3'b010,rd,7'h03};
+            endfunction
+            picorv32 #(.COMPRESSED_ISA(1),.REGS_INIT_ZERO(1),.ENABLE_DIV(0),.ENABLE_MUL(0)) dut (
+              .clk(clk),.resetn(resetn),.trap(trap),.mem_valid(mem_valid),.mem_instr(mem_instr),.mem_ready(mem_ready),
+              .mem_addr(mem_addr),.mem_wdata(mem_wdata),.mem_wstrb(mem_wstrb),.mem_rdata(mem_rdata),
+              .irq(32'd0),.pcpi_wr(1'b0),.pcpi_rd(32'd0),.pcpi_wait(1'b0),.pcpi_ready(1'b0),
+              .rvfi_valid(rvfi_valid),.rvfi_insn(rvfi_insn),.rvfi_mem_addr(rvfi_mem_addr),.rvfi_mem_rmask(rvfi_mem_rmask),.rvfi_mem_wmask(rvfi_mem_wmask),.rvfi_mem_rdata(rvfi_mem_rdata));
+            initial begin
+              for(j=0;j<256;j=j+1)ram[j]=32'h00000013;
+              ram[0]=addi(1,0,12'd128);
+              ram[1]=lw(2,1,12'd0);
+              ram[2]=addi(3,2,12'd1);
+              ram[3]=32'h00100073;
+              ram[32]=32'h12345678;
+              repeat(9) @(negedge clk);resetn=1;
+              repeat(600) @(negedge clk);
+              $fatal(1,"TIMEOUT: original CPU did not fetch/store/retire");
+            end
+            always @(posedge clk) begin
+              mem_ready <= 0;
+              if(mem_valid && !mem_ready && mem_addr<1024)begin
+                if(mem_instr && seen_load && stall<3)begin stall=stall+1;end
+                else begin mem_ready<=1;mem_rdata<=ram[mem_addr>>2];end
+              end
+              if(resetn && mem_valid && mem_ready)begin
+                if(mem_instr)begin
+                  fetches=fetches+1;
+                  if(fetches<=5)$display("FETCH=%08h data=%08h",mem_addr,mem_rdata);
+                end else if(mem_wstrb==0)begin
+                  reads=reads+1;
+                  seen_load=1;
+                  $display("DATA_READ addr=%08h data=%08h",mem_addr,mem_rdata);
+                end
+              end
+              if(resetn && rvfi_valid)begin retired=retired+1;$display("RETIRE insn=%08h rmask=%h",rvfi_insn,rvfi_mem_rmask);end
+              if(resetn && seen_load && mem_valid && mem_instr && !mem_ready && stall>0)begin
+                stalled_after_load=stalled_after_load+1;
+                if(rvfi_mem_rmask==4'hf)mask_high_on_stall=mask_high_on_stall+1;
+                if(rvfi_mem_rmask==4'h0)mask_zero_on_stall=mask_zero_on_stall+1;
+                $display("FETCH_WAIT rmask=%h data=%08h",rvfi_mem_rmask,rvfi_mem_rdata);
+              end
+              if(resetn && trap)begin
+                #1;
+                $display("FINAL fetch=%0d read=%0d retired=%0d stalls=%0d high=%0d zero=%0d",fetches,reads,retired,stalled_after_load,mask_high_on_stall,mask_zero_on_stall);
+                if(fetches<3 || reads<1 || retired<2 || stalled_after_load<1)$fatal(1,"INVALID: no reachable load-stall sequence");
+                $finish;
+              end
+            end
+          endmodule
+          SV
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,time,json,re,csv
+          p=Path('g18-rvfi'); rows=[]
+          for rev in ('parent','child'):
+            cmd=['iverilog','-g2012','-DRISCV_FORMAL','-s','tb','-o',str(p/f'{rev}.vvp'),str(p/'src'/f'{rev}.v'),str(p/'src/tb.v')]
+            start=time.monotonic();r=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=45)
+            rows.append(dict(rev=rev,phase='compile',wall_seconds=round(time.monotonic()-start,6),exit=r.returncode))
+            (p/'logs'/f'{rev}_compile.log').write_text(r.stdout)
+            if r.returncode:continue
+            start=time.monotonic();r=subprocess.run(['vvp',str(p/f'{rev}.vvp')],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=35)
+            rows.append(dict(rev=rev,phase='native',wall_seconds=round(time.monotonic()-start,6),exit=r.returncode))
+            (p/'logs'/f'{rev}_native.log').write_text(r.stdout)
+            print(rev,'exit',r.returncode,'result',re.findall(r'FINAL[^\n]*',r.stdout),'logs-tail',r.stdout[-650:])
+          (p/'timing'/'native_elapsed.json').write_text(json.dumps(rows,indent=2))
+          PY
+      - name: Check original framework compatibility, do not call later checker a 2017 proof
+        shell: bash
+        run: |
+          set -uo pipefail
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g18-rvfi-rvf
+          git -C /tmp/g18-rvfi-rvf checkout c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git -C /tmp/g18-rvfi-rvf rev-parse HEAD >g18-rvfi/formal/FRAMEWORK_PIN.txt
+          cp /tmp/g18-rvfi-rvf/cores/picorv32/wrapper.sv g18-rvfi/formal/MODERN_WRAPPER.sv
+          cp /tmp/g18-rvfi-rvf/cores/picorv32/checks.cfg g18-rvfi/formal/MODERN_CHECKS.cfg
+          for rev in parent child;do
+            cp g18-rvfi/src/${rev}.v /tmp/g18-rvfi-rvf/cores/picorv32/picorv32.v
+            cd /tmp/g18-rvfi-rvf/cores/picorv32
+            python3 ../../checks/genchecks.py >"$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_generator.log" 2>&1
+            gen=$?;echo "generator_exit=$gen" >"$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_STATUS.txt"
+            if [ "$gen" -eq 0 ];then
+              /usr/bin/time -f '%e' -o "$GITHUB_WORKSPACE/g18-rvfi/timing/${rev}_formal_seconds.txt" timeout 75 make -C checks insn_addi_ch0 >"$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_make.log" 2>&1
+              rc=$?;echo "make_exit=$rc" >>"$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_STATUS.txt"
+              find checks/insn_addi_ch0 -name status -exec cat {} \; >"$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_SBY_STATUS.txt" 2>/dev/null
+              tar -czf "$GITHUB_WORKSPACE/g18-rvfi/formal/${rev}_proof.tar.gz" -C checks insn_addi_ch0
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done
+          exit 0
+      - name: Archive source, true results and incompatibility failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-prospective-rvfi-original-cpu-and-formal-compatibility
+          path: g18-rvfi/
+          retention-days: 30

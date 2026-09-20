@@ -36,7 +36,7 @@ try:
   for line in log.splitlines():
    m=pattern.fullmatch(line.strip())
    if m: samples[int(m.group(1))]=(int(m.group(2)),int(m.group(3),16),int(m.group(4)))
-  matches=summary.findall(log)
+  matches=[m.groups() for line in log.splitlines() if (m:=summary.fullmatch(line.strip()))]
   good=(code==0 and len(matches)==1 and len(samples)==len(expected_times))
   if good:
    done=matches[0]

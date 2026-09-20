@@ -1,0 +1,58 @@
+name: DATE G11 independent always_comb cross-check
+on:
+  push:
+    branches:
+      - research/date-g11-deterministic-program-20260920
+permissions:
+  contents: read
+jobs:
+  always-comb:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog python3
+      - name: Independently normalize constant combinational logic and replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/g11-original
+          cd /tmp/g11-original
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > /tmp/g11-child-pipemem.v
+          mkdir -p "$GITHUB_WORKSPACE/g11-always-comb"
+          sha256sum rtl/core/zipcpu.v rtl/core/pipemem.v rtl/ex/wbdblpriarb.v /tmp/g11-child-pipemem.v > "$GITHUB_WORKSPACE/g11-always-comb/original-sha256.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/g11-original')
+          p=root/'rtl/core/zipcpu.v';s=p.read_text();a="initial\talu_gie = 1'b0;";assert s.count(a)==1;p.write_text(s.replace(a,"initial\tr_alu_gie = 1'b0;"))
+          p=root/'rtl/ex/wbdblpriarb.v';s=p.read_text();a='`endif\n\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))';assert s.count(a)==1;p.write_text(s.replace(a,'`endif\n\n`ifdef FORMAL\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))'))
+          for p in (root/'rtl/core/pipemem.v',Path('/tmp/g11-child-pipemem.v')):
+              s=p.read_text();a='\talways\t@(*)\n\tif (OPT_ALIGNMENT_ERR)';assert s.count(a)==1;assert "OPT_ALIGNMENT_ERR=1'b0;" in s
+              # always_comb executes once at t=0 even when the false constant
+              # branch creates no sensitivity. No initial state is supplied.
+              p.write_text(s.replace(a,'\talways_comb\n\tif (OPT_ALIGNMENT_ERR)'))
+          PY
+          sha256sum rtl/core/zipcpu.v rtl/core/pipemem.v rtl/ex/wbdblpriarb.v /tmp/g11-child-pipemem.v > "$GITHUB_WORKSPACE/g11-always-comb/controlled-sha256.txt"
+          cp rtl/core/pipemem.v /tmp/g11-parent-pipemem.v
+          for REV in parent child; do
+            if [ "$REV" = child ]; then cp /tmp/g11-child-pipemem.v rtl/core/pipemem.v; else cp /tmp/g11-parent-pipemem.v rtl/core/pipemem.v; fi
+            mkdir -p "$GITHUB_WORKSPACE/g11-always-comb/$REV"
+            iverilog -g2012 -s native_program_tb -Irtl -Irtl/core -Irtl/ex \
+              -DOPT_DOUBLE_FETCH -DOPT_PIPELINED -DOPT_PIPELINED_BUS_ACCESS -DTEST_IMMEDIATE \
+              -o "$GITHUB_WORKSPACE/g11-always-comb/$REV/replay.vvp" \
+              "$GITHUB_WORKSPACE/research/date-g11-deterministic-program/native_program_tb.v" \
+              rtl/core/*.v rtl/ex/wbdblpriarb.v > "$GITHUB_WORKSPACE/g11-always-comb/$REV/compile.log" 2>&1
+            (cd "$GITHUB_WORKSPACE/g11-always-comb/$REV" && timeout 60 vvp replay.vvp > run.log 2>&1)
+            grep -E 'PIPE |NATIVE_FETCH_WITNESS|SUMMARY|NATIVE_RTL_WITNESS_PASS' "$GITHUB_WORKSPACE/g11-always-comb/$REV/run.log" | head -12
+            grep -q NATIVE_RTL_WITNESS_PASS "$GITHUB_WORKSPACE/g11-always-comb/$REV/run.log"
+          done
+      - name: Preserve both VCDs, complete compilation and execution logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-g11-independent-always-comb
+          path: g11-always-comb/
+          if-no-files-found: warn

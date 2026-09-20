@@ -4,7 +4,7 @@
  * This executes 65,536 input PAIRS in QEMU; not real usage prevalence. */
 #include <stdint.h>
 extern int scalar_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
-extern int mve_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
+extern int mve_kernel(const int8_t*,const int8_t*,int32_t,int32_t,int8_t*,int32_t,int32_t,int32_t,int32_t,int32_t,int32_t);
 static void write0(const char*s){__asm volatile("mov r0,#4\nmov r1,%0\nbkpt #0xab"::"r"(s):"r0","r1","memory");}
 static void number(int x){char b[16];int j=0;unsigned y;if(x<0){b[j++]='-';y=(unsigned)(-x);}else y=(unsigned)x;char r[11];int n=0;do{r[n++]=(char)('0'+y%10);y/=10;}while(y);while(n)b[j++]=r[--n];b[j]=0;write0(b);}
 static int8_t in_a[256],in_b[256],out_s[257],out_m[257];

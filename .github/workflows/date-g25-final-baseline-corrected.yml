@@ -1,0 +1,42 @@
+name: DATE G25 final native parser-corrected rerun
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25-final-baseline-corrected.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-baseline:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recheck exact original UART against all 256 ordinary native simulations
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25-native-final-out g25-native-final-work
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25-native-original >g25-native-final-out/CLONE.log 2>&1
+          echo "clone_exit=$?" >g25-native-final-out/STATUS.txt
+          git -C /tmp/g25-native-original checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25-native-final-out/CHECKOUT.log 2>&1
+          echo "checkout_exit=$?" >>g25-native-final-out/STATUS.txt
+          git -C /tmp/g25-native-original rev-parse HEAD >g25-native-final-out/ORIGINAL_COMMIT.txt
+          cp /tmp/g25-native-original/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25-native-final-work/
+          cp research/date-g25-third-target-20260920/{g25d_symbolic_frame_tb.sv,g25_final_exhaustive_native.py,FINAL_AUDIT_BASELINE_FREEZE.md,FINAL_AUDIT_PARSER_ERRATUM.md} g25-native-final-work/
+          sha256sum g25-native-final-work/* >g25-native-final-out/SOURCE_HASHES.txt
+          python3 g25-native-final-work/g25_final_exhaustive_native.py g25-native-final-work g25-native-final-out >g25-native-final-out/BASELINE.stdout.log 2>&1
+          echo "native256_exit=$?" >>g25-native-final-out/STATUS.txt
+          cp g25-native-final-work/{g25d_symbolic_frame_tb.sv,g25_final_native_adapter.sv,g25_final_exhaustive_native.py,FINAL_AUDIT_BASELINE_FREEZE.md,FINAL_AUDIT_PARSER_ERRATUM.md} g25-native-final-out/
+          cat g25-native-final-out/STATUS.txt
+          cat g25-native-final-out/NATIVE_256_SUMMARY.txt
+      - name: Keep complete raw audit, including all 256 individual outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25-final-256-native-corrected-raw
+          path: g25-native-final-out/
+          retention-days: 30

@@ -1,0 +1,41 @@
+name: DATE G25D legal-master original UART frame reference
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g25d-uart-frame-legal.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  legal-single-write:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lawful master valid until exactly the single accepted handshake
+        shell: bash
+        run: |
+          set +e
+          mkdir -p g25d-legal
+          git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25d-legal-wbuart >g25d-legal/CLONE.log 2>&1
+          git -C /tmp/g25d-legal-wbuart checkout d8ea86d1b8ef47d0b1c13f291a958b6aac9229f9 >g25d-legal/CHECKOUT.log 2>&1
+          git -C /tmp/g25d-legal-wbuart rev-parse HEAD >g25d-legal/ORIGINAL_COMMIT.txt
+          cp research/date-g25-third-target-20260920/FRAME_TIMING_ERRATUM.md g25d-legal/
+          cp research/date-g25-third-target-20260920/g25d_frame_timing_tb.sv g25d-legal/INVALID_PRIOR_TB.sv
+          sed 's/step<=14/step<=13/' g25d-legal/INVALID_PRIOR_TB.sv >g25d-legal/LEGAL_TESTBENCH.sv
+          sha256sum /tmp/g25d-legal-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25d-legal/LEGAL_TESTBENCH.sv >g25d-legal/HASHES.txt
+          iverilog -g2012 -s g25d_frame_timing_tb -o g25d-legal/sim.vvp /tmp/g25d-legal-wbuart/rtl/{axiluart,ufifo,skidbuffer,txuart,rxuart}.v g25d-legal/LEGAL_TESTBENCH.sv >g25d-legal/COMPILE.log 2>&1
+          echo "compile_exit=$?" >g25d-legal/STATUS.txt
+          if [ -f g25d-legal/sim.vvp ];then timeout 30 vvp g25d-legal/sim.vvp >g25d-legal/SIM.log 2>&1; echo "run_exit=$?" >>g25d-legal/STATUS.txt;fi
+          cat g25d-legal/STATUS.txt
+          cat g25d-legal/SIM.log 2>/dev/null || true
+      - name: Archive full corrected input and output beside erratum
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g25d-legal-original-frame-timing
+          path: g25d-legal/
+          retention-days: 30

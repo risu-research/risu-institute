@@ -1,0 +1,67 @@
+name: DATE G11 formal multiplier abstraction control
+on:
+  push:
+    branches:
+      - research/date-g11-fullcpu-integration-20260919
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  model:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [parent, child]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned experiment tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys z3 python3
+          yosys -V
+          z3 -version
+      - name: Rebuild complete CPU with isolated abstraction control
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/model-${{ matrix.version }}"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/zipcpu-source
+          cd /tmp/zipcpu-source
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git rev-parse HEAD > "$GITHUB_WORKSPACE/model-${{ matrix.version }}/base-commit.txt"
+          if [ '${{ matrix.version }}' = 'child' ]; then
+            git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > rtl/core/pipemem.v
+          fi
+          sha256sum rtl/core/pipemem.v bench/formal/abs_mpy.v > "$GITHUB_WORKSPACE/model-${{ matrix.version }}/before-sha256.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('bench/formal/abs_mpy.v')
+          s=p.read_text()
+          old="r_busy <= (delay_to_valid != 3'h1);"
+          new="r_busy <= ((delay_to_valid != 3'h0) && (delay_to_valid != 3'h1));"
+          assert s.count(old)==1, 'Original 2018 multiplier abstraction does not match pinned expectation'
+          p.write_text(s.replace(old,new))
+          assert p.read_text().count(new)==1
+          print('CONTROL ONLY: multiplier abstraction idle-busy expression changed; original CPU RTL and pipemem unchanged')
+          PY
+          sha256sum rtl/core/pipemem.v bench/formal/abs_mpy.v > "$GITHUB_WORKSPACE/model-${{ matrix.version }}/after-sha256.txt"
+          cd bench/formal
+          set +e
+          timeout 480 yosys -s zipcpu.ys > "$GITHUB_WORKSPACE/model-${{ matrix.version }}/build.log" 2>&1
+          RESULT=$?
+          set -e
+          echo "YOSYS_EXIT=$RESULT" >> "$GITHUB_WORKSPACE/model-${{ matrix.version }}/build.log"
+          if [ -s zipcpu.smt2 ]; then
+            cp zipcpu.smt2 "$GITHUB_WORKSPACE/model-${{ matrix.version }}/fixed-${{ matrix.version }}-zipcpu.smt2"
+          fi
+          echo "Original RTL unchanged; corrected abstract multiplier is a controlled diagnostic and not an original-history proof." > "$GITHUB_WORKSPACE/model-${{ matrix.version }}/SCOPE.txt"
+      - name: Preserve diagnostic and negative evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-fixed-multiplier-${{ matrix.version }}
+          path: model-${{ matrix.version }}/
+          retention-days: 14
+          if-no-files-found: warn

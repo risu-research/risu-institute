@@ -9,22 +9,21 @@ flatc --version | tee results/model/flatc_version.txt
 git -C tflm rev-parse HEAD | tee results/model/tflm_commit.txt
 [[ "$(cat results/model/tflm_commit.txt)" = 0ee39f5fc6629b7403166d325da374f01d890cf1 ]]
 sha256sum "$ORIGINAL_SCHEMA" "$MODEL" > results/model/model_sources_sha256.txt
-# System flatc 2.0.8 predates metadata on deprecated enum elements. Remove
-# only those metadata annotations; preserve upstream schema and all wire values.
+# Flatc 2.0.8 predates enum (deprecated) metadata. Normalize only those six
+# annotations; preserve the original schema and both source hashes.
 python3 - <<'PY'
 from pathlib import Path
 p=Path('tflm/tensorflow/compiler/mlir/lite/schema/schema.fbs');s=p.read_text()
 assert s.count(' (deprecated)')==6
 normalized=s.replace(' (deprecated)','')
-assert normalized.replace('REDUCE_WINDOW = 205,','REDUCE_WINDOW = 205 (deprecated),') != ''
 Path('results/model/schema_flatc2.fbs').write_text(normalized)
 print('NORMALIZATION_DEPRECATED_ENUM_ANNOTATIONS',s.count(' (deprecated)'))
 PY
 sha256sum "$SCHEMA" >> results/model/model_sources_sha256.txt
 flatc -b --strict-json -o results/model "$SCHEMA" "$MODEL"
-# Schema explicitly declares file_extension "tflite", not "bin".
 [[ -f results/model/quantized_mul_adversarial.tflite ]]
-flatc -t --raw-binary --strict-json -o results/model "$SCHEMA" results/model/quantized_mul_adversarial.tflite
+# '--' is required to tell flatc that the following input is a binary file.
+flatc -t --raw-binary --strict-json -o results/model "$SCHEMA" -- results/model/quantized_mul_adversarial.tflite
 python3 - <<'PY'
 from pathlib import Path
 import json

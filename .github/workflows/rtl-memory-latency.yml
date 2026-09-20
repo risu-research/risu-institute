@@ -1,0 +1,75 @@
+name: CPU memory-response variation
+on:
+  push:
+    branches: [research/rtl-memory-bridge-20260920]
+    paths: [.github/workflows/rtl-memory-latency.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-response:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore pinned source and generate external response model
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/cpu-source
+          git -C /tmp/cpu-source show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/cpu-source show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          cp research/rtl-memory-bridge/{memory_bridge.sv,run_matrix.py,make_bounded_ready_variant.py} results/
+          python3 research/rtl-memory-bridge/make_bounded_ready_variant.py
+          cp results/memory_bridge.sv results/memory_bridge_zero.sv
+          cp results/memory_bridge_wait.sv results/memory_bridge.sv
+          sha256sum results/{parent.v,child.v,memory_bridge.sv,memory_bridge_zero.sv,run_matrix.py,make_bounded_ready_variant.py} >results/SHA256SUMS.txt
+          { yosys -V; sby --version; iverilog -V | head -1; } >results/TOOLS.txt
+      - name: Execute native two-cycle response controls
+        run: |
+          set -euo pipefail
+          for rev in parent child; do
+            for op in 0 1 2; do
+              name="${rev}_${op}_split_two_wait"
+              iverilog -g2012 -DRISCV_FORMAL -DSIM_OP=$op -DSIM_SPLIT=1 -DSIM_LOW=0 -DSIM_SHIFT=16 -s bridge_sim -o "results/$name.vvp" "results/$rev.v" results/memory_bridge.sv >"results/$name.compile.log" 2>&1
+              vvp "results/$name.vvp" >"results/$name.native.log" 2>&1
+              if [ "$rev" = parent ]; then grep -q '^EXPECTED_OLD_MISMATCH$' "results/$name.native.log"; else grep -q '^RESULT ' "results/$name.native.log"; fi
+              if grep -Eq 'TIMEOUT|FATAL|ERROR' "results/$name.native.log"; then cat "results/$name.native.log"; exit 1; fi
+              tail -3 "results/$name.native.log"
+            done
+          done
+      - name: Execute symbolic bounded-response checks and exact covers
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('research/rtl-memory-bridge/run_matrix.py').read_text()
+          assert 'depth 76' in s
+          s=s.replace('depth 76','depth 105')
+          marker='\nfor op in range(3):\n    for split in (1,0):'
+          assert s.count(marker)==1
+          s=s[:s.index(marker)]+'''
+          for op in range(3):
+              for rev in ('parent','child'):
+                  task(rev,op,1,0,'bmc')
+          for op in range(3):
+              task('parent',op,1,1,'bmc')
+          for op in range(3):
+              task('child',op,1,0,'cover')
+          print(f'ALL_EXPECTED {len(rows)}',flush=True)
+          '''
+          Path('results/run_latency.py').write_text(s)
+          PY
+          python3 results/run_latency.py | tee results/LATENCY_EXECUTION.log
+      - name: Preserve original inputs and solver artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-memory-response-evidence
+          path: results/
+          retention-days: 30

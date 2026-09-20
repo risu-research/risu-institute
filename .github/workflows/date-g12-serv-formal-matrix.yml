@@ -35,7 +35,7 @@ jobs:
           grep -q 'servile_rf_mem_if.v' "$GITHUB_WORKSPACE/g12-matrix/servile.core"
           ! grep -q 'servile_rf_mem_if.v' "$GITHUB_WORKSPACE/g12-matrix/serv.core"
           echo 'PASS cheap baseline: native serv.core excludes modified file; servile.core includes it' > "$GITHUB_WORKSPACE/g12-matrix/BASELINE.txt"
-      - name: Check historical parent/post x0 x31 x1 independently, with nonvacuity cover
+      - name: Check historical parent/post x0 x31 x1 independently with explicit reachability
         shell: bash
         run: |
           set -euo pipefail
@@ -50,19 +50,22 @@ jobs:
               COVER_RC=$?
               set -e
               echo "$STEM ASSERT_RC=$ASSERT_RC COVER_RC=$COVER_RC" | tee -a g12-matrix/RESULTS.txt
-              grep -q 'Status: PASSED' "g12-matrix/$STEM-cover.log"
-              test "$COVER_RC" -eq 0
+              grep -q 'Reached cover statement' "g12-matrix/$STEM-cover.log"
               if [ "$REV" = parent ] && [ "$PROPERTY" != X1 ];then
                 test "$ASSERT_RC" -ne 0
                 grep -q 'Status: FAILED' "g12-matrix/$STEM-assert.log"
                 test -s "g12-matrix/$STEM-assert.vcd"
+                # Cover is reached, but this combined SMT also has a deliberately false assertion.
+                test "$COVER_RC" -ne 124
               else
                 test "$ASSERT_RC" -eq 0
                 grep -q 'Status: PASSED' "g12-matrix/$STEM-assert.log"
+                test "$COVER_RC" -eq 0
+                grep -q 'Status: PASSED' "g12-matrix/$STEM-cover.log"
               fi
             done
           done
-          echo 'PASS parent x0 FAIL, x31 FAIL, x1 PASS; child all PASS; all six reachability covers PASS' | tee -a g12-matrix/RESULTS.txt
+          echo 'PASS parent x0 FAIL, x31 FAIL, x1 PASS; child all PASS; all six cover statements independently reached' | tee -a g12-matrix/RESULTS.txt
           sha256sum g12-matrix/*.smt2 > g12-matrix/SMT_SHA256.txt
       - name: Test unbounded induction for corrected child; record unsupported separately
         shell: bash

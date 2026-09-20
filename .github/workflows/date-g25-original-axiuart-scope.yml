@@ -18,6 +18,7 @@ jobs:
       - name: Unmodified third-party original stock formal, targeted formal, and real RTL native
         shell: bash
         run: |
+          set +e
           set -u
           mkdir -p g25-out g25-work
           git clone --filter=blob:none https://github.com/ZipCPU/wbuart32.git /tmp/g25-wbuart >g25-out/CLONE.log 2>&1

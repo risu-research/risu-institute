@@ -1,0 +1,59 @@
+name: DATE G26 exact retired target nonvacuity under input-owned assumptions
+on:
+  push:
+    branches: [research/date-g25-third-target-20260920]
+    paths: [.github/workflows/date-g26-input-exact-covers.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-cover:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 13
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [parent, child]
+        op: [slli, srli, srai]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin unmodified historical source, original checker and execute same-assumption exact covers
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "g26-cover/$REV-$OP"
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g26cover
+          git -C /tmp/g26cover checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g26cpu
+          SHA=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+          if [ "$REV" = child ];then SHA=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+          git -C /tmp/g26cpu show "$SHA:picorv32.v" >/tmp/g26cover/cores/picorv32/picorv32.v
+          git hash-object /tmp/g26cover/cores/picorv32/picorv32.v >"g26-cover/$REV-$OP/ORIGINAL_GIT_BLOB.txt"
+          sha256sum /tmp/g26cover/cores/picorv32/picorv32.v >"g26-cover/$REV-$OP/ORIGINAL_SHA256.txt"
+          git -C /tmp/g26cover rev-parse HEAD >"g26-cover/$REV-$OP/FRAMEWORK_COMMIT.txt"
+          { yosys -V; sby --version; } >"g26-cover/$REV-$OP/TOOLS.txt"
+      - name: Preserve real PASS, FAIL, UNKNOWN, and cover witness
+        if: always()
+        env:
+          REV: ${{ matrix.revision }}
+          OP: ${{ matrix.op }}
+        shell: bash
+        run: |
+          set +e
+          python3 research/date-g26-input-legality-20260920/g26_exact_input_covers.py >"g26-cover/$REV-$OP/COVER_RUN.log" 2>&1
+          echo "script_exit=$?" >"g26-cover/$REV-$OP/EXECUTION_STATUS.txt"
+          tail -14 "g26-cover/$REV-$OP/COVER_RUN.log"
+          exit 0
+      - name: Archive original raw results, including errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g26-exact-${{ matrix.revision }}-${{ matrix.op }}
+          path: g26-cover/
+          retention-days: 30

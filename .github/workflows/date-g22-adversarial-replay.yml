@@ -1,0 +1,54 @@
+name: DATE G22 adversarial original-SoC replay
+on:
+  push:
+    branches: [research/date-g22-independent-cpu-scope-20260920]
+    paths: [.github/workflows/date-g22-adversarial-replay.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        csr: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin unchanged historical source and run alternate original-SoC ROM with adjacent-register controls
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          CSR: ${{ matrix.csr }}
+        run: |
+          set -uo pipefail
+          mkdir -p g22-replay
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g22-replay-serv >g22-replay/CLONE.log 2>&1
+          if [ "$REV" = parent ]; then SHA=838d16615e81786062fae84b9f7c044fb8f6bbe4; OLD=1; else SHA=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2; OLD=0; fi
+          git -C /tmp/g22-replay-serv checkout "$SHA" >g22-replay/CHECKOUT.log 2>&1
+          git -C /tmp/g22-replay-serv rev-parse HEAD >g22-replay/SOURCE_PIN.txt
+          sha256sum /tmp/g22-replay-serv/servile/servile_rf_mem_if.v /tmp/g22-replay-serv/serving/serving.v /tmp/g22-replay-serv/serving/serving_ram.v >g22-replay/RTL_HASHES.txt
+          cp /tmp/g22-replay-serv/servile/servile_rf_mem_if.v g22-replay/ORIGINAL_CHANGED_DUT.v
+          cp research/date-g22-independent-cpu-scope-20260920/serving_independent_replay_tb.v g22-replay/REPLAY_BENCH.v
+          printf 'rev=%s csr=%s old=%s\n' "$REV" "$CSR" "$OLD" >g22-replay/CONFIG.txt
+          /usr/bin/time -f 'compile_seconds=%e' -o g22-replay/COMPILE_TIME.txt iverilog -g2012 -s serving_independent_replay_tb -Pserving_independent_replay_tb.CSR="$CSR" -Pserving_independent_replay_tb.OLD="$OLD" -o g22-replay/soc.vvp /tmp/g22-replay-serv/rtl/*.v /tmp/g22-replay-serv/servile/*.v /tmp/g22-replay-serv/serving/*.v research/date-g22-independent-cpu-scope-20260920/serving_independent_replay_tb.v >g22-replay/COMPILE.log 2>&1
+          rc=$?; echo "compile_exit=$rc" >g22-replay/STATUS.txt
+          if [ "$rc" -eq 0 ]; then
+            timeout 75 /usr/bin/time -f 'sim_seconds=%e' -o g22-replay/SIM_TIME.txt vvp g22-replay/soc.vvp >g22-replay/SIM.log 2>&1
+            rc=$?; echo "simulation_exit=$rc" >>g22-replay/STATUS.txt
+          else echo 'simulation_not_run=compile_error' >>g22-replay/STATUS.txt; fi
+          cat g22-replay/STATUS.txt
+          grep -E 'REPLAY_PINNED|REPLAY_STORE|REPLAY_FINAL|REPLAY_PASS|FATAL' g22-replay/SIM.log 2>/dev/null | tail -15 || true
+          if [ "$rc" -ne 0 ]; then exit "$rc"; fi
+      - name: Archive exact source and raw independent replay logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g22-adversarial-${{ matrix.rev }}-csr${{ matrix.csr }}
+          path: g22-replay/
+          retention-days: 30

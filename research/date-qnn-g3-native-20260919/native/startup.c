@@ -4,6 +4,11 @@ extern int main(void);
 extern uint32_t __data_load,__data_start,__data_end,__bss_start,__bss_end;
 __attribute__((noreturn)) void fault(void){for(;;) __asm volatile("bkpt #0");}
 __attribute__((noreturn)) void reset_handler(void) {
+ /* Cortex-M55 MVE/FP coprocessor access is disabled by reset. Enable CP10/CP11
+  * before executing any integer MVE instruction. This alters test startup,
+  * never the original CMSIS-NN source or its helper bodies. */
+ *(volatile uint32_t *)0xE000ED88u |= 0x00F00000u;
+ __asm volatile("dsb\n isb" ::: "memory");
  for(uint32_t *p=&__data_start,*q=&__data_load;p<&__data_end;)*p++=*q++;
  for(uint32_t *p=&__bss_start;p<&__bss_end;)*p++=0;
  int rc=main();

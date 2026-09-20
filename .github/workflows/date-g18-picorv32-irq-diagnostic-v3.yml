@@ -1,0 +1,66 @@
+name: DATE G18 IRQ v3 real CPU source-pinned diagnostic
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-picorv32-irq-diagnostic-v3.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostic-v3:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Original source and fixed YAML-indentation-aware genuine CPU baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-irq-v2
+          printf '%s\n' 'Original run 35516113358: syntax-invalid historical child and IRQ-masked parent. Diagnostic run 35516283911: fixture extraction regex missed YAML indentation, no native run. V3 changes ONLY fixture extraction pattern. Original child remains immutable and diagnostic one-line repair is separately named.' >g18-irq-v2/V3_AMENDMENT.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,textwrap
+          c=Path('.github/workflows/date-g18-picorv32-irq-diagnostic-v2.yml').read_text()
+          def extract(start,end):
+            a=c.index('      - name: '+start);b=c.index('      - name: '+end,a)
+            return textwrap.dedent(c[a:b].split('        run: |',1)[1]).strip()+'\n'
+          s=extract('Pin original source and record the only source-level diagnostic repair','Run genuine native CPU with timer setup, MASKIRQ, and external IRQ timed by read-only timer')
+          Path('g18-irq-v2/SOURCE_SCRIPT_v3.sh').write_text(s)
+          subprocess.run(['bash','-e','-o','pipefail','g18-irq-v2/SOURCE_SCRIPT_v3.sh'],check=True)
+          s=extract('Run genuine native CPU with timer setup, MASKIRQ, and external IRQ timed by read-only timer','Historical original parent and original child against pinned unmodified modern ADDI formal baseline')
+          lines=s.splitlines();hits=0
+          for i,line in enumerate(lines):
+            if line.strip().startswith('m=re.search(r"cat > g18-irq/src/tb.v'):
+              indent=line[:len(line)-len(line.lstrip())]
+              lines[i]=indent+'m=re.search(r"cat > g18-irq/src/tb.v <<\'SV\'\\n(.*?)\\n[ \\t]*SV(?:\\n|$)",c,re.S)'
+              hits+=1
+          assert hits==1,'YAML original extraction expression not located'
+          s='\n'.join(lines)+'\n'
+          Path('g18-irq-v2/NATIVE_SCRIPT_v3.sh').write_text(s)
+          subprocess.run(['bash','-e','-o','pipefail','g18-irq-v2/NATIVE_SCRIPT_v3.sh'],check=True)
+          PY
+      - name: Formal control on raw historical parent, raw invalid child, and syntax-only diagnostic child
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,textwrap
+          c=Path('.github/workflows/date-g18-picorv32-irq-diagnostic-v2.yml').read_text()
+          a=c.index('      - name: Historical original parent and original child against pinned unmodified modern ADDI formal baseline')
+          b=c.index('      - name: Archive original syntax failure, diagnostic-only files, and original formal outcomes',a)
+          s=textwrap.dedent(c[a:b].split('        run: |',1)[1]).strip()+'\n'
+          Path('g18-irq-v2/FORMAL_SCRIPT_v3.sh').write_text(s)
+          subprocess.run(['bash','g18-irq-v2/FORMAL_SCRIPT_v3.sh'],check=True)
+          PY
+      - name: Always preserve original and amended evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-irq-v3-real-cpu-original-and-one-line-diagnostic
+          path: g18-irq-v2/
+          retention-days: 30

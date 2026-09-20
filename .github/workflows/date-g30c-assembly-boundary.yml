@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "g30-out/$REV-$OP"
-          cp research/date-g30-compressed-alignment-20260920/{PREREGISTRATION.md,G30B_ERRATUM.md,G30C_BOUNDARY_FREEZE.md} "g30-out/$REV-$OP/"
+          cp research/date-g30-compressed-alignment-20260920/{PREREGISTRATION.md,G30B_ERRATUM.md,G30C_BOUNDARY_FREEZE.md,G30C_RUNNER_ERRATUM.md} "g30-out/$REV-$OP/"
           git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g30-rvf
           git -C /tmp/g30-rvf checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
           git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g30cpu
@@ -40,7 +40,7 @@ jobs:
           git -C /tmp/g30-rvf rev-parse HEAD >"g30-out/$REV-$OP/FRAMEWORK_COMMIT.txt"
           sha256sum /tmp/g30-rvf/cores/picorv32/picorv32.v >"g30-out/$REV-$OP/SOURCE_SHA256.txt"
           { yosys -V; sby --version; } >"g30-out/$REV-$OP/TOOLS.txt"
-      - name: Execute predecode assembly rule under the one frozen original hardware configuration
+      - name: Execute frozen predecode assembly rule with corrected Python source guard
         if: always()
         env:
           REV: ${{ matrix.revision }}
@@ -48,16 +48,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          python3 research/date-g30-compressed-alignment-20260920/g30c_assembly_boundary.py >"g30-out/$REV-$OP/EXECUTION.log" 2>&1
+          python3 research/date-g30-compressed-alignment-20260920/g30c_runner_v2.py >"g30-out/$REV-$OP/EXECUTION.log" 2>&1
           rc=$?
           echo "script_exit=$rc" >"g30-out/$REV-$OP/SCRIPT_EXIT.txt"
-          cp g30c_derived_driver.py g30c_derived_rule.sv g30c_DRIVER_SHA.txt "g30-out/$REV-$OP/" 2>/dev/null || true
+          cp g30c_runner_v2_derived.py g30c_RUNNER_V2_SHA.txt g30c_derived_driver.py g30c_derived_rule.sv g30c_DRIVER_SHA.txt "g30-out/$REV-$OP/" 2>/dev/null || true
           tail -25 "g30-out/$REV-$OP/EXECUTION.log"
           exit 0
-      - name: Archive original and failed proof artifacts, exact cover witnesses and checker source
+      - name: Archive source and complete exact cover and proof trace evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: g30c-${{ matrix.revision }}-${{ matrix.op }}
+          name: g30c-v2-${{ matrix.revision }}-${{ matrix.op }}
           path: g30-out/
           retention-days: 30

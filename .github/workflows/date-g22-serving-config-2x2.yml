@@ -1,0 +1,57 @@
+name: DATE G22 full serving 2x2 CSR config architecture
+on:
+  push:
+    branches: [research/date-g22-independent-cpu-scope-20260920]
+    paths: [.github/workflows/date-g22-serving-config-2x2.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-soc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        csr: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Original complete SoC, fixed ROM, matched two-by-two CSR sweep
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          CSR: ${{ matrix.csr }}
+        run: |
+          set -uo pipefail
+          mkdir -p g22-soc
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g22-serving >g22-soc/CLONE.log 2>&1
+          if [ "$REV" = parent ];then SHA=838d16615e81786062fae84b9f7c044fb8f6bbe4;else SHA=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2;fi
+          git -C /tmp/g22-serving checkout "$SHA" >g22-soc/CHECKOUT.log 2>&1
+          git -C /tmp/g22-serving rev-parse HEAD >g22-soc/ORIGINAL_PIN.txt
+          git -C /tmp/g22-serving diff 838d16615e81786062fae84b9f7c044fb8f6bbe4 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2 --name-only >g22-soc/CHANGE_FILES.txt
+          sha256sum /tmp/g22-serving/servile/{servile_rf_mem_if.v,servile.v,servile_mux.v} /tmp/g22-serving/serving/{serving.v,serving_ram.v} /tmp/g22-serving/rtl/serv_top.v >g22-soc/SOURCE_HASHES.txt
+          cp research/date-g22-independent-cpu-scope-20260920/serving_soc_config_sweep_tb.v g22-soc/TESTBENCH.v
+          cp /tmp/g22-serving/servile/servile_rf_mem_if.v g22-soc/ORIGINAL_CHANGED_DUT.v
+          cp /tmp/g22-serving/serving/serving.v g22-soc/ORIGINAL_SOC_TOP.v
+          printf 'WITH_CSR=%s revision=%s\n' "$CSR" "$REV" >g22-soc/CONFIG.txt
+          iverilog -V | head -2 >g22-soc/TOOLS.txt
+          /usr/bin/time -f 'compile_wall_s=%e' -o g22-soc/COMPILE_TIME.txt iverilog -g2012 -s serving_soc_config_sweep_tb -Pserving_soc_config_sweep_tb.CSR="$CSR" -D$(if [ "$REV" = parent ];then echo PARENT;else echo CHILD;fi) -o g22-soc/full_soc.vvp /tmp/g22-serving/rtl/*.v /tmp/g22-serving/servile/*.v /tmp/g22-serving/serving/*.v research/date-g22-independent-cpu-scope-20260920/serving_soc_config_sweep_tb.v >g22-soc/COMPILE.log 2>&1
+          rc=$?;echo "compile_exit=$rc" >g22-soc/STATUS.txt
+          if [ "$rc" -eq 0 ];then
+            timeout 95 /usr/bin/time -f 'sim_wall_s=%e' -o g22-soc/SIM_TIME.txt vvp g22-soc/full_soc.vvp >g22-soc/SIM.log 2>&1
+            rc=$?; echo "simulation_exit=$rc" >>g22-soc/STATUS.txt
+          else echo 'simulation_not_run=compile_error' >>g22-soc/STATUS.txt;fi
+          grep -E 'FROZEN_SOC|EXTERNAL_STORE|SOC_FINAL|SOC_TIMEOUT|G22_CONFIG|FATAL' g22-soc/SIM.log 2>/dev/null | tail -22 || true
+          cat g22-soc/STATUS.txt
+          exit 0
+      - name: Keep all four original source statuses and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g22-serving-${{ matrix.rev }}-csr${{ matrix.csr }}
+          path: g22-soc/
+          retention-days: 30

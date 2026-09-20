@@ -1,0 +1,98 @@
+name: DATE G20 remaining two shift-family exact retirement covers
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-shift-family-exact-cover.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  family-cover:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin identical historical source and original checker framework; run actual exact cover
+        run: |
+          set -euo pipefail
+          mkdir -p g20-more-cover
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g20formal
+          git -C /tmp/g20formal checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20cpu
+          for r in parent child;do
+            sha=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+            if [ "$r" = child ];then sha=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+            git -C /tmp/g20cpu show "$sha:picorv32.v" >"g20-more-cover/$r.v"
+            git hash-object "g20-more-cover/$r.v" >"g20-more-cover/${r}_GIT_BLOB.txt"
+          done
+          cat >/tmp/g20-more-cover.py <<'PY'
+          from pathlib import Path
+          import subprocess,shutil,time,json
+          base=Path('/tmp/g20formal/cores/picorv32'); out=Path('g20-more-cover').resolve()
+          orig_wrapper=(base/'wrapper.sv').read_text();orig_cfg=(base/'checks.cfg').read_text()
+          results=[]
+          for op in ('srli','srai'):
+            f3="3'b101";f7="7'b0100000" if op=='srai' else "7'b0000000"
+            form=f"rvfi_insn[14:12] == {f3} && rvfi_insn[31:25] == {f7}"
+            for rev,shifts in [('child',(16,15)),('parent',(16,))]:
+              (base/'picorv32.v').write_bytes((out/f'{rev}.v').read_bytes())
+              w=orig_wrapper.replace('picorv32 #(\n','picorv32 #(\n    .ENABLE_REGS_16_31(0),\n',1)
+              marker='`ifdef PICORV32_CSR_RESTRICT';assert w.count(marker)==1
+              qualifier=f'''// G20 legal register subset only; no shift-amount restrictions.
+              always @(posedge clock) if (!reset && rvfi_valid && rvfi_insn[6:0] == 7'h13 && ({form})) begin
+                assume (!rvfi_insn[19]);
+                assume (!rvfi_insn[11]);
+              end
+              '''
+              (base/'wrapper.sv').write_text(w.replace(marker,qualifier+marker,1))
+              (base/'checks.cfg').write_text(orig_cfg)
+              gen=subprocess.run(['python3','../../checks/genchecks.py'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=45)
+              (out/f'{rev}_{op}_GEN.log').write_text(gen.stdout)
+              assert gen.returncode==0
+              stock=subprocess.run(['timeout','90','make','-C','checks',f'insn_{op}_ch0'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=110)
+              (out/f'{rev}_{op}_STOCK.log').write_text(stock.stdout)
+              src=base/'checks'/f'insn_{op}_ch0';assert src.is_dir()
+              for amount in shifts:
+                target=(0x20<<25 if op=='srai' else 0)|(amount<<20)|(9<<15)|(5<<12)|(2<<7)|0x13
+                name=f'{rev}_{op}_{amount}';p=base/'checks'/('g20_'+name)
+                shutil.copytree(src,p)
+                sby=p/'config.sby';s=sby.read_text()
+                assert 'mode bmc' in s and 'skip 20' in s
+                s=s.replace('mode bmc','mode cover',1).replace('skip 20','skip 0',1).replace('depth 21','depth 22',1)
+                checker=p/'src/rvfi_insn_check.sv';t=checker.read_text()
+                for statement in ('cover(spec_valid);','cover(spec_valid && !trap);','cover(check && spec_valid);','cover(check && spec_valid && !trap);'):
+                  assert t.count(statement)==1
+                  t=t.replace(statement,'// G20 disable generic cover: '+statement)
+                mark='if (!reset && check) begin';assert t.count(mark)==1
+                cover=f"cover(check && valid && spec_valid && !trap && insn == 32'h{target:08x} && rs1_addr == 5'd9 && rd_addr == 5'd2);\n                "
+                t=t.replace(mark,cover+mark,1)
+                checker.write_text(t)
+                old='/tmp/g20formal/cores/picorv32/../../checks/rvfi_insn_check.sv';assert s.count(old)==1
+                sby.write_text(s.replace(old,str(checker),1))
+                t0=time.monotonic()
+                run=subprocess.run(['timeout','135','sby','-f','config.sby'],cwd=p,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=145)
+                (out/f'{name}.log').write_text(run.stdout)
+                stat=(p/'config/status').read_text().strip() if (p/'config/status').is_file() else 'NO_STATUS'
+                witness=list((p/'config/engine_0').glob('trace*.vcd')) if (p/'config/engine_0').is_dir() else []
+                if witness:shutil.copy2(witness[0],out/f'{name}.vcd')
+                (out/f'{name}.sby').write_text(sby.read_text());(out/f'{name}_checker.sv').write_text(t)
+                rec=dict(revision=rev,op=op,shamt=amount,insn=f'{target:08x}',status=stat,exit=run.returncode,witness=bool(witness),tool_seconds=round(time.monotonic()-t0,5))
+                results.append(rec);print(rec,flush=True)
+          (out/'EXACT_FAMILY_COVERS.json').write_text(json.dumps(results,indent=2))
+          assert len(results)==6
+          PY
+          set +e
+          python3 /tmp/g20-more-cover.py >g20-more-cover/RUN.log 2>&1
+          echo "script_exit=$?" >g20-more-cover/EXECUTION_STATUS.txt
+          tail -12 g20-more-cover/RUN.log
+          exit 0
+      - name: Archive six source-matched exact covers and failed controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-exact-family-srli-srai-controls
+          path: g20-more-cover/
+          retention-days: 30

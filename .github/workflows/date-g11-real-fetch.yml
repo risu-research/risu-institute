@@ -1,0 +1,76 @@
+name: DATE G11 native instruction fetch control
+on:
+  push:
+    branches: [research/date-g11-causal-native-20260919]
+    paths: ['.github/workflows/date-g11-real-fetch.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original_real_fetch:
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [parent, child]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned open tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y yosys z3 python3
+          yosys -V && z3 -version
+      - name: Compile historical full CPU with native fetch and multiplier
+        env:
+          VARIANT: ${{ matrix.variant }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-native-fetch-$VARIANT"
+          mkdir -p "$OUT"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/z-original
+          cd /tmp/z-original
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          if [ "$VARIANT" = child ]; then
+            git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > rtl/core/pipemem.v
+          fi
+          git rev-parse HEAD > "$OUT/pinned-parent.txt"
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v bench/formal/{zipcpu.ys,abs_prefetch.v} > "$OUT/ORIGINAL_SHA256.txt"
+          python3 - <<'PY'
+          import pathlib
+          cpu=pathlib.Path('rtl/core/zipcpu.v'); s=cpu.read_text()
+          assert s.count('abs_prefetch\t#(ADDRESS_WIDTH)') == 1
+          # dblfetch's historical interface matches abs_prefetch precisely.
+          cpu.write_text(s.replace('abs_prefetch\t#(ADDRESS_WIDTH)','dblfetch\t#(ADDRESS_WIDTH)'))
+          alu=pathlib.Path('rtl/core/cpuops.v'); s=alu.read_text()
+          assert s.count('`define\tMPYOP\tabs_mpy') == 1
+          alu.write_text(s.replace('`define\tMPYOP\tabs_mpy','`define\tMPYOP\tmpyop'))
+          ys=pathlib.Path('bench/formal/zipcpu.ys'); s=ys.read_text()
+          assert s.count('read_verilog -D ZIPCPU -formal abs_prefetch.v')==1
+          assert s.count('read_verilog -D ZIPCPU -formal abs_mpy.v')==1
+          s=s.replace('read_verilog -D ZIPCPU -formal abs_prefetch.v','read_verilog -D ZIPCPU -formal ../../rtl/core/dblfetch.v')
+          s=s.replace('read_verilog -D ZIPCPU -formal abs_mpy.v','read_verilog -D ZIPCPU -formal ../../rtl/core/mpyop.v')
+          ys.write_text(s)
+          print('Source change: formal-only module selection abs_prefetch -> native dblfetch, abs_mpy -> native mpyop; unchanged original parent/child pipemem RTL')
+          PY
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v bench/formal/{zipcpu.ys,abs_prefetch.v} > "$OUT/MODEL_SHA256.txt"
+          cd bench/formal
+          set +e
+          timeout 840 yosys -s zipcpu.ys > "$OUT/yosys-build.log" 2>&1
+          CODE=$?
+          set -e
+          echo "YOSYS_EXIT=$CODE" | tee -a "$OUT/yosys-build.log"
+          if [ -s zipcpu.smt2 ]; then
+            cp zipcpu.smt2 "$OUT/native-fetch-$VARIANT-zipcpu.smt2"
+            grep -E 'yosys-smt2-topmod|yosys-smt2-module|yosys-smt2-input' zipcpu.smt2 | head -25 > "$OUT/model-top.txt" || true
+          fi
+          echo 'Research control: actual 2018 RTL fetch + actual multiplier, formal environment still abstracts memory and divide; this is not a reproduced historical signoff, executable program, or silicon run.' > "$OUT/SCOPE.txt"
+      - name: Preserve build results and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-native-fetch-${{ matrix.variant }}
+          path: g11-native-fetch-${{ matrix.variant }}/
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,7 +1,4 @@
-/* G3: genuine schema-backed research model, actual MicroInterpreter and official MulPrepare.
- * The experimental FlatBuffer is research-authored, NOT naturally found.
- * Reference interpreter runs on host; source-pinned ARM MVE ELF runs under QEMU.
- * This host does not execute the CMSIS-NN backend. */
+/* G3 diagnostic: inspect authentic TFLM prepare state; never alter upstream. */
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -10,13 +7,19 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/micro/kernels/mul.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 static TfLiteStatus (*original_prepare)(TfLiteContext*,TfLiteNode*) = nullptr;
 static int prepare_count=0;
 static TfLiteStatus checked_prepare(TfLiteContext* context,TfLiteNode* node){
+ auto* e0=tflite::micro::GetEvalInput(context,node,0);
+ auto* e1=tflite::micro::GetEvalInput(context,node,1);
+ auto* eo=tflite::micro::GetEvalOutput(context,node,0);
+ std::printf("DEBUG_PREPARE_INPUT_TYPES %d %d output=%d user_data=%p\n",e0?int(e0->type):-1,e1?int(e1->type):-1,eo?int(eo->type):-1,node->user_data);
  TfLiteStatus status=original_prepare(context,node);
- if(status!=kTfLiteOk)return status;
  auto* d=static_cast<const tflite::OpDataMul*>(node->user_data);
+ std::printf("DEBUG_PREPARE_RESULT %d user_data=%p\n",int(status),node->user_data);
+ if(status!=kTfLiteOk)return status;
  std::printf("ACTUAL_TFLM_MUL_PREPARE m=%d shift=%d offsets=%d,%d,%d activation=%d,%d\n",
   d->output_multiplier,d->output_shift,-d->input1_zero_point,-d->input2_zero_point,
   d->output_zero_point,d->output_activation_min,d->output_activation_max);
@@ -35,6 +38,10 @@ int main(int argc,char**argv){
  if(!tflite::ModelBufferHasIdentifier(aligned.data()))return 5;
  auto* model=tflite::GetModel(aligned.data());
  if(model->version()!=TFLITE_SCHEMA_VERSION)return 6;
+ auto* sg=model->subgraphs()->Get(0);
+ std::printf("DEBUG_BINARY_MODEL tensor_types=%d,%d,%d raw_scales=%0.12g,%0.12g,%0.12g\n",
+ int(sg->tensors()->Get(0)->type()),int(sg->tensors()->Get(1)->type()),int(sg->tensors()->Get(2)->type()),
+ double(sg->tensors()->Get(0)->quantization()->scale()->Get(0)),double(sg->tensors()->Get(1)->quantization()->scale()->Get(0)),double(sg->tensors()->Get(2)->quantization()->scale()->Get(0)));
  tflite::MicroMutableOpResolver<1> resolver;
  TFLMRegistration registration=tflite::Register_MUL();
  original_prepare=registration.prepare;registration.prepare=checked_prepare;
@@ -52,6 +59,5 @@ int main(int argc,char**argv){
  if(interp.Invoke()!=kTfLiteOk)return 11;
  std::printf("ACTUAL_TFLM_REFERENCE_INVOKE_OUTPUT %d %d %d %d\n",int(out->data.int8[0]),int(out->data.int8[1]),int(out->data.int8[2]),int(out->data.int8[3]));
  for(int i=0;i<4;i++)if(out->data.int8[i]!=127)return 12;
- std::puts("ACTUAL_TFLM_MODEL_PREPARE_AND_REFERENCE_INVOKE_PASS");
- return 0;
+ std::puts("ACTUAL_TFLM_MODEL_PREPARE_AND_REFERENCE_INVOKE_PASS");return 0;
 }

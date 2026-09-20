@@ -1,0 +1,68 @@
+name: DATE G18 SERV CSR native fixture repair v3
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-serv-csr-tiers-v3.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  serv-csr-v3:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run same original DUTs with corrected fixture; record every raw result
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-serv
+          printf '%s\n' 'v1 native failed because CSR enable dropped at delayed update edge. v2 failed text patch whitespace assertion, before DUT tests. v3 repairs only harness CSR hold and Verilog display macro, sources unchanged. Previous runs 35515824313,35515896399.' >g18-serv/HARNESS_AMENDMENT.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,textwrap
+          c=Path('.github/workflows/date-g18-serv-csr-tiers.yml').read_text()
+          def body(start,end):
+            a=c.index('      - name: '+start); b=c.index('      - name: '+end,a)
+            return textwrap.dedent(c[a:b].split('        run: |',1)[1]).strip()+'\n'
+          s=body('Source-verified tiers and genuine original-module native regression','Existing upstream riscv-formal ADDI checker for both original revisions; preserve exact SBY statuses')
+          lines=s.splitlines()
+          cnt=0
+          for i,line in enumerate(lines):
+            if line.strip()=='@(negedge clk); cnt_en=0; wen0=0; csr_en=0; cnt_done=0;':
+              lines[i]=line.replace('csr_en=0;','csr_en=csr_requested;')
+              indent=line[:len(line)-len(line.lstrip())]
+              lines.insert(i+1,indent+'@(negedge clk); csr_en=0;')
+              cnt+=1;break
+          assert cnt==1,'original fixture target missing'
+          s='\n'.join(lines)+'\n'
+          import re
+          s,n=re.subn(r'\$display\("G18_SERV_CSR_NATIVE_SUCCESS rev=%s",`ifdef PARENT "parent" `else "child" `endif \);', '$display("G18_SERV_CSR_NATIVE_SUCCESS");',s)
+          assert n==1,'success display not found'
+          Path('g18-serv/NATIVE_SCRIPT_v3.sh').write_text(s)
+          subprocess.run(['bash','-e','-o','pipefail','g18-serv/NATIVE_SCRIPT_v3.sh'],check=True)
+          PY
+      - name: Original stock ADDI formal both versions with true SBY results
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,textwrap
+          c=Path('.github/workflows/date-g18-serv-csr-tiers.yml').read_text()
+          a=c.index('      - name: Existing upstream riscv-formal ADDI checker for both original revisions; preserve exact SBY statuses')
+          b=c.index('      - name: Archive positive, negative, and tool-failure evidence',a)
+          s=textwrap.dedent(c[a:b].split('        run: |',1)[1]).strip()+'\n'
+          Path('g18-serv/STOCK_FORMAL_SCRIPT_v3.sh').write_text(s)
+          subprocess.run(['bash','g18-serv/STOCK_FORMAL_SCRIPT_v3.sh'],check=True)
+          PY
+      - name: Preserve all outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-serv-csr-v3-native-and-formal
+          path: g18-serv/
+          retention-days: 30

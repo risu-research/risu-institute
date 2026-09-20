@@ -1,0 +1,69 @@
+name: DATE G20 exact SLLI cover v3 correct effective checker source
+on:
+  push:
+    branches: [research/date-g20-scope-matrix-20260920]
+    paths: ['.github/workflows/date-g20-exact-cover-v3.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-v3:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rebuild exact original DUT and ensure SBY uses single exact checker cover
+        run: |
+          set -euo pipefail
+          mkdir -p g20-cover
+          echo 'v1 lacked generated SBY workdir; v2 erroneously read the ORIGINAL generic-cover checker from [files], so its PASS did not establish exact SLLI. v3 uses amended checker as explicit SBY [files] source, checks real config/status and preserves all failed attempts. Original DUT bytes unchanged.' >g20-cover/AMENDMENT.txt
+          git clone -q --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g20formal
+          git -C /tmp/g20formal checkout -q c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g20cpu
+          for r in parent child;do
+            sha=b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb
+            if [ "$r" = child ];then sha=de92ce54e8a3f24f2adc6b5d04de35e4edb873e5;fi
+            git -C /tmp/g20cpu show "$sha:picorv32.v" >"g20-cover/$r.v"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          raw=Path('.github/workflows/date-g20-exact-slli-cover.yml').read_text()
+          beg="          cat > /tmp/g20_exact_cover.py <<'PY'\n";assert raw.count(beg)==1
+          s=textwrap.dedent(raw.split(beg,1)[1].split('\n          PY\n',1)[0])+'\n'
+          a="srcdir=base/'checks/insn_slli_ch0'";assert s.count(a)==1
+          s=s.replace(a,"""stock=subprocess.run(['timeout','90','make','-C','checks','insn_slli_ch0'],cwd=base,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=100)
+            (out/f'stock_{rev}.log').write_text(stock.stdout)
+            srcdir=base/'checks/insn_slli_ch0'""",1)
+          a='checker.write_text(t)'; assert s.count(a)==1
+          s=s.replace(a,"""checker.write_text(t)
+              orig='/tmp/g20formal/cores/picorv32/../../checks/rvfi_insn_check.sv'
+              assert sby.read_text().count(orig)==1
+              sby.write_text(sby.read_text().replace(orig,str(checker),1))
+              assert str(checker) in sby.read_text()""",1)
+          a="p/'insn_slli_ch0/status'"; assert s.count(a)==2
+          s=s.replace(a,"p/'config/status'")
+          a="p/'insn_slli_ch0/engine_0'"; assert s.count(a)==2
+          s=s.replace(a,"p/'config/engine_0'")
+          a=".glob('trace.vcd')"; assert s.count(a)==1
+          s=s.replace(a,".glob('trace*.vcd')")
+          a="'witness':"; # witness field actually emitted via dict(witness=...)
+          s=s.replace("(out/f'{name}.sby').write_text(s)","(out/f'{name}.sby').write_text(sby.read_text())",1)
+          Path('/tmp/g20_exact_cover_v3.py').write_text(s)
+          Path('g20-cover/REPAIRED_SCRIPT.py').write_text(s)
+          PY
+          set +e
+          python3 /tmp/g20_exact_cover_v3.py >g20-cover/RUN.log 2>&1
+          echo "script_exit=$?" >g20-cover/EXECUTION_STATUS.txt
+          tail -30 g20-cover/RUN.log
+          exit 0
+      - name: Preserve exact cover results, checker intervention and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g20-exact-original-rtl-cover-v3
+          path: g20-cover/
+          retention-days: 30

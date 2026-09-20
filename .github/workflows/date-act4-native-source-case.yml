@@ -1,0 +1,49 @@
+name: DATE ACT4 source-exact RV32E case native head-to-head
+on:
+  push:
+    branches: [research/date-act4-head-to-head-20260920]
+    paths: [.github/workflows/date-act4-native-source-case.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  act4-native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Icarus Verilog
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq iverilog
+          iverilog -V | head -2
+      - name: Fetch frozen ACT4 generated original cases and historical CPU sources
+        run: |
+          set -euo pipefail
+          git clone -q --filter=blob:none --no-checkout --single-branch --branch act4 https://github.com/riscv/riscv-arch-test.git /tmp/act4
+          test "$(git -C /tmp/act4 rev-parse HEAD)" = 2dea4b02c69d7dcf0e6b901f6e96f17466facbda
+          git -C /tmp/act4 checkout -q HEAD -- tests/rv32e/E/E-slli-00.S tests/rv32e/E/E-srli-00.S tests/rv32e/E/E-srai-00.S
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/act4cpu
+          mkdir -p act4-out
+          git -C /tmp/act4cpu show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >act4-out/parent.v
+          git -C /tmp/act4cpu show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >act4-out/child.v
+          test "$(git hash-object act4-out/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object act4-out/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          sha256sum /tmp/act4/tests/rv32e/E/E-{slli,srli,srai}-00.S act4-out/{parent,child}.v >act4-out/SHA256SUMS.txt
+          git -C /tmp/act4 rev-parse HEAD >act4-out/ACT4_COMMIT.txt
+      - name: Compile original unmodified CPU and execute ACT4 extracted cases
+        run: |
+          set -euo pipefail
+          for rev in parent child; do
+            iverilog -g2012 -s act4_case_tb -o "act4-out/$rev.vvp" "act4-out/$rev.v" research/date-act4-gate-20260920/act4_case_tb.sv >"act4-out/$rev.compile.log" 2>&1
+          done
+          python3 research/date-act4-gate-20260920/run_act4_case.py /tmp/act4/tests/rv32e/E act4-out | tee act4-out/EXECUTION.log
+          cat act4-out/matrix.csv
+      - name: Preserve original source, exact source cases, actual CPU runs, and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-act4-source-exact-native-gate
+          path: act4-out/
+          retention-days: 30

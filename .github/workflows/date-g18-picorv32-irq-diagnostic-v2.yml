@@ -1,0 +1,120 @@
+name: DATE G18 IRQ diagnostic compilation repair and real unmasked interrupt
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g18-picorv32-irq-diagnostic-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-vs-diagnostic:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin original source and record the only source-level diagnostic repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g18-irq-v2/src g18-irq-v2/logs g18-irq-v2/timing g18-irq-v2/formal
+          git clone --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/g18-irq-v2-original
+          git -C /tmp/g18-irq-v2-original show e308982e18fc952a8d446ddb7ea8b70433a998c2:picorv32.v >g18-irq-v2/src/parent_original.v
+          git -C /tmp/g18-irq-v2-original show 258d63d4762a86385f69c7699b485c0c5559c763:picorv32.v >g18-irq-v2/src/child_original.v
+          test "$(git hash-object g18-irq-v2/src/child_original.v)" = 4b1eca91fa5dd69d80e4b981b1977edaec1d2b06
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          src=Path('g18-irq-v2/src/child_original.v').read_text()
+          old='if ENABLE_IRQ_TIMER && timer'
+          assert src.count(old)==1,'historical error changed'
+          child=src.replace(old,'if (ENABLE_IRQ_TIMER && timer)',1)
+          Path('g18-irq-v2/src/child_DIAGNOSTIC_ONE_LINE_SYNTAX_FIX.v').write_text(child)
+          Path('g18-irq-v2/DIAGNOSTIC_SOURCE_DIFF.patch').write_text(''.join(difflib.unified_diff(src.splitlines(keepends=True),child.splitlines(keepends=True),fromfile='child_original.v',tofile='child_DIAGNOSTIC_ONE_LINE_SYNTAX_FIX.v')))
+          Path('g18-irq-v2/PROTOCOL_AMENDMENT.txt').write_text('First original attempt run 35516113358: parent native all valid but IRQ mask remained set, child source did not compile (original historical syntax error). Diagnostic child is NOT original historical commit. Only add if parentheses; program executes real MASKIRQ to unmask. Retain both raw original and amended source.\n')
+          PY
+          sha256sum g18-irq-v2/src/* >g18-irq-v2/SOURCE_SHA256.txt
+      - name: Run genuine native CPU with timer setup, MASKIRQ, and external IRQ timed by read-only timer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,textwrap,subprocess,time,csv,json
+          c=Path('.github/workflows/date-g18-picorv32-irq-prospective.yml').read_text()
+          m=re.search(r"cat > g18-irq/src/tb.v <<'SV'\n(.*?)\nSV\n",c,re.S)
+          assert m, 'first original TB not available'
+          tb=textwrap.dedent(m.group(1))+'\n'
+          anchor='  picorv32 #(.ENABLE_IRQ(1)'
+          assert tb.count(anchor)==1
+          tb=tb.replace(anchor,"  function [31:0] maskirq_insn(input [4:0] rs);\n    maskirq_insn={7'd3,5'd0,rs,3'd0,5'd0,7'h0b};\n  endfunction\n"+anchor,1)
+          assert tb.count('ram[1]=timer_insn(1);')==1
+          tb=tb.replace('ram[1]=timer_insn(1);','ram[1]=maskirq_insn(0);\n    ram[2]=timer_insn(1);\n    ram[3]=32\'h00000013;',1)
+          assert tb.count("ram[2]=32'h0000006f;")==1
+          tb=tb.replace("ram[2]=32'h0000006f;",'// NOP in mainline; interrupts can be serviced at normal instruction boundaries',1)
+          assert tb.count("ram[16]=32'h0000006f;")==1
+          tb=tb.replace("ram[16]=32'h0000006f;","ram[16]=32'h00000013;",1)
+          Path('g18-irq-v2/src/tb.v').write_text(tb)
+          rows=[]; compilation=[]
+          for rev,src in [('parent','parent_original.v'),('child_original','child_original.v'),('child_diagnostic','child_DIAGNOSTIC_ONE_LINE_SYNTAX_FIX.v')]:
+            cmd=['iverilog','-g2012','-s','tb','-o',f'g18-irq-v2/{rev}.vvp','g18-irq-v2/src/'+src,'g18-irq-v2/src/tb.v']
+            t=time.monotonic();rr=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
+            dt=time.monotonic()-t
+            Path(f'g18-irq-v2/logs/{rev}_compile.log').write_text(rr.stdout)
+            compilation.append(dict(rev=rev,exit=rr.returncode,wall_seconds=round(dt,6)))
+            if rr.returncode:continue
+            for tval in (3,4,5,6,7,8,10,12):
+              for at in range(1,tval+1):
+                for ph in (0,1):
+                  cmd=['vvp',f'g18-irq-v2/{rev}.vvp',f'+T={tval}',f'+I={at}',f'+PHASE={ph}']
+                  t=time.monotonic();rr=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=12)
+                  dt=time.monotonic()-t
+                  log=f'{rev}_T{tval}_I{at}_P{ph}.log';Path('g18-irq-v2/logs/'+log).write_text(rr.stdout)
+                  m=re.search(r'FINAL t=(\d+) inject=(\d+) phase=(\d+) fetch=(\d+) external_eoi=(\d+) timer_eoi=(\d+) irq_entry=(\d+) timer=([0-9a-fx]+) pending=([0-9a-fx]+) active=([0-9bx]+)',rr.stdout)
+                  rows.append(dict(rev=rev,T=tval,I=at,phase=ph,exit=rr.returncode,wall_seconds=round(dt,6),fetch=int(m.group(4)) if m else -1,external_eoi=int(m.group(5)) if m else -1,timer_eoi=int(m.group(6)) if m else -1,trace=log))
+          assert rows,'no native runs compiled'
+          with Path('g18-irq-v2/NATIVE_MATRIX.csv').open('w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=rows[0].keys());w.writeheader();w.writerows(rows)
+          Path('g18-irq-v2/timing/compile.json').write_text(json.dumps(compilation,indent=2))
+          keys={(r['T'],r['I'],r['phase'],r['rev']):r for r in rows}
+          diffs=[];comparable=0
+          for tval,at,ph in sorted({(r['T'],r['I'],r['phase']) for r in rows}):
+            a,b=keys.get((tval,at,ph,'parent')),keys.get((tval,at,ph,'child_diagnostic'))
+            if not a or not b or a['exit'] or b['exit']:continue
+            comparable+=1
+            if (a['external_eoi']>0,a['timer_eoi']>0)!=(b['external_eoi']>0,b['timer_eoi']>0):diffs.append((tval,at,ph,a['external_eoi'],a['timer_eoi'],b['external_eoi'],b['timer_eoi']))
+          Path('g18-irq-v2/DIAGNOSTIC_DIFFERENTIAL.txt').write_text('\n'.join(map(str,diffs))+'\n')
+          print('COMPILATION',compilation,'NATIVE_RUNS',len(rows),'COMPARABLE',comparable,'DIFFERENCES',len(diffs),'EXAMPLES',diffs[:12],'INVALID',sum(r['exit'] for r in rows))
+          PY
+      - name: Historical original parent and original child against pinned unmodified modern ADDI formal baseline
+        shell: bash
+        run: |
+          set -uo pipefail
+          git clone --filter=blob:none https://github.com/YosysHQ/riscv-formal.git /tmp/g18-irq-v2-rvf
+          git -C /tmp/g18-irq-v2-rvf checkout c992aa61fdfe0846c5ed90324c596202a1c69b76
+          git -C /tmp/g18-irq-v2-rvf rev-parse HEAD >g18-irq-v2/formal/MODERN_FORMAL_PIN.txt
+          cp /tmp/g18-irq-v2-rvf/cores/picorv32/wrapper.sv g18-irq-v2/formal/UNMODIFIED_WRAPPER.sv
+          cp /tmp/g18-irq-v2-rvf/cores/picorv32/checks.cfg g18-irq-v2/formal/UNMODIFIED_CHECKS.cfg
+          for rev in parent_original child_original child_DIAGNOSTIC_ONE_LINE_SYNTAX_FIX;do
+            cp g18-irq-v2/src/${rev}.v /tmp/g18-irq-v2-rvf/cores/picorv32/picorv32.v
+            cd /tmp/g18-irq-v2-rvf/cores/picorv32
+            python3 ../../checks/genchecks.py >"$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_generator.log" 2>&1
+            gen=$?;echo "generator_exit=$gen">"$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_STATUS.txt"
+            if [ "$gen" -eq 0 ];then
+              /usr/bin/time -f '%e' -o "$GITHUB_WORKSPACE/g18-irq-v2/timing/${rev}_formal_seconds.txt" timeout 100 make -C checks insn_addi_ch0 >"$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_make.log" 2>&1
+              rc=$?;echo "make_exit=$rc">>"$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_STATUS.txt"
+              find checks/insn_addi_ch0 -name status -exec cat {} \; >"$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_SBY_STATUS.txt" 2>/dev/null
+              tar -czf "$GITHUB_WORKSPACE/g18-irq-v2/formal/${rev}_proof.tar.gz" -C checks insn_addi_ch0
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done
+          exit 0
+      - name: Archive original syntax failure, diagnostic-only files, and original formal outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g18-irq-v2-original-and-syntax-only-diagnostic
+          path: g18-irq-v2/
+          retention-days: 30

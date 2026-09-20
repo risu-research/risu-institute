@@ -1,0 +1,32 @@
+name: DATE G27 deliberate wrong-reference sensitivity
+on:
+  push:
+    branches: [research/date-g27-fair-baselines-20260920]
+    paths: [.github/workflows/date-g27-negative-reference-control.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  negative-control:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: An intentionally wrong x30 oracle must be caught by same original RTL harness
+        shell: bash
+        run: |
+          mkdir -p g27-negative
+          python3 research/date-g27-fair-baselines-20260920/run_negative_control.py g27-negative >g27-negative/RUN.log 2>g27-negative/ERROR.log
+          result=$?
+          cat g27-negative/RUN.log g27-negative/ERROR.log
+          exit "$result"
+      - name: Keep raw failing simulator trace, correct control evaluation and fixture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g27-deliberate-wrong-reference-control
+          path: g27-negative/
+          retention-days: 30

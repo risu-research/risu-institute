@@ -1,0 +1,77 @@
+name: DATE QNN G4 complete eligible Coral corpus audit
+on:
+  push:
+    branches: [research/date-qnn-g4-public-model-audit-20260919]
+    paths: ['.github/workflows/date-qnn-g4-coral-complete-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan every selected original Coral binary, saving failed or negative cases too
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/date-qnn-g4
+          mkdir -p complete_results
+          python3 - <<'PY'
+          import json,hashlib,urllib.request,pathlib,sys,time
+          from audit import screen
+          commit='104342d2d3480b3e66203073dac24f4e2dbb4c41'
+          root=pathlib.Path('complete_results')
+          def get(url):
+           with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'RISU-G4-Coral-all-eligible'}),timeout=55) as h:return h.read()
+          tree=json.loads(get('https://api.github.com/repos/google-coral/test_data/git/trees/'+commit+'?recursive=1'))
+          assert not tree['truncated'],'Truncated upstream tree'
+          allmodels=[x for x in tree['tree'] if x['type']=='blob' and x['path'].lower().endswith('.tflite')]
+          # Fixed source-independent filter: binaries that could be considered
+          # for ordinary CPU/TFLM experimentation, cap 10MB for bounded cost.
+          excl=('edgetpu','cocompilation/','pipeline/','_fp32','float32','_float')
+          selected=sorted((x for x in allmodels if 1000<x.get('size',0)<=10000000 and
+                          not any(q in x['path'].lower() for q in excl)),key=lambda x:x['path'])
+          (root/'selection.json').write_text(json.dumps({'commit':commit,'total_tflite_tree':len(allmodels),
+            'selection_limit_bytes':10000000,'excluded_name_parts':excl,'selected':selected},indent=2))
+          records=[];rows=[]
+          for ix,x in enumerate(selected):
+           p=x['path'];r={'path':p,'git_blob_expected':x['sha'],'bytes_expected':x['size']}
+           url='https://raw.githubusercontent.com/google-coral/test_data/'+commit+'/'+p;r['url']=url
+           try:
+            data=get(url);r['bytes_actual']=len(data);r['sha256']=hashlib.sha256(data).hexdigest()
+            r['git_blob_actual']=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+            assert x['sha']==r['git_blob_actual'] and len(data)==x['size'],'Source mismatch'
+            if data[4:8]!=b'TFL3':raise ValueError('not TFL3')
+            entry=screen(data,p);rows.append(entry)
+            r['status']='scanned';r['ops']=entry['ops'];r['mul']=len(entry['mul'])
+            r['eligible_mul']=sum(m['status']=='eligible_unverified_backend' for m in entry['mul'])
+            r['preshift_risk']=sum(m['preshift_wrap_possible'] is True for m in entry['mul'])
+            print('SWEPT',ix+1,'/',len(selected),p,'MUL',r['mul'],'ELIGIBLE',r['eligible_mul'],'RISK',r['preshift_risk'],flush=True)
+            for m in entry['mul']:
+             if m['preshift_wrap_possible'] is True:print('PRESHIFT_CANDIDATE',p,m['op'],m['shift'],m['product_range'],flush=True)
+           except Exception as e:
+            r['status']='failed';r['error']=repr(e);print('SWEPT_FAILED',p,repr(e),flush=True)
+           records.append(r)
+          (root/'manifest.json').write_text(json.dumps(records,indent=2))
+          (root/'results.json').write_text(json.dumps(rows,indent=2))
+          summary={'tree_total':len(allmodels),'predeclared_selected':len(selected),'scanned':len(rows),
+           'failed':[r['path'] for r in records if r['status']=='failed'],
+           'models_with_mul':sum(bool(r['mul']) for r in rows),'mul_total':sum(len(r['mul']) for r in rows),
+           'mul_eligible':sum(m['status']=='eligible_unverified_backend' for r in rows for m in r['mul']),
+           'mul_preshift_risk':sum(m['preshift_wrap_possible'] is True for r in rows for m in r['mul']),
+           'source':'Google Coral public test_data, selected source corpus, not representative of deployments'}
+          (root/'summary.json').write_text(json.dumps(summary,indent=2))
+          print('COMPLETE_CORAL_SUMMARY',json.dumps(summary),flush=True)
+          assert rows and not summary['failed'],'Predeclared corpus incomplete: inspect manifest'
+          PY
+      - name: Preserve complete selection, all success and failure records, scanner
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: date-qnn-g4-coral-complete-source-pinned-scan
+          path: |
+            research/date-qnn-g4/audit.py
+            research/date-qnn-g4/complete_results/
+          retention-days: 90

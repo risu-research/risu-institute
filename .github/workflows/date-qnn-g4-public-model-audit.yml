@@ -1,0 +1,104 @@
+name: DATE QNN G4 public-model corpus audit
+on:
+  push:
+    branches: [research/date-qnn-g4-public-model-audit-20260919]
+    paths:
+      - '.github/workflows/date-qnn-g4-public-model-audit.yml'
+      - 'research/date-qnn-g4/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prospectively select and retrieve pinned public model binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/date-qnn-g4/{public_models,results}
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,urllib.request,hashlib,re
+          base=Path('research/date-qnn-g4');dst=base/'public_models'
+          headers={'User-Agent':'RISU-research-g4-20260919','Accept':'application/vnd.github+json'}
+          def get(url):
+            with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=35) as h:return h.read()
+          def blob_sha(data):return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          plan=[]
+          micro='0ee39f5fc6629b7403166d325da374f01d890cf1'
+          for name in ['keyword_scrambled.tflite','keyword_scrambled_8bit.tflite','person_detect.tflite','person_detect_vela.tflite']:
+            plan.append({'repo':'tensorflow/tflite-micro','ref':micro,'path':'tensorflow/lite/micro/models/'+name,'source':'official_TFLM_fixed_four'})
+          coral='104342d2d3480b3e66203073dac24f4e2dbb4c41'
+          tree=json.loads(get('https://api.github.com/repos/google-coral/test_data/git/trees/'+coral+'?recursive=1'))
+          (base/'results'/'coral_tree_manifest.json').write_text(json.dumps({'tree_sha':tree.get('sha'),'truncated':tree.get('truncated'),
+            'all_model_paths':[{'path':x['path'],'sha':x['sha'],'size':x.get('size')} for x in tree.get('tree',[]) if x['path'].lower().endswith('.tflite')]},indent=2))
+          if tree.get('truncated'):raise RuntimeError('Corpus tree truncated, sampling not trustworthy')
+          files=[x for x in tree['tree'] if x['type']=='blob' and x['path'].lower().endswith('.tflite') and
+                 1000<=x.get('size',0)<=9000000 and not any(z in x['path'].lower() for z in ('edgetpu','_fp32','float32','_float','_ptq'))]
+          # Selection criteria and lexicographic order fixed before binary download/inspection.
+          for category,regex in [('mobilenet_v3',r'mobilenet[_-]?v?3|mobilenet_v3'),('mobilenet_v2',r'mobilenet[_-]?v?2|mobilenet_v2'),
+                                 ('efficientnet',r'efficientnet'),('deeplab',r'deeplab'),('ssd',r'ssd'),('other',r'.')]:
+            matching=sorted((x for x in files if re.search(regex,x['path'].lower())),key=lambda x:x['path'])
+            for x in matching[:(2 if category!='other' else 3)]:
+              if any(p['repo']=='google-coral/test_data' and p['path']==x['path'] for p in plan):continue
+              plan.append({'repo':'google-coral/test_data','ref':coral,'path':x['path'],'git_blob':x['sha'],'size':x['size'],'source':'coral_fixed_category_'+category})
+          records=[]
+          for i,item in enumerate(plan):
+            rec=dict(item);rec['local']=str(dst/('%02d_%s'%(i,Path(item['path']).name)))
+            url='https://raw.githubusercontent.com/'+item['repo']+'/'+item['ref']+'/'+item['path']
+            rec['url']=url
+            try:
+              data=get(url);rec['downloaded_bytes']=len(data)
+              rec['sha256']=hashlib.sha256(data).hexdigest();rec['git_blob_actual']=blob_sha(data)
+              if item.get('git_blob') and rec['git_blob_actual']!=item['git_blob']:raise ValueError('git blob mismatch')
+              if data[4:8]!=b'TFL3':raise ValueError('not TFL3 (possibly Git LFS pointer)')
+              Path(rec['local']).write_bytes(data);rec['status']='downloaded'
+            except Exception as ex:rec['status']='failed';rec['error']=str(ex)
+            records.append(rec)
+          (base/'results'/'corpus_manifest.json').write_text(json.dumps(records,indent=2))
+          print('CORPUS_PLAN',len(plan),'DOWNLOADED',sum(x['status']=='downloaded' for x in records))
+          for x in records:print('CORPUS',x['source'],x['path'],x['status'],x.get('error',''))
+          PY
+      - name: Run source-linked read-only model screening and rigorous arithmetic sanity controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/date-qnn-g4
+          python3 - <<'PY'
+          import json,sys,pathlib
+          sys.path.insert(0,'.')
+          from audit import screen
+          manifest=json.loads(pathlib.Path('results/corpus_manifest.json').read_text())
+          rows=[]
+          for rec in manifest:
+            if rec['status']!='downloaded':continue
+            try:
+              r=screen(pathlib.Path('public_models',pathlib.Path(rec['local']).name).read_bytes(),rec['path'])
+              r['source']=rec['source'];r['repo']=rec['repo'];r['ref']=rec['ref'];rows.append(r)
+              n=sum(x['preshift_wrap_possible'] is True for x in r['mul'])
+              print('MODEL',r['file'],'ops',r['ops'],'MUL',len(r['mul']),'MVE_PRESHIFT_POSSIBLE',n)
+              for m in r['mul']:
+                print('MUL_GATE',r['file'],m['op'],m['status'],m.get('shift'),m['preshift_wrap_possible'])
+            except Exception as e:
+              rows.append({'file':rec['path'],'error':repr(e)});print('MODEL_SCAN_ERROR',rec['path'],repr(e))
+          pathlib.Path('results/public_scan.json').write_text(json.dumps(rows,indent=2))
+          counts={'downloaded_models':len(rows),'models_with_mul':sum(bool(r.get('mul')) for r in rows),
+                  'total_mul':sum(len(r.get('mul',[])) for r in rows),
+                  'eligible_mul':sum(sum(m['status']=='eligible_unverified_backend' for m in r.get('mul',[])) for r in rows),
+                  'possible_preshift_mul':sum(sum(m['preshift_wrap_possible'] is True for m in r.get('mul',[])) for r in rows),
+                  'errors':sum('error' in r for r in rows)}
+          pathlib.Path('results/summary.json').write_text(json.dumps(counts,indent=2))
+          print('PUBLIC_MODEL_SUMMARY',json.dumps(counts))
+          assert rows and counts['errors']==0,'Scanner failed on downloaded model(s)'
+          PY
+      - name: Preserve binary source models, full scan and failure diagnostics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: date-qnn-g4-pinned-public-model-audit
+          path: |
+            research/date-qnn-g4/
+          retention-days: 90

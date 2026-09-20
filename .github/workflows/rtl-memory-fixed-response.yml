@@ -1,0 +1,70 @@
+name: CPU fixed-response control
+on:
+  push:
+    branches: [research/rtl-memory-bridge-20260920]
+    paths: [.github/workflows/rtl-memory-fixed-response.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixed-response:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore pinned CPU and derive immutable fixed-response ROM
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/cpu-source
+          git -C /tmp/cpu-source show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/cpu-source show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          cp research/rtl-memory-bridge/{memory_bridge.sv,run_matrix.py,make_bounded_ready_variant.py} results/
+          python3 research/rtl-memory-bridge/make_bounded_ready_variant.py
+          cp results/memory_bridge.sv results/memory_bridge_zero.sv
+          cp results/memory_bridge_wait.sv results/memory_bridge_address.sv
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('results/memory_bridge_address.sv').read_text()
+          a=s.index('`ifdef BRIDGE_FORMAL\n  (* anyconst *) reg [1:0] response4;')
+          b=s.index('`endif\n  wire [1:0] wait_limit',a)+len('`endif')
+          s=s[:a]+"  wire [1:0] wait4 = 2'd2;\n  wire [1:0] wait8 = 2'd2;\n  wire [1:0] wait_else = 2'd2;"+s[b:]
+          assert 'assume(' not in s and '(* anyconst *) reg [1:0] response4;' not in s
+          Path('results/memory_bridge.sv').write_text(s)
+          PY
+          sha256sum results/{parent.v,child.v,memory_bridge.sv,memory_bridge_zero.sv,memory_bridge_address.sv,run_matrix.py} >results/SHA256SUMS.txt
+          { yosys -V; sby --version; iverilog -V | head -1; } >results/TOOLS.txt
+      - name: Run symbolic operand and shift checks at a fixed external response delay
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('research/rtl-memory-bridge/run_matrix.py').read_text()
+          s=s.replace('depth 76','depth 105')
+          marker='\nfor op in range(3):\n    for split in (1,0):'
+          assert s.count(marker)==1
+          s=s[:s.index(marker)]+'''
+          for op in range(3):
+              for rev in ('parent','child'):
+                  task(rev,op,1,0,'bmc')
+          for op in range(3):
+              task('parent',op,1,1,'bmc')
+          for op in range(3):
+              task('child',op,1,0,'cover')
+          print(f'ALL_EXPECTED {len(rows)}',flush=True)
+          '''
+          Path('results/run_fixed.py').write_text(s)
+          PY
+          python3 results/run_fixed.py | tee results/FIXED_EXECUTION.log
+      - name: Preserve original source and formal tasks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-fixed-response-evidence
+          path: results/
+          retention-days: 30

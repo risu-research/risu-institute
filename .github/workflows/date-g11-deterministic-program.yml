@@ -1,0 +1,94 @@
+name: DATE G11 deterministic-program native RTL replay
+on:
+  push:
+    branches:
+      - research/date-g11-deterministic-program-20260920
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install independent Icarus simulator
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog python3
+          iverilog -V | head -3
+      - name: Pin historical sources and apply only simulation compatibility changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p date-g11-deterministic-results
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/zipcpu-original
+          cd /tmp/zipcpu-original
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git rev-parse HEAD > "$GITHUB_WORKSPACE/date-g11-deterministic-results/parent-commit.txt"
+          git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > /tmp/child-pipemem.v
+          sha256sum rtl/core/zipcpu.v rtl/ex/wbdblpriarb.v rtl/core/pipemem.v rtl/cpudefs.v /tmp/child-pipemem.v > "$GITHUB_WORKSPACE/date-g11-deterministic-results/ORIGINAL_SOURCE_SHA256.txt"
+          python3 - <<'PY'
+          import pathlib,hashlib
+          root=pathlib.Path('/tmp/zipcpu-original')
+          # Do not change the CPU datapath or the historical pipemem comparison.
+          p=root/'rtl/core/zipcpu.v'
+          s=p.read_text()
+          before="initial\talu_gie = 1'b0;"
+          after="initial\tr_alu_gie = 1'b0;"
+          assert s.count(before)==1, 'unexpected historical zipcpu.v'
+          p.write_text(s.replace(before,after))
+          p=root/'rtl/ex/wbdblpriarb.v'
+          s=p.read_text()
+          needle='`endif\n\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))'
+          assert s.count(needle)==1,'formal guard anchor not unique'
+          s=s.replace(needle,'`endif\n\n`ifdef FORMAL\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))')
+          p.write_text(s)
+          for name in ('rtl/core/zipcpu.v','rtl/ex/wbdblpriarb.v'):
+              q=root/name
+              print('SIM_ONLY_PATCH',name,hashlib.sha256(q.read_bytes()).hexdigest(),flush=True)
+          PY
+          sha256sum rtl/core/zipcpu.v rtl/ex/wbdblpriarb.v rtl/core/pipemem.v > "$GITHUB_WORKSPACE/date-g11-deterministic-results/CONTROLLED_SOURCE_SHA256.txt"
+      - name: Compile and run three concrete programs on both historical revisions
+        shell: bash
+        run: |
+          set -u
+          RESULTS="$GITHUB_WORKSPACE/date-g11-deterministic-results"
+          cd /tmp/zipcpu-original
+          cp rtl/core/pipemem.v /tmp/g11-parent-pipemem.v
+          for REV in parent child; do
+            if [ "$REV" = child ]; then cp /tmp/child-pipemem.v rtl/core/pipemem.v; else cp /tmp/g11-parent-pipemem.v rtl/core/pipemem.v; fi
+            sha256sum rtl/core/pipemem.v > "$RESULTS/${REV}-pipemem-sha256.txt"
+            for MODE in IMMEDIATE LDI OLD; do
+              LABEL="${REV}-${MODE}"
+              mkdir -p "$RESULTS/$LABEL"
+              # Retain pipelined memory access while selecting the actual dblfetch.
+              # This combination is an explicit controlled configuration, not the unchanged default.
+              iverilog -g2012 -s native_program_tb -Irtl -Irtl/core -Irtl/ex \
+                -DOPT_DOUBLE_FETCH -DOPT_PIPELINED -DOPT_PIPELINED_BUS_ACCESS \
+                "-DTEST_${MODE}" -o "$RESULTS/$LABEL/program.vvp" \
+                "$GITHUB_WORKSPACE/research/date-g11-deterministic-program/native_program_tb.v" \
+                rtl/core/*.v rtl/ex/*.v > "$RESULTS/$LABEL/compile.log" 2>&1
+              BUILD=$?
+              echo "COMPILATION_EXIT=$BUILD" >> "$RESULTS/$LABEL/compile.log"
+              if [ "$BUILD" -eq 0 ]; then
+                (cd "$RESULTS/$LABEL" && timeout 60 vvp program.vvp > run.log 2>&1)
+                RUN=$?
+              else
+                echo "SIMULATION_NOT_STARTED: compile failed" > "$RESULTS/$LABEL/run.log"
+                RUN=125
+              fi
+              echo "SIMULATION_EXIT=$RUN" >> "$RESULTS/$LABEL/run.log"
+              echo "$LABEL compile=$BUILD simulation=$RUN" | tee -a "$RESULTS/summary.txt"
+              grep -E 'FETCH_VALID|PIPE |NATIVE_FETCH_WITNESS|NO_NATIVE_WITNESS|NATIVE_RTL_WITNESS_PASS|SUMMARY|FATAL' "$RESULTS/$LABEL/run.log" | head -45 || true
+            done
+          done
+          echo 'RESULTS ARE DIAGNOSTIC: OLD is expected to be a nonwitness; formal assertion checks are not enabled in this non-FORMAL simulation.'
+      - name: Upload logs, waveforms, exact build and source hashes even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-g11-deterministic-program-replay
+          path: date-g11-deterministic-results/
+          if-no-files-found: warn
+          retention-days: 30

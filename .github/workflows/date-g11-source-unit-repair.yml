@@ -1,0 +1,96 @@
+name: DATE G11 unit-corrected assertion positive repair control
+on:
+  push:
+    branches: [research/date-g11-exact-rom-formal-20260920]
+    paths: ['.github/workflows/date-g11-source-unit-repair.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit_repair:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin source, make source-only contract and unit-comparator repairs, synthesize and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-unit-repair-evidence"; mkdir -p "$OUT"
+          sudo apt-get update -qq; sudo apt-get install -y yosys gcc python3-pip
+          python3 -m pip install --user --quiet 'z3-solver==4.13.3.0'
+          LIB="$(python3 - <<'PY'
+          import z3,pathlib
+          assert z3.get_version()==(4,13,3,0)
+          print(next(f for f in (pathlib.Path(z3.__file__).resolve().parent/'lib').glob('libz3.so*') if f.is_file()))
+          PY
+          )"
+          gcc -O2 research/date-g11-exact-rom-formal/z3_smt_driver.c "$LIB" -Wl,-rpath,"$(dirname "$LIB")" -o "$GITHUB_WORKSPACE/g11_z3"
+          yosys -V > "$OUT/TOOLS.txt"; python3 -c 'import z3;print(z3.get_version())' >> "$OUT/TOOLS.txt"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/g11-unit
+          cd /tmp/g11-unit
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          git rev-parse HEAD > "$OUT/PARENT_COMMIT.txt"
+          cp rtl/core/pipemem.v /tmp/g11-original-parent.v
+          git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > /tmp/g11-original-child.v
+          sha256sum /tmp/g11-original-{parent,child}.v rtl/core/{dblfetch,zipcpu,cpuops,mpyop}.v > "$OUT/ORIGINAL_SHA256.txt"
+          python3 "$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/reset_guard_experiment.py" /tmp/g11-unit > "$OUT/RESET_GUARD_PATCH.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/g11-unit')
+          s=Path('/tmp/g11-original-parent.v').read_text()
+          old='`ASSUME( (i_addr == o_wb_addr)\n\t\t\t\t||(i_addr == o_wb_addr+1));'
+          new='`ASSUME( (i_addr[(AW+1):2] == o_wb_addr)\n\t\t\t\t||(i_addr[(AW+1):2] == o_wb_addr+1));'
+          assert s.count(old)==1,s.count(old)
+          Path('/tmp/g11-unit-corrected-parent.v').write_text(s.replace(old,new))
+          Path('/tmp/g11-original-parent.v').write_text(s)
+          print('SOURCE_CORRECTION',old,'TO',new)
+          for rel,a,b in [('rtl/core/zipcpu.v','abs_prefetch\t#(ADDRESS_WIDTH)','dblfetch\t#(ADDRESS_WIDTH)'),('rtl/core/cpuops.v','`define\tMPYOP\tabs_mpy','`define\tMPYOP\tmpyop')]:
+              p=root/rel;t=p.read_text();assert t.count(a)==1;p.write_text(t.replace(a,b))
+          p=root/'bench/formal/zipcpu.ys';t=p.read_text()
+          for a,b in [('read_verilog -D ZIPCPU -formal abs_prefetch.v','read_verilog -D ZIPCPU -formal ../../rtl/core/dblfetch.v'),('read_verilog -D ZIPCPU -formal abs_mpy.v','read_verilog -D ZIPCPU -formal ../../rtl/core/mpyop.v')]:
+              assert t.count(a)==1;t=t.replace(a,b)
+          p.write_text(t)
+          PY
+          sha256sum /tmp/g11-unit-corrected-parent.v rtl/core/{dblfetch,zipcpu,cpuops,mpyop}.v bench/formal/zipcpu.ys > "$OUT/CONTROLLED_SHA256.txt"
+          for MODEL in parent parent_unitfix child; do
+            SRC=/tmp/g11-original-$MODEL.v
+            if [ "$MODEL" = parent_unitfix ];then SRC=/tmp/g11-unit-corrected-parent.v;fi
+            cp "$SRC" rtl/core/pipemem.v
+            (cd bench/formal && timeout 180 yosys -s zipcpu.ys > "$OUT/$MODEL-yosys.log" 2>&1)
+            cp bench/formal/zipcpu.smt2 "$OUT/$MODEL.smt2"
+            sha256sum "$OUT/$MODEL.smt2" >> "$OUT/MODEL_SHA256.txt"
+          done
+          for MODEL in parent parent_unitfix child; do
+            CASE=parent; if [ "$MODEL" = child ];then CASE=child;fi
+            python3 "$GITHUB_WORKSPACE/research/date-g11-exact-rom-formal/reset_guard_query.py" "$OUT/$MODEL.smt2" "$OUT/$MODEL-query.smt2" --case "$CASE" --pulse keep --min-target 12 --max-target 12 --single-fetch-anchor > "$OUT/$MODEL-generator.log" 2>&1
+            python3 - "$OUT/$MODEL-query.smt2" "$MODEL" <<'PY'
+          import sys,pathlib
+          p=pathlib.Path(sys.argv[1]);s=p.read_text();anchor='(assert (= (|zipcpu_n pf_valid| s5) true))\n';assert s.count(anchor)==1;s=s.replace(anchor,'')
+          if sys.argv[2]=='parent':s=s.split('(check-sat)',1)[0]+'(check-sat)\n'
+          p.write_text(s)
+          PY
+            timeout 100 "$GITHUB_WORKSPACE/g11_z3" "$OUT/$MODEL-query.smt2" > "$OUT/$MODEL-solver.log" 2> "$OUT/$MODEL-stderr.log"
+            echo "$MODEL $(head -1 "$OUT/$MODEL-solver.log")" | tee -a "$OUT/SUMMARY.txt"
+          done
+          python3 - "$OUT" <<'PY'
+          import pathlib,sys,re
+          d=pathlib.Path(sys.argv[1]);expected={'child':'sat','parent':'unsat','parent_unitfix':'sat'}
+          for model,want in expected.items():
+              log=(d/f'{model}-solver.log').read_text();assert log.splitlines()[0]==want,(model,log[:200])
+              q=(d/f'{model}-query.smt2').read_text();assert '(assert (|zipcpu_h| s12))' in q
+              assert 'true ; DIAGNOSTIC ONLY: omit pipemem.v:352' not in q
+              assert '  (|$paramod/dblfetch/ADDRESS_WIDTH=30_u 1| state)\n' in q
+          fixed=(d/'parent_unitfix-solver.log').read_text()
+          assert '#x14800100' in fixed and '#x1c800100' in fixed and '#x00000100' in fixed
+          assert re.search(r'\(\(\|[^|]*pipemem[^|]*_a 4\| \(\|zipcpu_h domem\| s13\)\) true\)',fixed),'fixed assertion not true in following state'
+          print('PASS strict parent UNSAT; strictly asserted byte/word-corrected PARENT SAT; child SAT; no assertion dropped')
+          PY
+      - name: Preserve full source-derived models, exact program and comparator truth values
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-unit-corrected-parent-source-level
+          path: g11-unit-repair-evidence/
+          if-no-files-found: warn
+          retention-days: 30

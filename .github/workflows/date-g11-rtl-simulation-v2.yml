@@ -1,0 +1,71 @@
+name: DATE G11 native RTL ROM replay with formal-only guard compatibility
+on:
+  push:
+    branches: [research/date-g11-causal-native-20260919]
+    paths: ['.github/workflows/date-g11-rtl-simulation-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulate:
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [parent, child]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native Verilog simulator
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog python3
+          iverilog -V | head -2
+      - name: Source-pinned non-FORMAL 2-word ROM replay
+        env:
+          VERSION: ${{ matrix.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/g11-rtl-guarded-$VERSION"
+          mkdir -p "$OUT"
+          git clone --filter=blob:none https://github.com/ZipCPU/zipcpu.git /tmp/z
+          cd /tmp/z
+          git checkout --detach 128cab89f5edaae4699184f50c1334598ebe904e
+          if [ "$VERSION" = child ]; then git show d511239e19be8fcc7f340a64554ea93699637e62:rtl/core/pipemem.v > rtl/core/pipemem.v; fi
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v rtl/ex/wbdblpriarb.v rtl/cpudefs.v > "$OUT/ORIGINAL_SHA256.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('rtl/core/zipcpu.v');s=p.read_text();old='`ifdef\tFORMAL\n\tabs_prefetch\t#(ADDRESS_WIDTH)'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,'`ifdef\tG11_NATIVE_FETCH\n\tdblfetch\t#(ADDRESS_WIDTH)'))
+          p=Path('rtl/ex/wbdblpriarb.v');s=p.read_text()
+          # Historical source closes FORMAL before its final formal-only
+          # assertion block. Wrap only that block, retaining all design RTL.
+          anchor='`endif\n\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))'
+          assert s.count(anchor)==1,('arbiter guard anchor',s.count(anchor))
+          s=s.replace(anchor,'`endif\n\n`ifdef FORMAL\n\talways @(posedge i_clk)\n\tif ((f_past_valid)&&(!$past(i_reset)))')
+          p.write_text(s)
+          print('Compatibility-only: wrap post-endif formal assertions in existing arbiter; no design RTL logic changes')
+          PY
+          sha256sum rtl/core/{zipcpu,pipemem,cpuops,dblfetch,mpyop}.v rtl/ex/wbdblpriarb.v rtl/cpudefs.v > "$OUT/MODEL_SHA256.txt"
+          cp "$GITHUB_WORKSPACE/research/g11/native_fetch_two_word_tb.v" "$OUT/testbench.v"
+          set +e
+          iverilog -g2012 -D G11_NATIVE_FETCH -s native_fetch_two_word_tb -I rtl -o "$OUT/simulation.vvp" "$OUT/testbench.v" rtl/core/zipcpu.v rtl/core/cpuops.v rtl/core/memops.v rtl/core/pipemem.v rtl/core/idecode.v rtl/core/div.v rtl/core/dblfetch.v rtl/core/mpyop.v rtl/ex/wbdblpriarb.v > "$OUT/compile.log" 2>&1
+          CODE=$?
+          echo "IVERILOG_EXIT=$CODE" | tee -a "$OUT/compile.log"
+          if [ "$CODE" -eq 0 ]; then
+            cd "$OUT"
+            timeout 90 vvp simulation.vvp > simulation.log 2>&1
+            echo "VVP_EXIT=$?" >> simulation.log
+            grep -E 'FETCH_VALID|PIPE_REQ|NATIVE_FETCH_WITNESS|SUMMARY|NO_SIM_WITNESS' simulation.log | head -70 || true
+          fi
+          exit 0
+      - name: Preserve all outcomes including compile failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g11-native-rtl-guarded-${{ matrix.version }}
+          path: g11-rtl-guarded-${{ matrix.version }}/
+          retention-days: 14
+          if-no-files-found: warn

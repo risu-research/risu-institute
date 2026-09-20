@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Re-use independently audited exact ROM generator; *restore* original 
-new-PC clause from the freshly re-synthesized reset-qualified SOURCE model.
-Fail closed if source or generated query differs from pinned structure.
+"""Reuse independently audited ROM generator; restore source-level new-PC guard.
+Allow exactly the historical parent address assertion to be omitted in the
+parent_relaxed counterfactual; fail closed for all other model changes.
 """
-import sys,pathlib,subprocess,hashlib
+import sys,pathlib,subprocess,hashlib,re
 argv=sys.argv[1:]
 assert '--pulse' in argv and argv[argv.index('--pulse')+1]=='keep',argv
 assert '--min-target' in argv and '--max-target' in argv
@@ -17,9 +17,17 @@ subprocess.run(cmd,check=True)
 s=out.read_text()
 needle='  true ; DIAGNOSTIC ONLY: omit dblfetch.v:350 new-PC pulse restriction\n'
 restored='  (|$paramod/dblfetch/ADDRESS_WIDTH=30_u 1| state)\n'
-assert s.count(needle)==1 and orig.count(restored)==1,(case,'expected one new-PC assumption')
+assert s.count(needle)==1 and orig.count(restored)==1,(case,'expected exactly one new-PC contract')
 s=s.replace(needle,restored,1)
-assert orig in s,('original source model must be embedded unchanged',case)
+expected=orig
+if case=='parent_relaxed':
+    hit=re.findall(r'^\(define-fun \|([^|]*pipemem[^|]*_a [0-9]+)\| .*; \$assert\$.*pipemem\.v:352$',orig,re.M)
+    assert len(hit)==1,hit
+    target='  (|'+hit[0]+'| state)\n'
+    marker='  true ; DIAGNOSTIC ONLY: omit pipemem.v:352 OLD address assertion\n'
+    assert expected.count(target)==1 and s.count(marker)==1
+    expected=expected.replace(target,marker,1)
+assert expected in s,('unintended source-model change',case)
 assert needle not in s
 out.write_text(s)
 print('GUARD_CONTRACT_KEPT',case,'MODEL_SHA256',hashlib.sha256(orig.encode()).hexdigest(),'QUERY_SHA256',hashlib.sha256(s.encode()).hexdigest())

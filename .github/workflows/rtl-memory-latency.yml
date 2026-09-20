@@ -15,7 +15,7 @@ jobs:
       - uses: YosysHQ/setup-oss-cad-suite@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Restore pinned source and generate external response model
+      - name: Restore pinned source and generate address-stable external response model
         run: |
           set -euo pipefail
           mkdir -p results
@@ -30,7 +30,7 @@ jobs:
           cp results/memory_bridge_wait.sv results/memory_bridge.sv
           sha256sum results/{parent.v,child.v,memory_bridge.sv,memory_bridge_zero.sv,run_matrix.py,make_bounded_ready_variant.py} >results/SHA256SUMS.txt
           { yosys -V; sby --version; iverilog -V | head -1; } >results/TOOLS.txt
-      - name: Execute native two-cycle response controls
+      - name: Execute deterministic two-cycle response controls
         run: |
           set -euo pipefail
           for rev in parent child; do
@@ -43,7 +43,7 @@ jobs:
               tail -3 "results/$name.native.log"
             done
           done
-      - name: Execute symbolic bounded-response checks and exact covers
+      - name: Execute symbolic address-response checks and exact covers
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -66,7 +66,7 @@ jobs:
           Path('results/run_latency.py').write_text(s)
           PY
           python3 results/run_latency.py | tee results/LATENCY_EXECUTION.log
-      - name: Preserve original inputs and solver artifacts
+      - name: Preserve original source, bus model, proofs and witnesses
         if: always()
         uses: actions/upload-artifact@v4
         with:

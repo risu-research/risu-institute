@@ -1,0 +1,56 @@
+name: DATE G23 original SoC x0 initialization challenge
+on:
+  push:
+    branches: [research/date-g23-exhaustive-scope-20260920]
+    paths: [.github/workflows/date-g23-soc-x0-initialization-challenge.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-soc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        csr: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run exact unchanged original SoC with x0 SRAM backing byte 0x20
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          CSR: ${{ matrix.csr }}
+        run: |
+          set -uo pipefail
+          mkdir -p g23-soc
+          if [ "$REV" = parent ];then SHA=838d16615e81786062fae84b9f7c044fb8f6bbe4;else SHA=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2;fi
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g23-original-serv >g23-soc/CLONE.log 2>&1
+          git -C /tmp/g23-original-serv checkout "$SHA" >g23-soc/CHECKOUT.log 2>&1
+          git -C /tmp/g23-original-serv rev-parse HEAD >g23-soc/SOURCE_COMMIT.txt
+          git -C /tmp/g23-original-serv diff 838d16615e81786062fae84b9f7c044fb8f6bbe4 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2 --name-only >g23-soc/UPSTREAM_DIFF_NAMES.txt
+          sha256sum /tmp/g23-original-serv/servile/{servile_rf_mem_if.v,servile.v} /tmp/g23-original-serv/serving/{serving.v,serving_ram.v} >g23-soc/SOURCE_HASHES.txt
+          cp research/date-g23-exhaustive-scope-20260920/serving_x0_backing_challenge_tb.v g23-soc/ORIGINAL_TESTBENCH.v
+          cp /tmp/g23-original-serv/servile/servile_rf_mem_if.v g23-soc/ORIGINAL_CHANGED_MODULE.v
+          iverilog -V | head -2 >g23-soc/TOOLS.txt
+          printf 'revision=%s WITH_CSR=%s initial_x0_word=00000020\n' "$REV" "$CSR" >g23-soc/CONFIG.txt
+          if iverilog -g2012 -s serving_x0_backing_challenge_tb -Pserving_x0_backing_challenge_tb.CSR="$CSR" -D$(if [ "$REV" = parent ];then echo PARENT;else echo CHILD;fi) -o g23-soc/soc.vvp /tmp/g23-original-serv/rtl/*.v /tmp/g23-original-serv/servile/*.v /tmp/g23-original-serv/serving/*.v research/date-g23-exhaustive-scope-20260920/serving_x0_backing_challenge_tb.v >g23-soc/COMPILE.log 2>&1; then COMPILE=0; else COMPILE=$?; fi
+          echo "compile_exit=$COMPILE" >g23-soc/STATUS.txt
+          if [ "$COMPILE" -eq 0 ];then
+            if timeout 70 vvp g23-soc/soc.vvp >g23-soc/SIM.log 2>&1; then SIM=0;else SIM=$?;fi
+            echo "simulation_exit=$SIM" >>g23-soc/STATUS.txt
+          else echo 'simulation_not_run=compile_error' >>g23-soc/STATUS.txt;fi
+          grep -E 'G23_X0_|G23_ROM|G23_EXTERNAL_STORE|G23_FINAL|G23_ORIGINAL|FATAL|ERROR' g23-soc/SIM.log 2>/dev/null | tail -25 || true
+          cat g23-soc/STATUS.txt
+          exit 0
+      - name: Retain exact DUT, compiler, ROM and full failed and successful traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g23-x0-soc-${{ matrix.rev }}-csr${{ matrix.csr }}
+          path: g23-soc/
+          retention-days: 30

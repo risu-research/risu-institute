@@ -1,0 +1,64 @@
+name: DATE G24 original SoC lane carry boundary
+on:
+  push:
+    branches: [research/date-g24-x0-lane-carry-20260920]
+    paths: [.github/workflows/date-g24-x0-lane-carry.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-soc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [parent, child]
+        csr: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reproduce all eight frozen per-config tests on unmodified original SoC
+        shell: bash
+        env:
+          REV: ${{ matrix.rev }}
+          CSR: ${{ matrix.csr }}
+        run: |
+          set -uo pipefail
+          mkdir -p g24-out
+          git clone --filter=blob:none https://github.com/olofk/serv.git /tmp/g24-serv >g24-out/CLONE.log 2>&1
+          if [ "$REV" = parent ];then SHA=838d16615e81786062fae84b9f7c044fb8f6bbe4;DEF=-DG24_PARENT;else SHA=41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2;DEF=;fi
+          git -C /tmp/g24-serv checkout "$SHA" >g24-out/CHECKOUT.log 2>&1
+          git -C /tmp/g24-serv rev-parse HEAD >g24-out/ORIGINAL_COMMIT.txt
+          git -C /tmp/g24-serv diff 838d16615e81786062fae84b9f7c044fb8f6bbe4 41e8aeedfd1e9ad5f95902c5b0dfc83d1c99e5d2 --name-only >g24-out/DIFF_FILES.txt
+          sha256sum /tmp/g24-serv/servile/{servile_rf_mem_if.v,servile.v,servile_mux.v} /tmp/g24-serv/serving/{serving.v,serving_ram.v} /tmp/g24-serv/rtl/serv_top.v >g24-out/SOURCE_HASHES.txt
+          cp /tmp/g24-serv/servile/servile_rf_mem_if.v g24-out/ORIGINAL_CHANGED_MODULE.v
+          cp research/date-g24-x0-lane-carry-20260920/{PREREGISTRATION.md,serving_lane_carry_tb.v} g24-out/
+          { iverilog -V | head -2; } >g24-out/TOOLS.txt 2>&1
+          echo "rev=$REV csr=$CSR" >g24-out/CONFIG.txt
+          fail=0
+          for LANE in 0 1 2 3;do
+            for VALUE in 32 255;do
+              KEY="lane${LANE}_value${VALUE}"
+              /usr/bin/time -f 'compile_wall_s=%e' -o "g24-out/${KEY}.compile.time" iverilog -g2012 -s serving_lane_carry_tb -Pserving_lane_carry_tb.CSR="$CSR" -Pserving_lane_carry_tb.LANE="$LANE" -Pserving_lane_carry_tb.VALUE="$VALUE" $DEF -o "g24-out/${KEY}.vvp" /tmp/g24-serv/rtl/*.v /tmp/g24-serv/servile/*.v /tmp/g24-serv/serving/*.v research/date-g24-x0-lane-carry-20260920/serving_lane_carry_tb.v >"g24-out/${KEY}.compile.log" 2>&1
+              cc=$?
+              if [ "$cc" -eq 0 ];then
+                timeout 75 /usr/bin/time -f 'simulation_wall_s=%e' -o "g24-out/${KEY}.sim.time" vvp "g24-out/${KEY}.vvp" >"g24-out/${KEY}.sim.log" 2>&1
+                sc=$?
+              else sc=99;fi
+              printf 'lane=%s value=%s compile_exit=%s sim_exit=%s\n' "$LANE" "$VALUE" "$cc" "$sc" | tee -a g24-out/RESULTS.txt
+              grep -E 'G24_CASE|G24_FINAL|G24_COMPLETE|FATAL|timeout' "g24-out/${KEY}.sim.log" 2>/dev/null | tail -8 || true
+              if [ "$cc" -ne 0 ] || [ "$sc" -ne 0 ];then fail=1;fi
+            done
+          done
+          echo "all_eight_ok=$((1-fail))" >>g24-out/RESULTS.txt
+          exit 0
+      - name: Keep all complete and failed statuses and original source hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g24-lanes-${{ matrix.rev }}-csr${{ matrix.csr }}
+          path: g24-out/
+          retention-days: 30

@@ -2,18 +2,33 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p results/model
-SCHEMA=tflm/tensorflow/compiler/mlir/lite/schema/schema.fbs
+ORIGINAL_SCHEMA=tflm/tensorflow/compiler/mlir/lite/schema/schema.fbs
+SCHEMA=results/model/schema_flatc2.fbs
 MODEL=model/quantized_mul_adversarial.json
 flatc --version | tee results/model/flatc_version.txt
 git -C tflm rev-parse HEAD | tee results/model/tflm_commit.txt
 [[ "$(cat results/model/tflm_commit.txt)" = 0ee39f5fc6629b7403166d325da374f01d890cf1 ]]
-sha256sum "$SCHEMA" "$MODEL" > results/model/model_sources_sha256.txt
+sha256sum "$ORIGINAL_SCHEMA" "$MODEL" > results/model/model_sources_sha256.txt
+# flatc 2.0.8 predates the metadata syntax for deprecated enum values. Remove
+# ONLY the source's '(deprecated)' annotations, retaining every numeric enum,
+# field, table, type, default and TFL3 identifier. Keep original and normalized
+# schema hashes and readable diff. Never treat this as an upstream file change.
+python3 - <<'PY'
+from pathlib import Path
+p=Path('tflm/tensorflow/compiler/mlir/lite/schema/schema.fbs');s=p.read_text()
+assert ' (deprecated)' in s
+normalized=s.replace(' (deprecated)','')
+assert normalized.replace('REDUCE_WINDOW = 205,','REDUCE_WINDOW = 205 (deprecated),')==s or normalized.replace(' (deprecated)','')==normalized
+Path('results/model/schema_flatc2.fbs').write_text(normalized)
+print('NORMALIZATION_DEPRECATED_ENUM_ANNOTATIONS',s.count(' (deprecated)'))
+PY
+sha256sum "$SCHEMA" >> results/model/model_sources_sha256.txt
 flatc -b --strict-json -o results/model "$SCHEMA" "$MODEL"
 mv results/model/quantized_mul_adversarial.bin results/model/quantized_mul_adversarial.tflite
 flatc -t --raw-binary --strict-json -o results/model "$SCHEMA" results/model/quantized_mul_adversarial.tflite
 python3 - <<'PY'
 from pathlib import Path
-import json,struct
+import json
 p=Path('results/model/quantized_mul_adversarial.tflite'); b=p.read_bytes()
 assert b[4:8]==b'TFL3' and len(b)>150
 m=json.loads(Path('results/model/quantized_mul_adversarial.json').read_text())

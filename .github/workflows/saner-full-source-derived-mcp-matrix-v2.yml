@@ -1,0 +1,58 @@
+name: SANER source-derived original converter matrix v2
+on:
+  push:
+    branches: [research/saner-real-contract-path-20260921]
+    paths: ['.github/workflows/saner-full-source-derived-mcp-matrix-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-converters:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: harness, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: ivo-toby/mcp-openapi-server, ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f, path: upstream, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: rendis/mcp-openapi-proxy, ref: dd166a0c6178ded2400b785b24e42125dd5890d7, path: proxy, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-go@v5
+        with: {go-version: '1.26.1'}
+      - name: Fetch pinned ORIGINAL vendor schemas, compile unchanged converters
+        run: |
+          set -euxo pipefail
+          python harness/research/saner-real-contract-path-20260921/contract_extract.py | tee source_download.log
+          git -C upstream rev-parse HEAD
+          git -C proxy rev-parse HEAD
+          go build -C proxy -o ../proxy_binary ./cmd/mcp-openapi-proxy
+          (cd upstream && npm ci --no-audit --no-fund && npm run build)
+      - name: Run actual MCP conversions against vendor-derived local endpoints
+        env:
+          PROXY_BINARY: ${{ github.workspace }}/proxy_binary
+          PROXY_SHA: dd166a0c6178ded2400b785b24e42125dd5890d7
+          CONTRACT_DIR: ../contract_evidence
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-real-contract-path-20260921/full_path_matrix.mjs upstream/full_path_matrix.mjs
+          cp harness/research/saner-real-contract-path-20260921/apply_fixture_fixes_v2.py upstream/apply_fixture_fixes_v2.py
+          cd upstream
+          python apply_fixture_fixes_v2.py
+          node --check full_path_matrix.mjs
+          node full_path_matrix.mjs | tee ../full_path_matrix_run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-source-derived-original-mcp-matrix-v2
+          if-no-files-found: warn
+          path: |
+            full_path_matrix_results.json
+            full_path_matrix_run.log
+            source_download.log
+            contract_evidence/contract_extract.json
+            upstream/full_path_matrix.mjs
+            upstream/source_derived_proxy_spec.json

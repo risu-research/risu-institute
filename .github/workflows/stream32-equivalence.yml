@@ -1,0 +1,73 @@
+name: Embedded integer equivalence
+on:
+  push:
+    branches: [research/stream32-validation-20260920]
+    paths: [.github/workflows/stream32-equivalence.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  equivalent-inputs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install simulator
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y iverilog
+      - name: Restore original CPU and inspect the alternate image
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/rtl-reference
+          git -C /tmp/rtl-reference show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/rtl-reference show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          test "$(sha256sum research/stream32/round_runtime.hex | cut -d ' ' -f 1)" = 1c5fafe078261b5ba1071824062bdbd74d4777543970a1425da14d3f79bb28f0
+          cp research/stream32/{round_runtime.c,round_runtime.hex,round_tb.sv} results/
+          cp results/round_runtime.hex results/round.hex
+          python3 - <<'PY'
+          from pathlib import Path
+          ws=[int(x,16) for x in Path('results/round_runtime.hex').read_text().split()]
+          assert len(ws)==42
+          rs=[w for w in ws if w&127==0x33 and (w>>12)&7 in (1,5)]
+          imm=[w for w in ws if w&127==0x13 and (w>>12)&7 in (1,5)]
+          assert len(rs)==8 and not imm,(len(rs),len(imm))
+          src=Path('results/round_tb.sv').read_text()
+          replacements={
+            'reg [31:0] rom[0:33];':'reg [31:0] rom[0:41];',
+            "mem_addr < 32'd136":"mem_addr < 32'd168",
+            "32'h100c:rd_word=32'h01234567;":"32'h100c:rd_word=32'h01234567;\n      32'h1010:rd_word=32'd16;\n      32'h1014:rd_word=32'd12;\n      32'h1018:rd_word=32'd8;\n      32'h101c:rd_word=32'd7;",
+            'if(high_shift_retires<4)':'if(high_shift_retires!=0)'
+          }
+          for a,b in replacements.items():
+            assert src.count(a)==1,a
+            src=src.replace(a,b)
+          Path('results/round_runtime_tb.sv').write_text(src)
+          print('REGISTER_SHIFT_IMAGE_OK words=42 shifts=8 high_immediate=0')
+          PY
+          sha256sum results/{parent.v,child.v,round_runtime.c,round_runtime.hex,round_runtime_tb.sv} >results/SHA256SUMS.txt
+      - name: Run identical reference values across configurations
+        run: |
+          set -euo pipefail
+          for revision in parent child; do
+            for compressed in 0 1; do
+              name="${revision}_${compressed}"
+              iverilog -g2012 -DRISCV_FORMAL -DSIM_COMPRESSED="$compressed" -s round_tb -o "results/$name.vvp" "results/$revision.v" results/round_runtime_tb.sv >"results/$name.compile.log" 2>&1
+              (cd results && vvp "$name.vvp") >"results/$name.native.log" 2>&1
+              grep -q '^COMPLETE outputs=' "results/$name.native.log"
+              grep -qx 'RFC_MATCH' "results/$name.native.log"
+              if grep -Eq 'FATAL|TIMEOUT|CPU_TRAP|HIGH_SHIFT pc=' "results/$name.native.log"; then cat "results/$name.native.log"; exit 1; fi
+              tail -3 "results/$name.native.log"
+            done
+          done
+      - name: Preserve original binaries and observed values
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: equivalent-integer-evidence
+          path: results/
+          retention-days: 30

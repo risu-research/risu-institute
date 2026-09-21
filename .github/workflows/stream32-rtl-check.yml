@@ -1,0 +1,54 @@
+name: Embedded integer regression
+on:
+  push:
+    branches: [research/stream32-validation-20260920]
+    paths: [.github/workflows/stream32-rtl-check.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firmware-check:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install a native RTL simulator
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y iverilog
+      - name: Restore unchanged historical revisions and frozen input
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          git clone -q --filter=blob:none https://github.com/YosysHQ/picorv32.git /tmp/rtl-reference
+          git -C /tmp/rtl-reference show b91af1c87e8bc4ae5b0b438c4ac04400a12b76fb:picorv32.v >results/parent.v
+          git -C /tmp/rtl-reference show de92ce54e8a3f24f2adc6b5d04de35e4edb873e5:picorv32.v >results/child.v
+          test "$(git hash-object results/parent.v)" = f13cea9163998ced2db8de130dbdeb6039345c6a
+          test "$(git hash-object results/child.v)" = cc45fa998f1857b06a856ea59b931f6c37e06b34
+          test "$(sha256sum research/stream32/round.hex | cut -d ' ' -f 1)" = 61319a90992eee25fb405ddbdb874de0eadf495f2519512ba876a3a8c3839c8c
+          cp research/stream32/{round.c,round.hex,round_tb.sv} results/
+          { iverilog -V | head -2; git -C /tmp/rtl-reference rev-parse HEAD; } >results/TOOLS.txt
+          sha256sum results/{parent.v,child.v,round.c,round.hex,round_tb.sv} >results/SHA256SUMS.txt
+      - name: Run the same executable bytes through four original configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for revision in parent child; do
+            for compressed in 0 1; do
+              name="${revision}_${compressed}"
+              iverilog -g2012 -DRISCV_FORMAL -DSIM_COMPRESSED="$compressed" -s round_tb -o "results/$name.vvp" "results/$revision.v" results/round_tb.sv >"results/$name.compile.log" 2>&1
+              (cd results && vvp "$name.vvp") >"results/$name.native.log" 2>&1
+              grep -q '^COMPLETE outputs=' "results/$name.native.log"
+              if [ "$revision" = parent ]; then grep -qx 'RFC_MISMATCH' "results/$name.native.log"; else grep -qx 'RFC_MATCH' "results/$name.native.log"; fi
+              if grep -Eq 'FATAL|TIMEOUT|CPU_TRAP' "results/$name.native.log"; then cat "results/$name.native.log"; exit 1; fi
+              tail -3 "results/$name.native.log"
+            done
+          done
+      - name: Retain exact binaries, source, bus traces and status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedded-integer-evidence
+          path: results/
+          retention-days: 30

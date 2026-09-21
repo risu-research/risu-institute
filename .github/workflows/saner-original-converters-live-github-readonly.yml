@@ -1,0 +1,54 @@
+name: SANER two original MCP converters real GitHub read-only validation
+on:
+  push:
+    branches: [research/saner-real-contract-path-20260921]
+    paths: ['.github/workflows/saner-original-converters-live-github-readonly.yml']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  live-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: harness, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: ivo-toby/mcp-openapi-server, ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f, path: upstream, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: rendis/mcp-openapi-proxy, ref: dd166a0c6178ded2400b785b24e42125dd5890d7, path: proxy, persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-go@v5
+        with: {go-version: '1.26.1'}
+      - name: Compile original converter commits without modifications
+        run: |
+          set -euxo pipefail
+          git -C upstream rev-parse HEAD
+          git -C proxy rev-parse HEAD
+          go build -C proxy -o ../proxy_binary ./cmd/mcp-openapi-proxy
+          (cd upstream && npm ci --no-audit --no-fund && npm run build)
+      - name: Call LIVE read-only GitHub workflow run using both original MCP implementations
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROXY_BINARY: ${{ github.workspace }}/proxy_binary
+        run: |
+          set -euxo pipefail
+          mkdir -p contract_evidence
+          curl --retry 3 -fLsS https://raw.githubusercontent.com/github/rest-api-description/338cb199baa4f326790b0b1c246d8d4f481a82a0/descriptions/api.github.com/api.github.com.2026-03-10.json -o contract_evidence/github_2026.json
+          cp harness/research/saner-real-contract-path-20260921/live_readonly_github.mjs upstream/live_readonly_github.mjs
+          cp harness/research/saner-real-contract-path-20260921/live_readonly_import_fix.py upstream/live_readonly_import_fix.py
+          cd upstream
+          python ../harness/research/saner-real-contract-path-20260921/live_readonly_import_fix.py
+          node --check live_readonly_github.mjs
+          node live_readonly_github.mjs | tee ../live_readonly_github_run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-real-github-readonly-two-converters
+          if-no-files-found: warn
+          path: |
+            live_readonly_github_results.json
+            live_readonly_github_run.log
+            upstream/live_readonly_github.mjs

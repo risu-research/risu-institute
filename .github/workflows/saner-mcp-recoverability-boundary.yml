@@ -1,0 +1,67 @@
+name: SANER original MCP async-handle recoverability boundary
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-mcp-recoverability-boundary.yml
+      - research/saner-original-mcp-202-204-20260921/recovery_boundary.mjs
+permissions:
+  contents: read
+jobs:
+  recovery-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated research harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact unmodified original converter
+        uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build unmodified upstream source
+        working-directory: upstream
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install and launch local open-weights LLM
+        run: |
+          set -euxo pipefail
+          curl --retry 3 -fsSL https://ollama.com/install.sh -o /tmp/install-ollama.sh
+          sh /tmp/install-ollama.sh
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve > ollama_recovery.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:11434/api/version > /dev/null; then break; fi; sleep 2; done
+          curl -fsS http://127.0.0.1:11434/api/version
+          ollama pull qwen2.5:3b
+          ollama show qwen2.5:3b
+      - name: Run recoverable versus opaque monitor experiment
+        env:
+          OLLAMA_MODEL: qwen2.5:3b
+          REPEATS: '2'
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/recovery_boundary.mjs upstream/recovery_boundary.mjs
+          cd upstream
+          node recovery_boundary.mjs | tee ../recovery_boundary_run.log
+      - name: Upload raw traces regardless of outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-async-handle-recoverability-evidence
+          if-no-files-found: warn
+          path: |
+            recovery_boundary_results.json
+            recovery_boundary_run.log
+            ollama_recovery.log

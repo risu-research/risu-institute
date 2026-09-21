@@ -1,0 +1,63 @@
+name: SANER recoverability v3 explicit policy exploratory followup
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-mcp-recoverability-boundary-v3.yml
+permissions:
+  contents: read
+jobs:
+  recovery-followup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build original untouched upstream
+        working-directory: upstream
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install local Qwen
+        run: |
+          set -euxo pipefail
+          curl --retry 3 -fsSL https://ollama.com/install.sh -o /tmp/install-ollama.sh
+          sh /tmp/install-ollama.sh
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve > ollama_recovery_v3.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:11434/api/version > /dev/null; then break; fi; sleep 2; done
+          ollama pull qwen2.5:3b
+      - name: Run real agent with explicit post-hoc recovery policy
+        env:
+          OLLAMA_MODEL: qwen2.5:3b
+          REPEATS: '2'
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/recovery_boundary.mjs upstream/recovery_boundary.mjs
+          python harness/research/saner-original-mcp-202-204-20260921/fix_recovery_tool_names.py
+          python harness/research/saner-original-mcp-202-204-20260921/fix_recovery_agent_policy_v3.py
+          cd upstream
+          node recovery_boundary.mjs | tee ../recovery_boundary_v3.log
+      - name: Save v3 raw logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-recoverability-v3-explicit-policy-evidence
+          if-no-files-found: warn
+          path: |
+            recovery_boundary_results.json
+            recovery_boundary_v3.log
+            ollama_recovery_v3.log

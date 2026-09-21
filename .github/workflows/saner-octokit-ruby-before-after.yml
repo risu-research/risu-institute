@@ -1,0 +1,59 @@
+name: SANER independent Octokit Ruby before and proposed change
+on:
+  push:
+    branches: [research/saner-pygithub-evolution-20260921]
+    paths: ['.github/workflows/saner-octokit-ruby-before-after.yml', 'research/saner-pygithub-evolution-20260921/octokit*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  same-task-ruby:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: harness, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: octokit/octokit.rb, ref: 6d02a4b506aaf6a6b6b1a04e065dd23c697275ce, path: octo_before, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: sneha-krip/octokit.rb, ref: 251cd436bcb370b101aa555c200717a476e2c4f6, path: octo_proposed, persist-credentials: false}
+      - uses: ruby/setup-ruby@v1
+        with: {ruby-version: '3.3', bundler-cache: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install only original Octokit runtime dependencies
+        run: |
+          set -euxo pipefail
+          ruby -v
+          gem install faraday sawyer faraday-retry --no-document
+          git -C octo_before rev-parse HEAD
+          git -C octo_proposed rev-parse HEAD
+          ruby -c harness/research/saner-pygithub-evolution-20260921/octokit_client.rb
+          python -m py_compile harness/research/saner-pygithub-evolution-20260921/octokit_runner.py
+      - name: Same real Ruby workflow method, version and follow-up across original revisions
+        run: |
+          set -euxo pipefail
+          mkdir -p ruby_case_results
+          for rev in before proposed; do
+            if [ "$rev" = before ]; then lib=octo_before/lib; sha=6d02a4b506aaf6a6b6b1a04e065dd23c697275ce; else lib=octo_proposed/lib; sha=251cd436bcb370b101aa555c200717a476e2c4f6; fi
+            for version in 2022-11-28 2026-03-10; do
+              for mode in default default_twice details details_two; do
+                SDK_REV="$rev" ORIGINAL_SHA="$sha" OCTOKIT_LIB="${{ github.workspace }}/$lib" CONTRACT_VERSION="$version" CALL_MODE="$mode" OUTPUT_FILE="${{ github.workspace }}/ruby_case_results/${rev}_${version}_${mode}.json" python harness/research/saner-pygithub-evolution-20260921/octokit_runner.py
+              done
+              if [ "$rev" = proposed ]; then
+                SDK_REV="$rev" ORIGINAL_SHA="$sha" OCTOKIT_LIB="${{ github.workspace }}/$lib" CONTRACT_VERSION="$version" CALL_MODE=details_denied TEST_TOKEN=start-only OUTPUT_FILE="${{ github.workspace }}/ruby_case_results/${rev}_${version}_details_denied.json" python harness/research/saner-pygithub-evolution-20260921/octokit_runner.py
+              fi
+            done
+          done
+          python harness/research/saner-pygithub-evolution-20260921/octokit_summarize.py ruby_case_results | tee ruby_case_summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-octokit-ruby-before-proposed-real-code-evidence
+          if-no-files-found: warn
+          path: |
+            ruby_case_results/
+            ruby_case_summary.log
+            harness/research/saner-pygithub-evolution-20260921/octokit_client.rb
+            harness/research/saner-pygithub-evolution-20260921/octokit_runner.py
+            harness/research/saner-pygithub-evolution-20260921/octokit_summarize.py

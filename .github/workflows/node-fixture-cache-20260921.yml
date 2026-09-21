@@ -18,18 +18,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p runtime-snapshot/upstream
+          mkdir -p runtime-snapshot/upstream runtime-snapshot/migrations
           cd runtime-snapshot
           npm init -y >/dev/null
           npm install --no-audit --no-fund --omit=dev nunjucks@3.2.4 fs-extra@11.3.1 jsonschema@1.5.0 winston@3.17.0 @opentelemetry/api@1.9.0 knex@3.1.0 sqlite3@5.1.7 uuid@11.1.0 luxon@3.6.1 lodash@4.17.21 zen-observable@0.10.0
           commit=b33e0498fdb3510b77622526fba5185637ea972b
-          root="https://raw.githubusercontent.com/backstage/backstage/$commit/plugins/scaffolder-backend/src/scaffolder/tasks"
+          root="https://raw.githubusercontent.com/backstage/backstage/$commit/plugins/scaffolder-backend"
           for f in NunjucksWorkflowRunner.ts StorageTaskBroker.ts DatabaseTaskStore.ts TaskWorker.ts WorkspaceService.ts types.ts helper.ts logger.ts; do
-            curl -fL --retry 3 --silent --show-error "$root/$f" -o "upstream/$f"
+            curl -fL --retry 3 --silent --show-error "$root/src/scaffolder/tasks/$f" -o "upstream/$f"
           done
-          curl -fL --retry 3 --silent --show-error "https://raw.githubusercontent.com/backstage/backstage/$commit/plugins/scaffolder-backend/src/scaffolder/actions/TemplateActionRegistry.ts" -o upstream/TemplateActionRegistry.ts
+          curl -fL --retry 3 --silent --show-error "$root/src/scaffolder/actions/TemplateActionRegistry.ts" -o upstream/TemplateActionRegistry.ts
+          for f in 20210120143715_init.js 20210409225200_secrets.js 20220129100000_created_by.js 20240203232000_state.js 20240401213200_workspace.js; do
+            curl -fL --retry 3 --silent --show-error "$root/migrations/$f" -o "migrations/$f"
+          done
           printf '%s\n' "$commit" >upstream/COMMIT.txt
-          (cd upstream && sha256sum *.ts > SHA256SUMS.txt)
+          (sha256sum upstream/*.ts migrations/*.js > SHA256SUMS.txt)
           tar -czf ../node-runtime-snapshot.tgz --exclude='node_modules/.cache' .
           ls -lh ../node-runtime-snapshot.tgz
       - uses: actions/upload-artifact@v4

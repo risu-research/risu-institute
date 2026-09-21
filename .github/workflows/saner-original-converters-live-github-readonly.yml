@@ -1,4 +1,4 @@
-name: SANER two original MCP converters real GitHub read-only validation
+name: SANER two original MCP converters real GitHub read-only validation v2
 on:
   push:
     branches: [research/saner-real-contract-path-20260921]
@@ -38,15 +38,15 @@ jobs:
           mkdir -p contract_evidence
           curl --retry 3 -fLsS https://raw.githubusercontent.com/github/rest-api-description/338cb199baa4f326790b0b1c246d8d4f481a82a0/descriptions/api.github.com/api.github.com.2026-03-10.json -o contract_evidence/github_2026.json
           cp harness/research/saner-real-contract-path-20260921/live_readonly_github.mjs upstream/live_readonly_github.mjs
-          cp harness/research/saner-real-contract-path-20260921/live_readonly_import_fix.py upstream/live_readonly_import_fix.py
           cd upstream
           python ../harness/research/saner-real-contract-path-20260921/live_readonly_import_fix.py
+          python ../harness/research/saner-real-contract-path-20260921/live_readonly_header_fix.py
           node --check live_readonly_github.mjs
           node live_readonly_github.mjs | tee ../live_readonly_github_run.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: saner-real-github-readonly-two-converters
+          name: saner-real-github-readonly-two-converters-v2
           if-no-files-found: warn
           path: |
             live_readonly_github_results.json

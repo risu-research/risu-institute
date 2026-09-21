@@ -1,0 +1,61 @@
+name: SANER existing independent MCP converter response-envelope control
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-independent-proxy-control.yml
+permissions:
+  contents: read
+jobs:
+  independent-proxy-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: rendis/mcp-openapi-proxy
+          ref: dd166a0c6178ded2400b785b24e42125dd5890d7
+          path: proxy
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing upstream MCP SDK and compile independent proxy unchanged
+        run: |
+          set -euxo pipefail
+          git -C proxy rev-parse HEAD
+          go build -C proxy -o ../proxy_binary ./cmd/mcp-openapi-proxy
+          cd upstream
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Invoke original independent Go converter through real MCP SDK
+        env:
+          PROXY_BINARY: ${{ github.workspace }}/proxy_binary
+          PROXY_SHA: dd166a0c6178ded2400b785b24e42125dd5890d7
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/proxy_control.mjs upstream/proxy_control.mjs
+          cd upstream
+          node proxy_control.mjs | tee ../proxy_control_run.log
+      - name: Save independent baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-existing-proxy-response-envelope-control
+          if-no-files-found: warn
+          path: |
+            proxy_control_results.json
+            proxy_control_run.log

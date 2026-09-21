@@ -1,0 +1,23 @@
+name: SANER original vendor contract version audit
+on:
+  push:
+    branches: [research/saner-real-contract-path-20260921]
+    paths: ['research/saner-real-contract-path-20260921/contract_extract.py', '.github/workflows/saner-real-contract-source-audit.yml']
+  workflow_dispatch:
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python research/saner-real-contract-path-20260921/contract_extract.py | tee contract_extract.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-original-contract-audit
+          path: |
+            contract_evidence/
+            contract_extract.log

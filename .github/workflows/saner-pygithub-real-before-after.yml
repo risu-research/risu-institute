@@ -1,0 +1,58 @@
+name: SANER real PyGithub SDK before-after same workflow task
+on:
+  push:
+    branches: [research/saner-pygithub-evolution-20260921]
+    paths: ['.github/workflows/saner-pygithub-real-before-after.yml', 'research/saner-pygithub-evolution-20260921/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  same-task:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: harness, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: PyGithub/PyGithub, ref: b03e683661ba2f208225e3ab1d0cca17730f697b, path: sdk_pre, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: PyGithub/PyGithub, ref: 162ce9d0ed69b9e4950c92e1896ab3539a9cba1a, path: sdk_post, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install PyGithub dependency set and pin original sources
+        run: |
+          set -euxo pipefail
+          git -C sdk_pre rev-parse HEAD
+          git -C sdk_post rev-parse HEAD
+          python -m pip install --disable-pip-version-check --no-input ./sdk_post
+          python -m py_compile harness/research/saner-pygithub-evolution-20260921/real_sdk_before_after.py
+      - name: Execute exact same dispatch and follow-up for both unmodified SDK revisions
+        run: |
+          set -euxo pipefail
+          mkdir -p case_results
+          for rev in pre post; do
+            if [ "$rev" = pre ]; then src=sdk_pre; else src=sdk_post; fi
+            for version in 2022-11-28 2026-03-10; do
+              for mode in default default_twice throw; do
+                PYTHONPATH="${{ github.workspace }}/$src" SDK_REV="$rev" CONTRACT_VERSION="$version" CALL_MODE="$mode" OUTPUT_FILE="${{ github.workspace }}/case_results/${rev}_${version}_${mode}.json" python harness/research/saner-pygithub-evolution-20260921/real_sdk_before_after.py
+              done
+              if [ "$rev" = post ]; then
+                for mode in opt_in opt_in_two opt_in_denied; do
+                  token=full
+                  if [ "$mode" = opt_in_denied ]; then token=start-only; fi
+                  PYTHONPATH="${{ github.workspace }}/$src" SDK_REV="$rev" CONTRACT_VERSION="$version" CALL_MODE="$mode" TEST_TOKEN="$token" OUTPUT_FILE="${{ github.workspace }}/case_results/${rev}_${version}_${mode}.json" python harness/research/saner-pygithub-evolution-20260921/real_sdk_before_after.py
+                done
+              fi
+            done
+          done
+          python harness/research/saner-pygithub-evolution-20260921/summarize.py case_results | tee case_summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-real-pygithub-before-after-sdk-contract-evidence
+          if-no-files-found: warn
+          path: |
+            case_results/
+            case_summary.log
+            harness/research/saner-pygithub-evolution-20260921/real_sdk_before_after.py
+            harness/research/saner-pygithub-evolution-20260921/summarize.py

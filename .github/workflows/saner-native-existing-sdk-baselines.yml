@@ -1,0 +1,46 @@
+name: SANER no-new-converter existing SDK native baselines
+on:
+  push:
+    branches: [research/saner-pygithub-evolution-20260921]
+    paths: ['.github/workflows/saner-native-existing-sdk-baselines.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: harness, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: PyGithub/PyGithub, ref: b03e683661ba2f208225e3ab1d0cca17730f697b, path: py_pre, persist-credentials: false}
+      - uses: actions/checkout@v4
+        with: {repository: octokit/octokit.rb, ref: 6d02a4b506aaf6a6b6b1a04e065dd23c697275ce, path: octo_before, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: ruby/setup-ruby@v1
+        with: {ruby-version: '3.3', bundler-cache: false}
+      - name: Install existing original SDK runtime dependencies
+        run: |
+          set -euxo pipefail
+          git -C py_pre rev-parse HEAD
+          git -C octo_before rev-parse HEAD
+          python -m pip install --disable-pip-version-check --no-input ./py_pre
+          gem install faraday sawyer faraday-retry --no-document
+          python -m py_compile harness/research/saner-pygithub-evolution-20260921/native_baselines_runner.py
+      - name: Show existing unmodified SDK raw methods can link exact operation ID
+        run: |
+          set -euxo pipefail
+          python harness/research/saner-pygithub-evolution-20260921/native_baselines_runner.py | tee native_baseline_run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saner-unmodified-prechange-python-ruby-native-baselines
+          if-no-files-found: warn
+          path: |
+            native_results/
+            native_baseline_run.log
+            harness/research/saner-pygithub-evolution-20260921/native_baselines_runner.py
+            harness/research/saner-pygithub-evolution-20260921/native_pygithub_client.py
+            harness/research/saner-pygithub-evolution-20260921/native_octokit_client.rb

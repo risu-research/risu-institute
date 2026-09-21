@@ -54,6 +54,7 @@ jobs:
         run: |
           set -euxo pipefail
           cp harness/research/saner-original-mcp-202-204-20260921/agent_behavior.mjs upstream/agent_behavior.mjs
+          sed -i "s/startsWith('post-')/startsWith('record-')/" upstream/agent_behavior.mjs
           cd upstream
           node agent_behavior.mjs | tee ../agent_behavior_run.log
       - name: Preserve raw model decisions and execution logs even after failure

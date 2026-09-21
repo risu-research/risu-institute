@@ -24,9 +24,10 @@ jobs:
           npm install --no-audit --no-fund --omit=dev nunjucks@3.2.4 fs-extra@11.3.1 jsonschema@1.5.0 winston@3.17.0 @opentelemetry/api@1.9.0 knex@3.1.0 sqlite3@5.1.7 uuid@11.1.0 luxon@3.6.1 lodash@4.17.21 zen-observable@0.10.0
           commit=b33e0498fdb3510b77622526fba5185637ea972b
           root="https://raw.githubusercontent.com/backstage/backstage/$commit/plugins/scaffolder-backend/src/scaffolder/tasks"
-          for f in NunjucksWorkflowRunner.ts StorageTaskBroker.ts DatabaseTaskStore.ts TaskWorker.ts WorkspaceService.ts TemplateActionRegistry.ts types.ts helper.ts logger.ts; do
+          for f in NunjucksWorkflowRunner.ts StorageTaskBroker.ts DatabaseTaskStore.ts TaskWorker.ts WorkspaceService.ts types.ts helper.ts logger.ts; do
             curl -fL --retry 3 --silent --show-error "$root/$f" -o "upstream/$f"
           done
+          curl -fL --retry 3 --silent --show-error "https://raw.githubusercontent.com/backstage/backstage/$commit/plugins/scaffolder-backend/src/scaffolder/actions/TemplateActionRegistry.ts" -o upstream/TemplateActionRegistry.ts
           printf '%s\n' "$commit" >upstream/COMMIT.txt
           (cd upstream && sha256sum *.ts > SHA256SUMS.txt)
           tar -czf ../node-runtime-snapshot.tgz --exclude='node_modules/.cache' .

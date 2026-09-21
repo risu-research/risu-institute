@@ -1,0 +1,71 @@
+name: SANER agent followup explicit completion policy
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-mcp-agent-policy-followup.yml
+permissions:
+  contents: read
+jobs:
+  posthoc-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build original untouched upstream
+        working-directory: upstream
+        run: npm ci --no-audit --no-fund && npm run build && git rev-parse HEAD
+      - name: Install local open-weight LLM
+        run: |
+          set -euxo pipefail
+          curl --retry 3 -fsSL https://ollama.com/install.sh -o /tmp/install-ollama.sh
+          sh /tmp/install-ollama.sh
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve > ollama_server.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:11434/api/version > /dev/null; then break; fi; sleep 2; done
+          ollama pull qwen2.5:3b
+      - name: Run original converter and actual agent under EXPLICIT post-hoc decision policy
+        env:
+          OLLAMA_MODEL: qwen2.5:3b
+          REPEATS: '2'
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/agent_behavior.mjs upstream/agent_behavior.mjs
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const p='upstream/agent_behavior.mjs';
+          let s=fs.readFileSync(p,'utf8');
+          const before="const record=tools.find(t=>t.name.startsWith('post-'));";
+          if(!s.includes(before))throw Error('tool-name patch anchor missing');
+          s=s.replace(before,"const record=tools.find(t=>t.name.startsWith('record-'));");
+          const old='A 202 Accepted means scheduled, not complete; a 204 No Content means delete completed.';
+          const revised='A 202 Accepted means scheduled and NOT complete: poll until Succeeded. A 204 No Content is already sufficient evidence of completed deletion: record_complete immediately without a status poll. If neither status is visible, poll rather than assume completion. Apply this exact policy to every case.';
+          if(!s.includes(old))throw Error('explicit-policy patch anchor missing');
+          s=s.replace(old,revised);
+          fs.writeFileSync(p,s);
+          console.log('FOLLOWUP_POLICY_POSTHOC',revised);
+          JS
+          cd upstream
+          node agent_behavior.mjs | tee ../agent_policy_run.log
+          mv ../agent_behavior_result.json ../agent_policy_result.json
+      - name: Upload full evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-explicit-policy-followup-evidence
+          path: |
+            agent_policy_result.json
+            agent_policy_run.log
+            ollama_server.log

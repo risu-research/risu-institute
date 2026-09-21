@@ -1,0 +1,55 @@
+name: SANER Original MCP 202 vs 204 Probe
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-original-mcp-202-204.yml
+      - research/saner-original-mcp-202-204-20260921/**
+permissions:
+  contents: read
+jobs:
+  original-mcp-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated harness branch
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout unmodified upstream exact commit
+        uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install original upstream dependencies and build original source
+        working-directory: upstream
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Execute actual original MCP server and MCP client against localhost
+        env:
+          UPSTREAM_SHA: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/probe.mjs upstream/probe.mjs
+          cd upstream
+          node probe.mjs | tee ../probe_run.log
+      - name: Preserve results even if earlier steps fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-original-mcp-202-204-evidence
+          if-no-files-found: warn
+          path: |
+            upstream/probe_result.json
+            probe_run.log

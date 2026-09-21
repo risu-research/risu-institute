@@ -1,0 +1,68 @@
+name: SANER actual agent behavior across MCP information loss
+on:
+  push:
+    branches:
+      - research/saner-original-mcp-202-204-20260921
+    paths:
+      - .github/workflows/saner-mcp-agent-behavior.yml
+      - research/saner-original-mcp-202-204-20260921/agent_behavior.mjs
+permissions:
+  contents: read
+jobs:
+  actual-agent-behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated research harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact original upstream commit
+        uses: actions/checkout@v4
+        with:
+          repository: ivo-toby/mcp-openapi-server
+          ref: 5cc37bc4df8de5bf1d1327a1017dcfd1d2165f3f
+          path: upstream
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install/build upstream without source modifications
+        working-directory: upstream
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Install isolated local open-weights model runtime
+        run: |
+          set -euxo pipefail
+          curl --retry 3 -fsSL https://ollama.com/install.sh -o /tmp/install-ollama.sh
+          sh /tmp/install-ollama.sh
+          ollama --version
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve > ollama_server.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:11434/api/version > /dev/null; then break; fi; sleep 2; done
+          curl -fsS http://127.0.0.1:11434/api/version
+          ollama pull qwen2.5:3b
+          ollama show qwen2.5:3b
+      - name: Execute actual upstream MCP with locally inferred agent and real follow-up tool calls
+        env:
+          OLLAMA_MODEL: qwen2.5:3b
+          REPEATS: '2'
+        run: |
+          set -euxo pipefail
+          cp harness/research/saner-original-mcp-202-204-20260921/agent_behavior.mjs upstream/agent_behavior.mjs
+          cd upstream
+          node agent_behavior.mjs | tee ../agent_behavior_run.log
+      - name: Preserve raw model decisions and execution logs even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saner-actual-agent-behavior-evidence
+          if-no-files-found: warn
+          path: |
+            agent_behavior_result.json
+            agent_behavior_run.log
+            ollama_server.log

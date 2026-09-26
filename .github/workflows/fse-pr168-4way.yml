@@ -1,0 +1,41 @@
+name: FSE PR168 four-way verifier
+
+on:
+  push:
+    branches:
+      - experiment/fse-pr168-4way-20260926
+
+jobs:
+  verify-four-way:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1
+        with:
+          dafny-version: '4.11.0'
+      - name: Record verifier version
+        run: dafny --version
+      - name: Run identical verifier over four historical combinations
+        shell: bash
+        run: |
+          set +e
+          mkdir -p research/fse-pr168-4way/results
+          printf 'case,exit_code,status\n' > research/fse-pr168-4way/results/results.csv
+          overall=0
+          for case in B0S0 B1S0 B0S1 B1S1; do
+            echo "===== ${case} ====="
+            dafny verify --verification-time-limit 30 "research/fse-pr168-4way/${case}.dfy" > "research/fse-pr168-4way/results/${case}.log" 2>&1
+            rc=$?
+            cat "research/fse-pr168-4way/results/${case}.log"
+            if [ "$rc" -eq 0 ]; then status=PASS; else status=FAIL; fi
+            printf '%s,%s,%s\n' "$case" "$rc" "$status" >> research/fse-pr168-4way/results/results.csv
+          done
+          echo '===== MATRIX ====='
+          cat research/fse-pr168-4way/results/results.csv
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-pr168-four-way-results
+          path: research/fse-pr168-4way/results/

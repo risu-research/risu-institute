@@ -16,33 +16,35 @@ echo -e 'quadrant\tbody\tspec\tcontract_exit\trefinement_exit' > "$OUT/matrix.ts
 transform_memory() {
   python3 - "$1" "$2" "$3" <<'PY'
 from pathlib import Path
-import sys
+import re,sys
 p=Path(sys.argv[1]); body=sys.argv[2]=='1'; spec=sys.argv[3]=='1'; s=p.read_text()
+starts=[m.start() for m in re.finditer(r'^  method Move\(',s,re.M)]
+if len(starts)!=2: raise SystemExit(f'expected 2 Move methods, found {len(starts)}')
+ranges=[]
+for st in starts:
+    m=re.search(r'^  method ',s[st+1:],re.M)
+    en=st+1+m.start() if m else len(s)
+    ranges.append((st,en))
 old_ens="""      fs[dst].content == old(fs)[src].content &&\n      (src != dst ==> !PathExists(fs, src))\n"""
 new_ens="""      fs[dst].content == old(fs)[src].content &&\n      fs[dst].info.metadata == old(fs)[src].info.metadata &&\n      (src != dst ==> !PathExists(fs, src))\n"""
-if spec:
-    n=s.count(old_ens)
-    if n!=2: raise SystemExit(f'expected 2 Move ensures stanzas, found {n}')
-    s=s.replace(old_ens,new_ens)
-if body:
-    old_ctor="""    var newInfo := BasicFileInfo(dst, dst, srcEntry.info.size);\n"""
-    new_ctor="""    var newInfo := FileInfo(dst, dst, srcEntry.info.size,\n                            None, None, None, srcEntry.info.metadata);\n"""
-    n=s.count(old_ctor)
-    if n!=2: raise SystemExit(f'expected 2 BasicFileInfo Move sites, found {n}')
-    s=s.replace(old_ctor,new_ctor)
-    needle="""    assert fs[dst].content == old(fs)[src].content;\n"""
-    add=needle+"""    assert fs[dst].info.metadata == old(fs)[src].info.metadata;\n"""
-    # At this historical base, two Move implementations each have two such assertions.
-    n=s.count(needle)
-    if n < 4: raise SystemExit(f'expected at least 4 content assertions, found {n}')
-    # Limit ourselves to the four Move-region sites by replacing all only if exactly four;
-    # fail closed if unrelated methods share the exact assertion.
-    if n!=4: raise SystemExit(f'ambiguous content assertion count {n}')
-    s=s.replace(needle,add)
+old_ctor="""    var newInfo := BasicFileInfo(dst, dst, srcEntry.info.size);\n"""
+new_ctor="""    var newInfo := FileInfo(dst, dst, srcEntry.info.size,\n                            None, None, None, srcEntry.info.metadata);\n"""
+needle="""    assert fs[dst].content == old(fs)[src].content;\n"""
+add=needle+"""    assert fs[dst].info.metadata == old(fs)[src].info.metadata;\n"""
+for st,en in reversed(ranges):
+    chunk=s[st:en]
+    if spec:
+        if chunk.count(old_ens)!=1: raise SystemExit('Move spec stanza not unique inside method')
+        chunk=chunk.replace(old_ens,new_ens)
+    if body:
+        if chunk.count(old_ctor)!=1: raise SystemExit('Move BasicFileInfo site not unique inside method')
+        chunk=chunk.replace(old_ctor,new_ctor)
+        if chunk.count(needle)!=2: raise SystemExit(f'expected 2 Move content assertions, found {chunk.count(needle)}')
+        chunk=chunk.replace(needle,add)
+    s=s[:st]+chunk+s[en:]
 p.write_text(s)
 PY
 }
-
 run_one(){
   local B="$1" S="$2" L="B${1}S${2}" D="$ROOT/B${1}S${2}"
   git -C "$ROOT/upstream" worktree add --quiet --detach "$D" "$BASE"

@@ -1,0 +1,43 @@
+name: FSE real coevolution PR168
+
+on:
+  push:
+    branches:
+      - research/fse-goalpost-real-coevolution-20260926
+    paths:
+      - 'research/fse-goalpost-real-coevolution-20260926/candidate_pr168/**'
+      - '.github/workflows/fse-real-coevolution-pr168.yml'
+  workflow_dispatch:
+
+jobs:
+  four-way:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install historical verifier
+        uses: dafny-lang/setup-dafny-action@v1.6.1
+        with:
+          dafny-version: '4.1.0'
+
+      - name: Record verifier
+        run: dafny --version
+
+      - name: Run four-way replay
+        shell: bash
+        run: bash research/fse-goalpost-real-coevolution-20260926/candidate_pr168/run_matrix.sh
+
+      - name: Print result
+        if: always()
+        run: |
+          cat coevolution-results/pr168/matrix.tsv || true
+          cat coevolution-results/pr168/RESULT.md || true
+
+      - name: Upload complete evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fse-pr168-four-way-${{ github.run_id }}
+          path: coevolution-results/pr168
+          if-no-files-found: warn

@@ -1,0 +1,66 @@
+name: FSE PR41 full-source four-way replay
+
+on:
+  push:
+    branches:
+      - experiment/fse-pr41-literal-ensures-4way-20260926
+
+jobs:
+  full-source-four-way:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1
+        with:
+          dafny-version: '4.11.0'
+      - name: Fetch exact historical base and head
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p research/fse-pr41-literal-ensures/historical
+          curl -fsSL 'https://raw.githubusercontent.com/PayloadGuard-PLG/payloadguard-evidence/bd006ce68807cd234a46658f39b2608bfeb53cd0/examples/drug_interaction_checker/drug_interaction_checker.dfy' \
+            -o research/fse-pr41-literal-ensures/historical/base.dfy
+          curl -fsSL 'https://raw.githubusercontent.com/PayloadGuard-PLG/payloadguard-evidence/66fb3125a8855c6faecea866f2c5e9a0afbe34ae/examples/drug_interaction_checker/drug_interaction_checker.dfy' \
+            -o research/fse-pr41-literal-ensures/historical/head.dfy
+          sha256sum research/fse-pr41-literal-ensures/historical/*.dfy
+      - name: Build full-source historical combinations
+        run: |
+          python research/fse-pr41-literal-ensures/build_full_source_matrix.py \
+            research/fse-pr41-literal-ensures/historical/base.dfy \
+            research/fse-pr41-literal-ensures/historical/head.dfy
+          cmp research/fse-pr41-literal-ensures/historical/base.dfy research/fse-pr41-literal-ensures/full-source/B0S0.dfy
+          cmp research/fse-pr41-literal-ensures/historical/head.dfy research/fse-pr41-literal-ensures/full-source/B1S1.dfy
+      - name: Record verifier and exact deltas
+        shell: bash
+        run: |
+          dafny --version
+          mkdir -p research/fse-pr41-literal-ensures/full-source-results
+          diff -u research/fse-pr41-literal-ensures/full-source/B0S0.dfy research/fse-pr41-literal-ensures/full-source/B1S0.dfy > research/fse-pr41-literal-ensures/full-source-results/B0S0_vs_B1S0.diff || true
+          diff -u research/fse-pr41-literal-ensures/full-source/B0S1.dfy research/fse-pr41-literal-ensures/full-source/B1S1.dfy > research/fse-pr41-literal-ensures/full-source-results/B0S1_vs_B1S1.diff || true
+          sha256sum research/fse-pr41-literal-ensures/full-source/*.dfy > research/fse-pr41-literal-ensures/full-source-results/sha256.txt
+      - name: Run identical verifier over full-source matrix
+        shell: bash
+        run: |
+          set +e
+          out=research/fse-pr41-literal-ensures/full-source-results
+          printf 'case,exit_code,status\n' > "$out/results.csv"
+          for case in B0S0 B1S0 B0S1 B1S1; do
+            echo "===== ${case} ====="
+            dafny verify --verification-time-limit 30 "research/fse-pr41-literal-ensures/full-source/${case}.dfy" > "$out/${case}.log" 2>&1
+            rc=$?
+            cat "$out/${case}.log"
+            if [ "$rc" -eq 0 ]; then status=PASS; else status=FAIL; fi
+            printf '%s,%s,%s\n' "$case" "$rc" "$status" >> "$out/results.csv"
+          done
+          echo '===== MATRIX ====='
+          cat "$out/results.csv"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-pr41-full-source-four-way-results
+          path: |
+            research/fse-pr41-literal-ensures/historical/
+            research/fse-pr41-literal-ensures/full-source/
+            research/fse-pr41-literal-ensures/full-source-results/

@@ -1,0 +1,35 @@
+name: FSE real coevolution PR667
+
+on:
+  push:
+    branches: [research/fse-goalpost-real-coevolution-20260926]
+    paths:
+      - 'research/fse-goalpost-real-coevolution-20260926/candidate_pr667/**'
+      - '.github/workflows/fse-real-coevolution-pr667.yml'
+  workflow_dispatch:
+
+jobs:
+  four-way:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1.9.1
+        with:
+          dafny-version: '4.11.0'
+      - run: dafny --version
+      - name: Run four-way replay
+        shell: bash
+        run: bash research/fse-goalpost-real-coevolution-20260926/candidate_pr667/run_matrix.sh
+      - name: Print diagnostics
+        if: always()
+        run: |
+          cat coevolution-results/pr667/matrix.tsv || true
+          for f in coevolution-results/pr667/B*/refinement.log; do echo "===== $f ====="; tail -80 "$f" || true; done
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fse-pr667-four-way-${{ github.run_id }}
+          path: coevolution-results/pr667
+          if-no-files-found: warn

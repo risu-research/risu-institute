@@ -1,0 +1,157 @@
+name: fse-xeco-replay-fstar
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-replay-fstar.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frozen F* strategy 1 — contemporaneous source toolchain
+        shell: bash
+        run: |
+          set -u
+          OUT="$GITHUB_WORKSPACE/out"
+          mkdir -p "$OUT/logs" "$OUT/sources"
+          PBASE=b6dcfd04c5c63c79e6a21c56227dcd098e8f69df
+          PHEAD=74b3bb2b0e378a671d6f7bb62cd01a4134811bce
+          # Historical Pulse config named F* master. Because this Pulse history was later grafted into FStar,
+          # reconstruct contemporaneous F* master by the latest pre-Pulse-date commit touching src/.
+          FSTAR=71240a61cf85e758691299efb05f1a09deb470f9
+          printf 'pulse_base=%s\npulse_head=%s\nfstar_reconstruction=%s\nfstar_rule=latest commit touching src/ before Pulse HEAD timestamp\n' "$PBASE" "$PHEAD" "$FSTAR" > "$OUT/refs.txt"
+
+          # Capture exact Pulse endpoints via archives.
+          for pair in base:$PBASE head:$PHEAD; do
+            n=${pair%%:*}; s=${pair#*:}; d=/tmp/pulse-$n; mkdir -p "$d"
+            curl -L --retry 3 -o "/tmp/pulse-$n.tgz" "https://codeload.github.com/FStarLang/FStar/tar.gz/$s" > "$OUT/logs/curl-pulse-$n.log" 2>&1
+            tar -xzf "/tmp/pulse-$n.tgz" -C "$d" --strip-components=1
+          done
+          git clone --no-tags https://github.com/FStarLang/FStar.git /tmp/fstar > "$OUT/logs/fstar-clone.log" 2>&1
+          git -C /tmp/fstar checkout "$FSTAR" >> "$OUT/logs/fstar-clone.log" 2>&1
+          cp /tmp/fstar/fstar.opam "$OUT/fstar.opam"
+
+          HROOT=/tmp/pulse-head/pulse
+          BROOT=/tmp/pulse-base/pulse
+          cp "$HROOT/lib/pulse/lib/Pulse.Lib.SpinLock.fst" "$OUT/sources/head-spinlock.fst"
+          cp "$BROOT/lib/pulse/lib/Pulse.Lib.SpinLock.fst" "$OUT/sources/base-spinlock.fst"
+          sha256sum "$OUT/sources/"*-spinlock.fst > "$OUT/sources/endpoint_sha256.txt"
+
+          # Generate exactly the four frozen causal cells from HEAD. Only acquire/release contract-side and body-side occurrences are crossed.
+          python3 - "$OUT" <<'PY'
+          from pathlib import Path
+          import sys, hashlib
+          out=Path(sys.argv[1]); h=(out/'sources/head-spinlock.fst').read_text(); b=(out/'sources/base-spinlock.fst').read_text()
+          names=['acquire','release']
+          def region(t,name):
+              # next top-level fn/let after function start bounds the callable conservatively
+              import re
+              m=re.search(r'(?m)^fn\s+(?:rec\s+)?'+re.escape(name)+r'\b',t)
+              if not m: raise SystemExit(f'no {name}')
+              nxt=re.search(r'(?m)^(?:fn|let)\s+',t[m.end():])
+              e=(m.end()+nxt.start()) if nxt else len(t)
+              return m.start(),e,t[m.start():e]
+          cells={'C00':h,'C10':h,'C01':h,'C11':h}
+          # frozen dimensions: S0/S1 applies only ensures inv(...) occurrence; B0/B1 only with_invariants(...) occurrence
+          for name in names:
+              a,e,blk=region(h,name)
+              old_contract='ensures inv (iref_of l.i)'
+              new_contract='ensures inv (CInv.iref_of l.i)'
+              old_body='with_invariants (iref_of l.i)'
+              new_body='with_invariants (CInv.iref_of l.i)'
+              if blk.count(new_contract)!=1 or blk.count(new_body)!=1:
+                  raise SystemExit(f'head anchors {name}: c={blk.count(new_contract)} b={blk.count(new_body)}')
+          # operate globally but assert exact two occurrences corresponding to acquire/release
+          if h.count('ensures inv (CInv.iref_of l.i)') != 2: raise SystemExit('contract total mismatch')
+          if h.count('with_invariants (CInv.iref_of l.i)') != 2: raise SystemExit('body total mismatch')
+          c00=h.replace('ensures inv (CInv.iref_of l.i)','ensures inv (iref_of l.i)').replace('with_invariants (CInv.iref_of l.i)','with_invariants (iref_of l.i)')
+          c10=h.replace('ensures inv (CInv.iref_of l.i)','ensures inv (iref_of l.i)')
+          c01=h.replace('with_invariants (CInv.iref_of l.i)','with_invariants (iref_of l.i)')
+          c11=h
+          for k,v in {'C00':c00,'C10':c10,'C01':c01,'C11':c11}.items():
+              (out/'sources'/f'{k}-spinlock.fst').write_text(v)
+          assert c11==h
+          # historical old file has the same four unqualified forms in the two selected callables, but may differ elsewhere only by this commit's other qualifications/alias.
+          for k,v in {'C00':c00,'C10':c10,'C01':c01,'C11':c11}.items():
+              print(k,hashlib.sha256(v.encode()).hexdigest())
+          PY
+          sha256sum "$OUT/sources/"C*-spinlock.fst > "$OUT/sources/cell_sha256.txt"
+
+          # Install the contemporaneous F* toolchain using its own opam metadata (OCaml >=4.10, exact Z3 4.8.5-1).
+          sudo apt-get update > "$OUT/logs/apt.log" 2>&1
+          sudo apt-get install -y opam m4 pkg-config libgmp-dev bubblewrap >> "$OUT/logs/apt.log" 2>&1
+          opam init --disable-sandboxing -y > "$OUT/logs/opam-init.log" 2>&1
+          opam switch create fse-fstar ocaml-base-compiler.4.14.2 -y > "$OUT/logs/opam-switch.log" 2>&1
+          eval "$(opam env --switch=fse-fstar --set-switch)"
+          opam --version > "$OUT/logs/opam-version.txt"
+          ocaml -version > "$OUT/logs/ocaml-version.txt"
+          set +e
+          opam install -y --deps-only /tmp/fstar/fstar.opam > "$OUT/logs/fstar-deps.log" 2>&1
+          deps_rc=$?
+          set -e
+          echo "$deps_rc" > "$OUT/logs/fstar-deps.rc"
+          if [ "$deps_rc" -ne 0 ]; then
+            echo 'INFRA: fstar dependency installation failed' > "$OUT/INFRA_BLOCKED.txt"
+            find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+            exit 0
+          fi
+          cd /tmp/fstar
+          set +e
+          make -j2 > "$OUT/logs/fstar-build.log" 2>&1
+          fbrc=$?
+          set -e
+          echo "$fbrc" > "$OUT/logs/fstar-build.rc"
+          if [ "$fbrc" -ne 0 ]; then
+            echo 'INFRA: reconstructed contemporaneous fstar build failed' > "$OUT/INFRA_BLOCKED.txt"
+            find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+            exit 0
+          fi
+          make PREFIX=/tmp/fstar-install install > "$OUT/logs/fstar-install.log" 2>&1
+          export FSTAR_HOME=/tmp/fstar-install
+          export PATH="$FSTAR_HOME/bin:$PATH"
+          fstar.exe --version > "$OUT/logs/fstar-version.txt" 2>&1 || true
+          z3 --version > "$OUT/logs/z3-version.txt" 2>&1 || true
+
+          printf 'case,kind,exit_code,status\n' > "$OUT/results.csv"
+          run_pulse () {
+            c="$1"; kind="$2"; root="$3"
+            set +e
+            (cd "$root" && make -j2) > "$OUT/logs/$c.log" 2>&1
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then st=PASS; else st=FAIL; fi
+            printf '%s,%s,%s,%s\n' "$c" "$kind" "$rc" "$st" >> "$OUT/results.csv"
+          }
+
+          # H1 exact historical Pulse head.
+          run_pulse H1 historical "$HROOT"
+          if ! grep -q '^H1,historical,0,PASS' "$OUT/results.csv"; then
+            echo 'INFRA_OR_ENDPOINT: exact H1 did not verify under reconstructed contemporaneous toolchain' > "$OUT/H1_BLOCKED.txt"
+            cat "$OUT/results.csv"
+            find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+            exit 0
+          fi
+
+          # Causal cells use identical HEAD tree, only frozen SpinLock file varies.
+          for c in C00 C10 C01 C11; do
+            cp "$OUT/sources/$c-spinlock.fst" "$HROOT/lib/pulse/lib/Pulse.Lib.SpinLock.fst"
+            run_pulse "$c" causal "$HROOT"
+          done
+
+          # H0 exact historical Pulse base in its own tree.
+          run_pulse H0 historical "$BROOT"
+          cat "$OUT/results.csv"
+          find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-replay-fstar-s1
+          path: out
+          retention-days: 7

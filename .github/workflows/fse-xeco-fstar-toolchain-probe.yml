@@ -1,0 +1,52 @@
+name: fse-xeco-fstar-toolchain-probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-fstar-toolchain-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect selected historical Pulse tree without replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/out"
+          mkdir -p "$OUT"
+          HEAD=74b3bb2b0e378a671d6f7bb62cd01a4134811bce
+          BASE=b6dcfd04c5c63c79e6a21c56227dcd098e8f69df
+          ROOT=/tmp/fstar-hist
+          git clone --no-tags https://github.com/FStarLang/FStar.git "$ROOT" > "$OUT/clone.log" 2>&1
+          git -C "$ROOT" checkout "$HEAD" >> "$OUT/clone.log" 2>&1
+          git -C "$ROOT" fetch origin "$BASE" >> "$OUT/clone.log" 2>&1 || true
+          printf 'base=%s\nhead=%s\n' "$BASE" "$HEAD" > "$OUT/refs.txt"
+          find "$ROOT" -maxdepth 6 -type f \( -name 'config.json' -o -name '*opam*' -o -name '*workflow*' -o -name 'Makefile*' -o -name 'README*' \) | sort > "$OUT/relevant_files.txt"
+          while IFS= read -r f; do
+            rel=${f#"$ROOT/"};
+            case "$rel" in
+              *config.json|*.opam|*workflow*|*/README.md|README.md)
+                printf '\n===== %s =====\n' "$rel" >> "$OUT/selected_contents.txt"
+                sed -n '1,240p' "$f" >> "$OUT/selected_contents.txt" || true
+                ;;
+            esac
+          done < "$OUT/relevant_files.txt"
+          find "$ROOT" -type f -path '*/.docker/*' -print | sort > "$OUT/docker_files.txt" || true
+          grep -RIn --exclude-dir=.git -E 'BranchName|setup-fstar|z3_version|ocaml_version|FSTAR_EXE|2023\.04\.15|2023\.04|fstar\.exe' "$ROOT" 2>/dev/null | head -1000 > "$OUT/toolchain_grep.txt" || true
+          git -C "$ROOT" log -1 --format='%H%n%cI%n%s' > "$OUT/head_commit.txt"
+          git -C "$ROOT" show "$HEAD:pulse/lib/pulse/lib/Pulse.Lib.SpinLock.fst" > "$OUT/head-spinlock.fst"
+          git -C "$ROOT" show "$BASE:pulse/lib/pulse/lib/Pulse.Lib.SpinLock.fst" > "$OUT/base-spinlock.fst"
+          sha256sum "$OUT/"* > "$OUT/SHA256SUMS.txt" || true
+          echo 'Toolchain probe only; no hybrid source was generated or verified.' > "$OUT/NOTE.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-fstar-toolchain-probe
+          path: out
+          retention-days: 7

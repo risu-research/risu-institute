@@ -1,0 +1,92 @@
+name: fse-xeco-discovery-stream
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-discovery-stream.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stratum: V
+            repo: https://github.com/verus-lang/verus.git
+            name: verus
+            regex: '(requires|ensures|invariant|decreases|recommends)'
+          - stratum: F
+            repo: https://github.com/FStarLang/FStar.git
+            name: fstar
+            regex: '(requires|ensures|decreases)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: One-pass frozen discovery
+        shell: bash
+        env:
+          STRATUM: ${{ matrix.stratum }}
+          TARGET_REPO: ${{ matrix.repo }}
+          TARGET_NAME: ${{ matrix.name }}
+          CONTRACT_RE: ${{ matrix.regex }}
+        run: |
+          set -euo pipefail
+          OUT=out; mkdir -p "$OUT"
+          ROOT=/tmp/$TARGET_NAME
+          git clone --no-tags --shallow-since=2023-12-31 "$TARGET_REPO" "$ROOT"
+          git -C "$ROOT" rev-parse HEAD > "$OUT/head.txt"
+          git -C "$ROOT" branch --show-current > "$OUT/branch.txt"
+          if [ "$STRATUM" = V ]; then
+            git -C "$ROOT" log --since=2024-01-01 --no-merges --format='@@COMMIT@@%H%x09%P%x09%cI%x09%s' -p --unified=3 -G "$CONTRACT_RE" -- ':(glob)**/*.rs' > "$OUT/stream.log"
+          else
+            git -C "$ROOT" log --since=2024-01-01 --no-merges --format='@@COMMIT@@%H%x09%P%x09%cI%x09%s' -p --unified=3 -G "$CONTRACT_RE" -- ':(glob)**/*.fst' ':(glob)**/*.fsti' > "$OUT/stream.log"
+          fi
+          python3 - "$OUT" "$STRATUM" "$CONTRACT_RE" <<'PY'
+          from pathlib import Path
+          import sys,re,csv,hashlib
+          out=Path(sys.argv[1]); st=sys.argv[2]; cre=re.compile(sys.argv[3])
+          txt=(out/'stream.log').read_text(errors='replace')
+          chunks=txt.split('@@COMMIT@@')[1:]
+          rows=[]
+          for ch in chunks:
+              first,*rest=ch.splitlines()
+              parts=first.split('\t',3)
+              if len(parts)<4: continue
+              sha,parents,date,subj=parts
+              if not parents.strip(): continue
+              patch='\n'.join(rest)+'\n'
+              files=[]; c=o=0; same=False; hc=ho=False
+              for ln in patch.splitlines():
+                  if ln.startswith('diff --git '):
+                      p=ln.split(' b/',1); files.append(p[1] if len(p)==2 else ln); continue
+                  if ln.startswith('@@'):
+                      if hc and ho: same=True
+                      hc=ho=False; continue
+                  if not (ln.startswith('+') or ln.startswith('-')) or ln.startswith('+++') or ln.startswith('---'): continue
+                  s=ln[1:].strip()
+                  if not s: continue
+                  if cre.search(s): c+=1; hc=True; continue
+                  if s.startswith(('//','/*','*','///','#','(*')): continue
+                  if re.fullmatch(r'[{}();,\[\]]+',s): continue
+                  o+=1; ho=True
+              if hc and ho: same=True
+              rows.append(dict(stratum=st,commit=sha,parent=parents.split()[0],date=date,subject=subj,source_files=len(files),contract_changed_lines=c,other_changed_lines=o,total_semantic_lines=c+o,same_hunk=int(same),files=';'.join(files),patch_sha256=hashlib.sha256(patch.encode()).hexdigest()))
+          rows.sort(key=lambda r:(r['source_files'],r['total_semantic_lines'],r['date'],r['commit']))
+          fields=['stratum','commit','parent','date','subject','source_files','contract_changed_lines','other_changed_lines','total_semantic_lines','same_hunk','files','patch_sha256']
+          with (out/'candidates.csv').open('w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          (out/'summary.txt').write_text(f'contract_diff_commits={len(rows)}\nbroad_structural={sum(r["other_changed_lines"]>0 for r in rows)}\nsame_hunk={sum(r["same_hunk"] for r in rows)}\n')
+          print((out/'summary.txt').read_text())
+          PY
+          printf 'stratum=%s\nrepo=%s\nmethod=one-pass-log-patch\n' "$STRATUM" "$TARGET_REPO" > "$OUT/frame.txt"
+          sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-stream-${{ matrix.stratum }}
+          path: out
+          retention-days: 7

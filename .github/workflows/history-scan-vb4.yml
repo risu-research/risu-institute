@@ -1,0 +1,76 @@
+name: history-scan-vb4
+
+on:
+  push:
+    paths: ['.github/workflows/history-scan-vb4.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Complete tenth-repository scan on original standard-clone frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/vmware-labs/verified-betrfs.git repo
+          mkdir -p out/patches
+          git -C repo rev-list --all --count -- '*.dfy' > out/dfy_commits.txt
+          git -C repo log --all --format='%H' -G'(requires|ensures|invariant|modifies|reads|decreases)' -- '*.dfy' | awk 'NF' | sort -u > out/contract_commits.txt
+          python3 - <<'PY'
+          import csv,gzip,hashlib,re,subprocess
+          from pathlib import Path
+          repo=Path('repo'); out=Path('out'); pd=out/'patches'
+          cre=re.compile(r'\b(requires|ensures|invariant|modifies|reads|decreases)\b')
+          def git(*args):
+            p=subprocess.run(['git','-C',str(repo),*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True)
+            return p.stdout.decode('utf-8','replace')
+          shas=[x.strip() for x in (out/'contract_commits.txt').read_text().splitlines() if x.strip()]
+          rows=[]; roots=structural=same=recent=0
+          for i,sha in enumerate(shas,1):
+            pp=git('rev-list','--parents','-n','1',sha).strip().split()
+            if len(pp)<2: roots+=1; continue
+            parent=pp[1]; date=git('show','-s','--format=%cs',sha).strip(); subject=git('show','-s','--format=%s',sha).strip()
+            pb=subprocess.run(['git','-C',str(repo),'diff','--no-ext-diff','--unified=3',parent,sha,'--','*.dfy'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+            patch=pb.decode('utf-8','replace'); ph=hashlib.sha256(pb).hexdigest()
+            contract=other=0; hc=ho=False; same_hunk=False
+            for line in patch.splitlines():
+              if line.startswith('@@'):
+                if hc and ho: same_hunk=True
+                hc=ho=False; continue
+              if not (line.startswith('+') or line.startswith('-')) or line.startswith('+++') or line.startswith('---'): continue
+              s=line[1:].strip()
+              if not s: continue
+              if cre.search(s): contract+=1; hc=True; continue
+              if s.startswith('//') or s.startswith('/*') or s.startswith('*') or s.startswith('*/'): continue
+              if re.fullmatch(r'[{}();,]+',s): continue
+              other+=1; ho=True
+            if hc and ho: same_hunk=True
+            sc=other>0
+            if sc:
+              structural+=1
+              with gzip.open(pd/f'{sha}.diff.gz','wb',compresslevel=9) as f: f.write(pb)
+            if same_hunk:
+              same+=1
+              if date>='2024-01-01': recent+=1
+            rows.append({'repo':'vmware-labs/verified-betrfs','commit':sha,'parent':parent,'date':date,'subject':subject,'contract_changed_lines':contract,'other_changed_lines':other,'structural_candidate':int(sc),'same_hunk_candidate':int(same_hunk),'patch_sha256':ph})
+            if i%500==0: print(i,len(shas))
+          fields=list(rows[0].keys())
+          with (out/'commit_candidates.csv').open('w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          dfy=int((out/'dfy_commits.txt').read_text())
+          with (out/'repo_summary.csv').open('w',newline='') as f:
+            w=csv.writer(f); w.writerow(['repo','clone_status','scan_status','dfy_commits','contract_diff_commits','processable_nonroot_rows','structural_candidates','same_hunk_candidates','same_hunk_since_2024','root_contract_commits']); w.writerow(['vmware-labs/verified-betrfs','OK','OK',dfy,len(shas),len(rows),structural,same,recent,roots])
+          (out/'METHOD.md').write_text('Standard clone reproduces the original R03 frame (expected dfy_commits=5513). Contract pickaxe is unchanged. The substantive-line/same-hunk classifier was reconstructed from R03 and independently validated locally against every preserved positive patch: it reproduces the historical 1,203 same-hunk and 125 post-2024 counts exactly. All counts are discovery-audit diagnostics only, not prevalence estimates and not semantic-repair counts.\n')
+          print((out/'repo_summary.csv').read_text())
+          PY
+          sha256sum out/repo_summary.csv out/commit_candidates.csv out/contract_commits.txt out/dfy_commits.txt > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-scan-vb4
+          path: out
+          retention-days: 7

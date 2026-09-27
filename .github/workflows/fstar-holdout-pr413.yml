@@ -8,10 +8,10 @@ permissions:
 jobs:
   replay:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Target-only four-cell replay with qualified Z3 and fixed rlimit
+      - name: Target-only four-cell replay with qualified Z3 and fixed z3rlimit
         shell: bash
         run: |
           set -euo pipefail
@@ -51,7 +51,7 @@ jobs:
             d="$WORK/$c"; rm -rf "$d/obj"; mkdir "$d/obj"
             INC=""
             for x in "$d/lib" "$d/specs" "$d/specs/lemmas" "$d/code/hash" "$d/code/hmac" "$d/code/hkdf" "$d/code/poly1305" "$d/code/chacha20" "$d/code/chacha20poly1305" "$d/code/streaming" "$d/code/blake2" "$d/code/curve25519" "$WORK/FStar/ulib/.cache" "$WORK/FStar/ulib"; do [ -d "$x" ] && INC="$INC --include $x"; done
-            FLAGS="--odir $d/obj --cache_checked_modules $INC --cmi --already_cached 'Prims FStar LowStar C Spec.Loops TestLib WasmSupport' --cache_dir $d/obj --trivial_pre_for_unannotated_effectful_fns false --warn_error '+241@247-272' --rlimit 100"
+            FLAGS="--odir $d/obj --cache_checked_modules $INC --cmi --already_cached 'Prims FStar LowStar C Spec.Loops TestLib WasmSupport' --cache_dir $d/obj --trivial_pre_for_unannotated_effectful_fns false --warn_error '+241@247-272' --z3rlimit 100"
             cd "$d/code/chacha20poly1305"
             eval "$FSTAR $FLAGS --dep full Hacl.Impl.Chacha20Poly1305.fst --warn_error '-285'" > "$OUT/$c.deps.mk" 2> "$OUT/$c.dep.err"
             drc=$?
@@ -69,7 +69,7 @@ jobs:
             else rc=99; cp "$OUT/$c.dep.err" "$OUT/$c.verify.log"; fi
             [ $rc -eq 0 ] && st=PASS || st=FAIL_OR_INFRA
             last=$(tail -n 1 "$OUT/$c.verify.log" | tr ',' ';' | tr '\n' ' ')
-            printf '%s,E_z3qualified_rlimit100_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
+            printf '%s,F_z3qualified_z3rlimit100_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
           done
           set -e
           printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
@@ -79,7 +79,7 @@ jobs:
           find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: fstar-holdout-pr413-attemptE
+          name: fstar-holdout-pr413-attemptF
           path: fstar-holdout-out
           if-no-files-found: error
           retention-days: 7

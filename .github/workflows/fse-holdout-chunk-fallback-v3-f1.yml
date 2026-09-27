@@ -1,0 +1,172 @@
+name: fse-holdout-chunk-fallback-v3-f1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-holdout-chunk-fallback-v3-f1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chunk:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # V3: newest-to-oldest non-overlapping chunks.
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+            chunk: y2026
+            since: '2026-01-01T00:00:00Z'
+            until: '2026-12-31T23:59:59Z'
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+            chunk: y2025
+            since: '2025-01-01T00:00:00Z'
+            until: '2025-12-31T23:59:59Z'
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+            chunk: y2024
+            since: '2024-01-01T00:00:00Z'
+            until: '2024-12-31T23:59:59Z'
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+            chunk: pre2024
+            since: '1970-01-01T00:00:00Z'
+            until: '2023-12-31T23:59:59Z'
+          # F1: split more finely because the repository is large.
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+            chunk: y2026
+            since: '2026-01-01T00:00:00Z'
+            until: '2026-12-31T23:59:59Z'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+            chunk: y2025
+            since: '2025-01-01T00:00:00Z'
+            until: '2025-12-31T23:59:59Z'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+            chunk: y2024
+            since: '2024-01-01T00:00:00Z'
+            until: '2024-12-31T23:59:59Z'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+            chunk: y2023
+            since: '2023-01-01T00:00:00Z'
+            until: '2023-12-31T23:59:59Z'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+            chunk: pre2023
+            since: '1970-01-01T00:00:00Z'
+            until: '2022-12-31T23:59:59Z'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Clone frozen repository
+        shell: bash
+        env:
+          TARGET_REPO: ${{ matrix.repo }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-tags --single-branch "https://github.com/${TARGET_REPO}.git" src
+          git -C src rev-parse HEAD > head.txt
+
+      - name: Scan frozen chronological chunk
+        shell: bash
+        env:
+          HOLDOUT_ID: ${{ matrix.id }}
+          ECOSYSTEM: ${{ matrix.ecosystem }}
+          TARGET_REPO: ${{ matrix.repo }}
+          TOKEN_REGEX: ${{ matrix.regex }}
+          PATHS: ${{ matrix.paths }}
+          CHUNK: ${{ matrix.chunk }}
+          SINCE: ${{ matrix.since }}
+          UNTIL: ${{ matrix.until }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/raw_patches out/blind
+          python3 - <<'PY'
+          import csv,gzip,hashlib,os,re,subprocess
+          from pathlib import Path
+          repo=Path('src'); out=Path('out')
+          hid=os.environ['HOLDOUT_ID']; eco=os.environ['ECOSYSTEM']; target=os.environ['TARGET_REPO']; chunk=os.environ['CHUNK']
+          rx=os.environ['TOKEN_REGEX']; token_re=re.compile(rx); pathspec=os.environ['PATHS'].split()
+          cmd=['git','-C',str(repo),'log','--date-order','--format=%H%x09%P%x09%cI%x09%s','--since='+os.environ['SINCE'],'--until='+os.environ['UNTIL'],'-G'+rx,'--']+pathspec
+          p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True)
+          rows=[]
+          for line in p.stdout.decode('utf-8','replace').splitlines():
+              z=line.split('\t',3)
+              if len(z)==4: rows.append((z[0],z[1].split(),z[2],z[3]))
+          def kind(s):
+              t=s.strip()
+              if not t:return 'blank'
+              if t.startswith('//') or t.startswith('/*') or t.startswith('*') or t.startswith('*/'):return 'comment'
+              if token_re.search(t):return 'contract'
+              if re.fullmatch(r'[{}()\[\];,:]+',t):return 'delimiter'
+              return 'other'
+          prov=[]; selected=0; roots=0; examined=0
+          for sha,parents,date,subject in rows:
+              if not parents: roots+=1; continue
+              parent=parents[0]; examined+=1
+              pb=subprocess.run(['git','-C',str(repo),'diff','--no-ext-diff','--unified=3',parent,sha,'--']+pathspec,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+              patch=pb.decode('utf-8','replace'); hc=ho=False; same=False; nc=no=0
+              for line in patch.splitlines()+['@@ END @@']:
+                  if line.startswith('@@'):
+                      if hc and ho:same=True
+                      hc=ho=False; continue
+                  if not ((line.startswith('+') or line.startswith('-')) and not line.startswith('+++') and not line.startswith('---')):continue
+                  k=kind(line[1:])
+                  if k=='contract':nc+=1;hc=True
+                  elif k=='other':no+=1;ho=True
+              if not same:continue
+              selected+=1; cid=f'{hid}-{chunk}-C{selected:03d}'; ph=hashlib.sha256(pb).hexdigest()
+              with gzip.open(out/'raw_patches'/f'{cid}.diff.gz','wb',9) as f:f.write(pb)
+              san=[ln for ln in patch.splitlines() if not ln.startswith('index ')]
+              (out/'blind'/f'{cid}.patch').write_text('\n'.join(san)+'\n',encoding='utf-8')
+              prov.append({'candidate_id':cid,'ecosystem':eco,'repo':target,'commit':sha,'parent':parent,'date':date,'subject':subject,'contract_changed_lines':nc,'other_changed_lines':no,'patch_sha256':ph})
+              if selected>=60:break
+          fields=['candidate_id','ecosystem','repo','commit','parent','date','subject','contract_changed_lines','other_changed_lines','patch_sha256']
+          with (out/'provenance.csv').open('w',newline='',encoding='utf-8') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(prov)
+          with (out/'summary.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f);w.writerow(['id','ecosystem','repo','chunk','since','until','head','contract_hits','examined','roots','same_hunk_preserved']);w.writerow([hid,eco,target,chunk,os.environ['SINCE'],os.environ['UNTIL'],Path('head.txt').read_text().strip(),len(rows),examined,roots,selected])
+          print((out/'summary.csv').read_text())
+          PY
+          find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+
+      - name: Upload chunk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: holdout-chunk-${{ matrix.id }}-${{ matrix.chunk }}
+          path: out
+          if-no-files-found: error
+          retention-days: 7

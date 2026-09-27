@@ -1,0 +1,180 @@
+name: xeco-precision-shortlist
+on:
+  push:
+    paths: ['.github/workflows/xeco-precision-shortlist.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  precise:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: V1, eco: V, repo: verus-lang/verus}
+          - {id: V2, eco: V, repo: verus-lang/verified-memory-allocator}
+          - {id: V3, eco: V, repo: secure-foundations/vest}
+          - {id: V4, eco: V, repo: verus-lang/verified-ironkv}
+          - {id: V5, eco: V, repo: anvil-verifier/verus-tla}
+          - {id: F1, eco: F, repo: FStarLang/FStar}
+          - {id: F2, eco: F, repo: project-everest/mitls-fstar}
+          - {id: F3, eco: F, repo: AeneasVerif/aeneas}
+          - {id: F4, eco: F, repo: catalin-hritcu/fstar-course}
+          - {id: F5, eco: F, repo: danelahman/esp32-fstar}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Precision same-declaration screen
+        shell: bash
+        env:
+          ID: ${{ matrix.id }}
+          ECO: ${{ matrix.eco }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          if [ "$ECO" = V ]; then EXTS=('*.rs'); else EXTS=('*.fst' '*.fsti'); fi
+          git -C repo log --all --no-merges --since='2018-01-01' --until='2026-09-26 23:59:59' --format='%H' -G'(requires|ensures)' -- "${EXTS[@]}" | awk 'NF' | sort -u > out/commits.txt
+          ID="$ID" ECO="$ECO" REPO="$REPO" python3 - <<'PY'
+          import csv, os, re, subprocess, difflib
+          from pathlib import Path
+          rid,eco,name=os.environ['ID'],os.environ['ECO'],os.environ['REPO']; R=Path('repo'); O=Path('out')
+          shas=[x.strip() for x in (O/'commits.txt').read_text().splitlines() if x.strip()]
+          def run(*a): return subprocess.run(['git','-C',str(R),*a],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout.decode('utf8','replace')
+          def blob(rev,p):
+            q=subprocess.run(['git','-C',str(R),'show',f'{rev}:{p}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            return q.stdout.decode('utf8','replace') if q.returncode==0 else None
+          def files(par,sha):
+            ex=('.rs',) if eco=='V' else ('.fst','.fsti')
+            return [x for x in run('diff','--name-only',par,sha).splitlines() if x.endswith(ex)]
+          def strip_comments(s):
+            s=re.sub(r'/\*.*?\*/','',s,flags=re.S); s=re.sub(r'\(\*.*?\*\)','',s,flags=re.S); s=re.sub(r'//.*','',s); return s
+          def lines_norm(s): return [re.sub(r'\s+',' ',x).strip() for x in strip_comments(s).splitlines() if re.sub(r'\s+',' ',x).strip()]
+          def diffcount(a,b):
+            aa,bb=lines_norm(a),lines_norm(b); d=list(difflib.ndiff(aa,bb)); return sum(1 for x in d if x[:2] in ('- ','+ '))
+          def remove_proof_blocks(s):
+            # Remove nested `proof { ... }` blocks; then proof-only statement lines.
+            out=[]; i=0
+            while i<len(s):
+              m=re.search(r'\bproof\s*\{',s[i:])
+              if not m: out.append(s[i:]); break
+              a=i+m.start(); b=i+m.end(); out.append(s[i:a])
+              depth=1; j=b; instr=False; esc=False
+              while j<len(s) and depth:
+                c=s[j]
+                if instr:
+                  if esc: esc=False
+                  elif c=='\\': esc=True
+                  elif c=='"': instr=False
+                else:
+                  if c=='"': instr=True
+                  elif c=='{': depth+=1
+                  elif c=='}': depth-=1
+                j+=1
+              i=j
+            t=''.join(out)
+            keep=[]
+            for ln in t.splitlines():
+              z=ln.strip()
+              if re.match(r'^(assert|assume|reveal|hide|admit|invariant|decreases)\b',z): continue
+              if re.match(r'^let\s+(ghost|tracked)\b',z): continue
+              keep.append(ln)
+            return '\n'.join(keep)
+          def verus(src):
+            d={};
+            if src is None:return d
+            pat=re.compile(r'(?m)^[ \t]*(?:pub[ \t]+)?(?:(?:open|closed)[ \t]+)?(?:(proof|spec|exec)[ \t]+)?fn[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b')
+            for m in pat.finditer(src):
+              brace=src.find('{',m.end());
+              if brace<0: continue
+              depth=0;j=brace;instr=False;esc=False;end=None
+              while j<len(src):
+                c=src[j]
+                if instr:
+                  if esc:esc=False
+                  elif c=='\\':esc=True
+                  elif c=='"':instr=False
+                else:
+                  if c=='"':instr=True
+                  elif c=='{':depth+=1
+                  elif c=='}':
+                    depth-=1
+                    if depth==0:end=j+1;break
+                j+=1
+              if end is None:continue
+              nm=m.group(2); kind=m.group(1) or 'exec'; sig=src[m.start():brace]; body=src[brace+1:end-1]
+              d.setdefault(nm,[]).append((kind,sig,body))
+            return d
+          def contract(sig):
+            # keep only requires/ensures portions, excluding comments/whitespace
+            ls=lines_norm(sig); active=False; xs=[]
+            for x in ls:
+              if re.match(r'^(requires|ensures)\b',x): active=True; xs.append(x); continue
+              if re.match(r'^(recommends|decreases|where)\b',x): active=False; continue
+              if active: xs.append(x)
+            return '\n'.join(xs)
+          def fstar(src):
+            d={};
+            if src is None:return d
+            starts=list(re.finditer(r'(?m)^let(?:\s+rec)?\s+([A-Za-z_][A-Za-z0-9_\']*)\b',src))
+            for k,m in enumerate(starts):
+              e=starts[k+1].start() if k+1<len(starts) else len(src); block=src[m.start():e]
+              # find the first top-level-ish '=' after a type annotation; acceptable conservative parser
+              eq=block.find('=')
+              if eq<0:continue
+              sig,body=block[:eq],block[eq+1:]
+              d.setdefault(m.group(1),[]).append((sig,body))
+            return d
+          rows=[]
+          for n,sha in enumerate(shas,1):
+            ps=run('rev-list','--parents','-n','1',sha).strip().split();
+            if len(ps)<2:continue
+            par=ps[1]; date=run('show','-s','--format=%cs',sha).strip(); subj=run('show','-s','--format=%s',sha).strip()
+            for p in files(par,sha):
+              a,b=blob(par,p),blob(sha,p)
+              if a is None or b is None:continue
+              if eco=='V':
+                da,db=verus(a),verus(b)
+                for fn in sorted(set(da)&set(db)):
+                  if len(da[fn])!=1 or len(db[fn])!=1:continue
+                  ka,sa,ba=da[fn][0]; kb,sb,bb=db[fn][0]
+                  if ka in ('proof','spec') or kb in ('proof','spec'):continue
+                  ca,cb=contract(sa),contract(sb)
+                  if lines_norm(ca)==lines_norm(cb):continue
+                  ea,eb=remove_proof_blocks(ba),remove_proof_blocks(bb)
+                  ec=diffcount(ea,eb); cc=diffcount(ca,cb)
+                  if ec==0:continue
+                  rows.append([rid,eco,name,sha,par,date,subj,p,fn,cc,ec,cc+ec])
+              else:
+                da,db=fstar(a),fstar(b)
+                for fn in sorted(set(da)&set(db)):
+                  if len(da[fn])!=1 or len(db[fn])!=1:continue
+                  sa,ba=da[fn][0]; sb,bb=db[fn][0]
+                  if re.search(r'\bLemma\b',sa+sb) or re.search(r'\bnoextract\b',sa+sb):continue
+                  ca='\n'.join(x for x in lines_norm(sa) if re.search(r'\b(requires|ensures)\b',x))
+                  cb='\n'.join(x for x in lines_norm(sb) if re.search(r'\b(requires|ensures)\b',x))
+                  if not ca and not cb:continue
+                  if lines_norm(ca)==lines_norm(cb):continue
+                  ec=diffcount(ba,bb); cc=diffcount(ca,cb)
+                  if ec==0:continue
+                  rows.append([rid,eco,name,sha,par,date,subj,p,fn,cc,ec,cc+ec])
+            if n%250==0: print(name,n,len(shas),flush=True)
+          rows.sort(key=lambda r:(r[11],1,r[5],r[3],r[7],r[8]))
+          fields=['id','ecosystem','repo','commit','parent','date','subject','path','declaration','contract_changed_lines','exec_changed_lines','isolated_changed_lines']
+          with (O/'precision_candidates.csv').open('w',newline='',encoding='utf8') as f:
+            w=csv.writer(f);w.writerow(fields);w.writerows(rows)
+          with (O/'summary.csv').open('w',newline='',encoding='utf8') as f:
+            w=csv.writer(f);w.writerow(['id','ecosystem','repo','contract_commits','precision_candidates']);w.writerow([rid,eco,name,len(shas),len(rows)])
+          print((O/'summary.csv').read_text())
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\n' > out/provenance.csv
+          sha256sum out/*.csv out/commits.txt > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: precise-${{ matrix.id }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

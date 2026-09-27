@@ -1,0 +1,1 @@
+The workflow itself is part of its push path filter, so the commit adding `.github/workflows/fse126-u030-closure-v4.yml` is the intended trigger. Subsequent trigger-note commits do not alter scientific inputs.

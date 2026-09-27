@@ -1,0 +1,91 @@
+name: xeco-holdout-chunk-fallback
+on:
+  push:
+    paths: ['.github/workflows/xeco-holdout-chunk-fallback.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - verus-lang/verus
+          - FStarLang/FStar
+          - project-everest/mitls-fstar
+        window:
+          - '2018-01-01|2021-12-31 23:59:59|A'
+          - '2022-01-01|2023-12-31 23:59:59|B'
+          - '2024-01-01|2025-12-31 23:59:59|C'
+          - '2026-01-01|2026-09-26 23:59:59|D'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Chunk scan frozen frame
+        shell: bash
+        env:
+          REPO: ${{ matrix.repo }}
+          WINDOW: ${{ matrix.window }}
+        run: |
+          set -euo pipefail
+          IFS='|' read -r SINCE UNTIL LABEL <<< "$WINDOW"
+          case "$REPO" in
+            verus-lang/verus) ID=V1; ECO=V; EXTS=('*.rs');;
+            FStarLang/FStar) ID=F1; ECO=F; EXTS=('*.fst' '*.fsti');;
+            project-everest/mitls-fstar) ID=F2; ECO=F; EXTS=('*.fst' '*.fsti');;
+          esac
+          mkdir -p out
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          git -C repo log --all --no-merges --since="$SINCE" --until="$UNTIL" --format='%H' -G'(requires|ensures)' -- "${EXTS[@]}" | awk 'NF' | sort -u > out/commits.txt
+          REPO="$REPO" ID="$ID" ECO="$ECO" LABEL="$LABEL" SINCE="$SINCE" UNTIL="$UNTIL" python3 - <<'PY'
+          import csv,hashlib,os,re,subprocess
+          from pathlib import Path
+          repo=Path('repo'); out=Path('out')
+          name=os.environ['REPO']; rid=os.environ['ID']; eco=os.environ['ECO']; lab=os.environ['LABEL']
+          pri=re.compile(r'\b(requires|ensures)\b')
+          shas=[x.strip() for x in (out/'commits.txt').read_text().splitlines() if x.strip()]
+          rows=[]
+          exts=['*.rs'] if eco=='V' else ['*.fst','*.fsti']
+          def git(*a):
+            return subprocess.run(['git','-C',str(repo),*a],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+          for i,sha in enumerate(shas,1):
+            ps=git('rev-list','--parents','-n','1',sha).decode().strip().split()
+            if len(ps)<2: continue
+            parent=ps[1]; date=git('show','-s','--format=%cs',sha).decode().strip(); subj=git('show','-s','--format=%s',sha).decode('utf-8','replace').strip()
+            pb=git('diff','--no-ext-diff','--unified=3',parent,sha,'--',*exts); txt=pb.decode('utf-8','replace')
+            pc=oc=0; hp=ho=False; same=False; files=[]
+            for ln in txt.splitlines():
+              if ln.startswith('diff --git '):
+                z=ln.split();
+                if len(z)>=4: files.append(z[2][2:])
+              if ln.startswith('@@'):
+                if hp and ho: same=True
+                hp=ho=False; continue
+              if not (ln.startswith('+') or ln.startswith('-')) or ln.startswith('+++') or ln.startswith('---'): continue
+              s=ln[1:].strip()
+              if not s: continue
+              if pri.search(s): pc+=1; hp=True; continue
+              if s.startswith('//') or s.startswith('/*') or s.startswith('*') or s.startswith('*/') or s.startswith('(*') or s.startswith('*)'): continue
+              if re.fullmatch(r'[{}();,]+',s): continue
+              oc+=1; ho=True
+            if hp and ho: same=True
+            rows.append([rid,eco,name,lab,sha,parent,date,subj,';'.join(sorted(set(files))),pc,oc,int(oc>0),int(same),hashlib.sha256(pb).hexdigest()])
+            if i%500==0: print(name,lab,i,len(shas),flush=True)
+          fields=['id','ecosystem','repo','window','commit','parent','date','subject','changed_files','primary_contract_changed_lines','other_changed_lines','structural_candidate','same_hunk_candidate','patch_sha256']
+          with (out/'candidates.csv').open('w',newline='',encoding='utf-8') as f:
+            w=csv.writer(f); w.writerow(fields); w.writerows(rows)
+          with (out/'summary.csv').open('w',newline='',encoding='utf-8') as f:
+            w=csv.writer(f); w.writerow(['id','ecosystem','repo','window','since','until','primary_contract_commits','processable_rows','structural','same_hunk']); w.writerow([rid,eco,name,lab,os.environ['SINCE'],os.environ['UNTIL'],len(shas),len(rows),sum(r[11] for r in rows),sum(r[12] for r in rows)])
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\n' > out/provenance.csv
+          sha256sum out/candidates.csv out/summary.csv out/commits.txt > out/SHA256SUMS.txt
+          cat out/summary.csv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chunk-${{ matrix.repo }}-${{ matrix.window }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

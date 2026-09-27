@@ -1,0 +1,41 @@
+name: fse-xeco-fstar-toolchain-probe-fast
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-fstar-toolchain-probe-fast.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive-only historical toolchain probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/out"; mkdir -p "$OUT"
+          HEAD=74b3bb2b0e378a671d6f7bb62cd01a4134811bce
+          ROOT=/tmp/h; mkdir -p "$ROOT"
+          curl -L --retry 3 -o /tmp/h.tgz "https://codeload.github.com/FStarLang/FStar/tar.gz/$HEAD"
+          tar -xzf /tmp/h.tgz -C "$ROOT" --strip-components=1
+          find "$ROOT" -type f | sed "s#^$ROOT/##" | sort > "$OUT/all_files.txt"
+          find "$ROOT" -type f \( -name 'config.json' -o -name '*.opam' -o -name '*workflow*' -o -name 'README.md' \) -print | sort > "$OUT/relevant_abs.txt"
+          : > "$OUT/relevant_contents.txt"
+          while IFS= read -r f; do
+            printf '\n===== %s =====\n' "${f#$ROOT/}" >> "$OUT/relevant_contents.txt"
+            sed -n '1,260p' "$f" >> "$OUT/relevant_contents.txt" || true
+          done < "$OUT/relevant_abs.txt"
+          grep -RIn -E 'BranchName|setup-fstar|z3_version|ocaml_version|FSTAR_EXE|2023\.04\.15|2023\.04|fstar\.exe|fstar.*branch' "$ROOT" 2>/dev/null | head -1500 > "$OUT/toolchain_grep.txt" || true
+          printf 'Archive inspection only; no hybrid generated or verified.\n' > "$OUT/NOTE.txt"
+          sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-fstar-toolchain-probe-fast
+          path: out
+          retention-days: 7

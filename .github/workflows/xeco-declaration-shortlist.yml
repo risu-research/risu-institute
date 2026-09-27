@@ -1,0 +1,149 @@
+name: xeco-declaration-shortlist
+on:
+  push:
+    paths: ['.github/workflows/xeco-declaration-shortlist.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shortlist:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: V1, eco: V, repo: verus-lang/verus}
+          - {id: V2, eco: V, repo: verus-lang/verified-memory-allocator}
+          - {id: V3, eco: V, repo: secure-foundations/vest}
+          - {id: V4, eco: V, repo: verus-lang/verified-ironkv}
+          - {id: V5, eco: V, repo: anvil-verifier/verus-tla}
+          - {id: F1, eco: F, repo: FStarLang/FStar}
+          - {id: F2, eco: F, repo: project-everest/mitls-fstar}
+          - {id: F3, eco: F, repo: AeneasVerif/aeneas}
+          - {id: F4, eco: F, repo: catalin-hritcu/fstar-course}
+          - {id: F5, eco: F, repo: danelahman/esp32-fstar}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Build conservative declaration-level shortlist
+        shell: bash
+        env:
+          ID: ${{ matrix.id }}
+          ECO: ${{ matrix.eco }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          if [ "$ECO" = V ]; then EXTS=('*.rs'); else EXTS=('*.fst' '*.fsti'); fi
+          git -C repo log --all --no-merges --since='2018-01-01' --until='2026-09-26 23:59:59' --format='%H' -G'(requires|ensures)' -- "${EXTS[@]}" | awk 'NF' | sort -u > out/commits.txt
+          ID="$ID" ECO="$ECO" REPO="$REPO" python3 - <<'PY'
+          import csv, os, re, subprocess
+          from pathlib import Path
+          rid,eco,name=os.environ['ID'],os.environ['ECO'],os.environ['REPO']
+          root=Path('repo'); out=Path('out')
+          commits=[x.strip() for x in (out/'commits.txt').read_text().splitlines() if x.strip()]
+          def git(*args, check=True):
+              p=subprocess.run(['git','-C',str(root),*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=check)
+              return p.stdout.decode('utf-8','replace')
+          def changed_files(parent,sha):
+              exts=('.rs',) if eco=='V' else ('.fst','.fsti')
+              xs=git('diff','--name-only',parent,sha).splitlines()
+              return [x for x in xs if x.endswith(exts)]
+          def blob(rev,path):
+              p=subprocess.run(['git','-C',str(root),'show',f'{rev}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              return p.stdout.decode('utf-8','replace') if p.returncode==0 else None
+          def strip_comments(s):
+              s=re.sub(r'/\*.*?\*/','',s,flags=re.S); s=re.sub(r'//.*','',s); return s
+          def norm(s): return re.sub(r'\s+',' ',strip_comments(s)).strip()
+          def verus_decls(src):
+              if src is None:return {}
+              d={}; pat=re.compile(r'(?m)^[ \t]*(?:pub[ \t]+)?(?:(open|closed)[ \t]+)?(?:(proof|spec|exec)[ \t]+)?fn[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b')
+              for m in pat.finditer(src):
+                  name=m.group(3); brace=src.find('{',m.end())
+                  if brace<0: continue
+                  # avoid a next declaration before brace
+                  nxt=pat.search(src,m.end(),brace)
+                  if nxt: continue
+                  depth=0; i=brace; end=None; in_str=False; esc=False
+                  while i<len(src):
+                      c=src[i]
+                      if in_str:
+                          if esc: esc=False
+                          elif c=='\\': esc=True
+                          elif c=='"': in_str=False
+                      else:
+                          if c=='"': in_str=True
+                          elif c=='{': depth+=1
+                          elif c=='}':
+                              depth-=1
+                              if depth==0: end=i+1; break
+                      i+=1
+                  if end is None: continue
+                  sig=src[m.start():brace]
+                  body=src[brace+1:end-1]
+                  kind=m.group(2) or 'exec'
+                  d.setdefault(name,[]).append({'kind':kind,'sig':sig,'body':body,'start':m.start(),'end':end})
+              return d
+          def fstar_decls(src):
+              if src is None:return {}
+              d={}
+              # conservative top-level let blocks; indentation-free let only
+              starts=list(re.finditer(r'(?m)^let(?:\s+rec)?\s+([A-Za-z_][A-Za-z0-9_\']*)\b',src))
+              for k,m in enumerate(starts):
+                  e=starts[k+1].start() if k+1<len(starts) else len(src)
+                  block=src[m.start():e]; eq=block.find('=')
+                  if eq<0: continue
+                  header=block[:eq]; body=block[eq+1:]
+                  d.setdefault(m.group(1),[]).append({'sig':header,'body':body,'start':m.start(),'end':e})
+              return d
+          rows=[]
+          for ix,sha in enumerate(commits,1):
+              ps=git('rev-list','--parents','-n','1',sha).strip().split()
+              if len(ps)<2: continue
+              par=ps[1]; date=git('show','-s','--format=%cs',sha).strip(); subj=git('show','-s','--format=%s',sha).strip()
+              for path in changed_files(par,sha):
+                  a,b=blob(par,path),blob(sha,path)
+                  if a is None or b is None: continue
+                  if eco=='V':
+                      da,db=verus_decls(a),verus_decls(b)
+                      for fn in sorted(set(da)&set(db)):
+                          if len(da[fn])!=1 or len(db[fn])!=1: continue
+                          x,y=da[fn][0],db[fn][0]
+                          if x['kind'] in ('proof','spec') or y['kind'] in ('proof','spec'): continue
+                          ca=' '.join(re.findall(r'(?ms)\b(?:requires|ensures)\b.*?(?=\n\s*(?:requires|ensures|recommends|decreases)\b|$)',x['sig']))
+                          cb=' '.join(re.findall(r'(?ms)\b(?:requires|ensures)\b.*?(?=\n\s*(?:requires|ensures|recommends|decreases)\b|$)',y['sig']))
+                          if norm(ca)==norm(cb): continue
+                          if norm(x['body'])==norm(y['body']): continue
+                          # Drop bodies whose delta is proof-only/assert-only conservatively later; retain as possible.
+                          lines=sum(1 for z in subprocess.run(['git','-C',str(root),'diff','--no-ext-diff','--unified=0',par,sha,'--',path],stdout=subprocess.PIPE).stdout.decode('utf8','replace').splitlines() if z.startswith(('+','-')) and not z.startswith(('+++','---')))
+                          rows.append([rid,eco,name,sha,par,date,subj,path,fn,'same_existing_exec_fn_contract_and_body_changed',lines])
+                  else:
+                      da,db=fstar_decls(a),fstar_decls(b)
+                      # same .fst executable declaration
+                      for fn in sorted(set(da)&set(db)):
+                          if len(da[fn])!=1 or len(db[fn])!=1: continue
+                          x,y=da[fn][0],db[fn][0]
+                          if not re.search(r'\b(requires|ensures)\b',x['sig']+y['sig']): continue
+                          if norm(re.sub(r'.*?(requires|ensures)','',x['sig'],flags=re.S))==norm(re.sub(r'.*?(requires|ensures)','',y['sig'],flags=re.S)) and norm(x['sig'])==norm(y['sig']): continue
+                          if norm(x['sig'])==norm(y['sig']): continue
+                          if norm(x['body'])==norm(y['body']): continue
+                          if re.search(r'\bLemma\b',x['sig']+y['sig']): continue
+                          rows.append([rid,eco,name,sha,par,date,subj,path,fn,'same_existing_fstar_let_contract_and_body_changed',0])
+              if ix%250==0: print(name,ix,len(commits),flush=True)
+          fields=['id','ecosystem','repo','commit','parent','date','subject','path','declaration','reason','commit_changed_lines_placeholder']
+          with (out/'possible_x5.csv').open('w',newline='',encoding='utf8') as f:
+              w=csv.writer(f); w.writerow(fields); w.writerows(rows)
+          with (out/'summary.csv').open('w',newline='',encoding='utf8') as f:
+              w=csv.writer(f); w.writerow(['id','ecosystem','repo','contract_commits','possible_declaration_pairs']); w.writerow([rid,eco,name,len(commits),len(rows)])
+          print((out/'summary.csv').read_text())
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\n' > out/provenance.csv
+          sha256sum out/*.csv out/commits.txt > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: decl-${{ matrix.id }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,32 @@
+name: history-scan-vb3
+
+on:
+  push:
+    paths: ['.github/workflows/history-scan-vb3.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Standard-clone frame check
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/vmware-labs/verified-betrfs.git repo
+          mkdir -p out
+          git -C repo rev-list --all --count -- '*.dfy' | tee out/dfy_commits.txt
+          git -C repo log --all --format='%H' -G'(requires|ensures|invariant|modifies|reads|decreases)' -- '*.dfy' | awk 'NF' | sort -u > out/contract_commits.txt
+          wc -l out/contract_commits.txt | tee out/contract_diff_count.txt
+          git -C repo for-each-ref --format='%(refname)' | sort > out/refs.txt
+          printf '%s\n' 'Discovery audit only; not prevalence and not semantic-repair counts.' > out/BOUNDARY.txt
+          sha256sum out/* > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-scan-vb3
+          path: out
+          retention-days: 7

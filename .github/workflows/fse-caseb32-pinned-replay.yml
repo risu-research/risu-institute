@@ -1,0 +1,74 @@
+name: FSE Case B 32-cell pinned replay
+
+on:
+  push:
+    branches:
+      - research/fse-caseb32-replay-20260927
+    paths:
+      - 'research/fse-caseb32/**'
+      - '.github/workflows/fse-caseb32-pinned-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact historical source pairs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/fse-caseb32/source
+          BASE=31bb53ec1e93936eb3a72cda31a2d042c9cdbbdb
+          HEAD=bf26cf111684c01c8f53a6a5d7e07903fced5099
+          ROOT=https://raw.githubusercontent.com/haalfi/remote-store
+          curl -L --fail --retry 3 "$ROOT/$BASE/sdd/formal/BackendContract.dfy" -o research/fse-caseb32/source/base-BackendContract.dfy
+          curl -L --fail --retry 3 "$ROOT/$BASE/sdd/formal/MemoryBackend.dfy" -o research/fse-caseb32/source/base-MemoryBackend.dfy
+          curl -L --fail --retry 3 "$ROOT/$HEAD/sdd/formal/BackendContract.dfy" -o research/fse-caseb32/source/head-BackendContract.dfy
+          curl -L --fail --retry 3 "$ROOT/$HEAD/sdd/formal/MemoryBackend.dfy" -o research/fse-caseb32/source/head-MemoryBackend.dfy
+          printf 'base=%s\nhead=%s\n' "$BASE" "$HEAD" > research/fse-caseb32/source/refs.txt
+          cat > research/fse-caseb32/source/SHA256SUMS.txt <<'EOF'
+          1bb76910b726adf8bb21a8af06d76d02092aa777ee3e7c5e4580a94625a214d8  base-BackendContract.dfy
+          2c7bb2b6aa9b9c6818f2d0b610100c34756c24de7dc8f195019d7e9fefe6a487  base-MemoryBackend.dfy
+          9d95d316bb78a2e2cdd10932983b89d5652087f09600b1b5a696d60196e76ac7  head-BackendContract.dfy
+          e84a135f8b77f6fe4be5162852378e9088cc5314690fabe09fbf48636c2e6c73  head-MemoryBackend.dfy
+          EOF
+          (cd research/fse-caseb32/source && sha256sum -c SHA256SUMS.txt)
+      - name: Generate exact 32-cell source matrix
+        working-directory: research/fse-caseb32
+        run: python3 generate_caseb32.py
+      - name: Download and pin Dafny 4.11.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o /tmp/dafny.zip https://github.com/dafny-lang/dafny/releases/download/v4.11.0/dafny-4.11.0-x64-ubuntu-22.04.zip
+          echo 'a46a9ff7cdd720f7955854c78e95df13f4cfe6b80691b05f8654fe19e8267179  /tmp/dafny.zip' | sha256sum -c -
+          mkdir -p /tmp/dafny
+          unzip -q /tmp/dafny.zip -d /tmp/dafny
+          DAFNY=$(find /tmp/dafny -type f -name dafny | head -1)
+          test -n "$DAFNY"
+          chmod +x "$DAFNY"
+          echo "DAFNY=$DAFNY" >> "$GITHUB_ENV"
+          echo 'e540b4826363afb87c326446239a682d45086905425fa6299c103eca9693846d  '"$DAFNY" | sha256sum -c -
+          "$DAFNY" --version
+      - name: Run 32-cell whole-program and caller replay
+        working-directory: research/fse-caseb32
+        run: python3 run_matrix.py "$DAFNY" --timeout 240
+      - name: Analyze replay
+        working-directory: research/fse-caseb32
+        run: python3 analyze.py | tee artifact/results/fresh_summary.txt
+      - name: Refresh integrity manifest
+        working-directory: research/fse-caseb32/artifact
+        shell: bash
+        run: |
+          find . -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > MANIFEST.sha256
+      - name: Upload full replay artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FSE2027-CaseB-32Cell-pinned-replay
+          path: research/fse-caseb32/artifact
+          if-no-files-found: error

@@ -1,0 +1,96 @@
+name: fse-xeco-discovery-fast
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-discovery-fast.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stratum: V
+            repo: https://github.com/verus-lang/verus.git
+            name: verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: ':(glob)**/*.rs'
+          - stratum: F
+            repo: https://github.com/FStarLang/FStar.git
+            name: fstar
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: ':(glob)**/*.fst : (glob)**/*.fsti'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shallow-since discovery implementation
+        shell: bash
+        env:
+          STRATUM: ${{ matrix.stratum }}
+          TARGET_REPO: ${{ matrix.repo }}
+          TARGET_NAME: ${{ matrix.name }}
+          CONTRACT_RE: ${{ matrix.regex }}
+        run: |
+          set -euo pipefail
+          OUT=out
+          mkdir -p "$OUT"
+          ROOT=/tmp/$TARGET_NAME
+          git clone --no-tags --shallow-since=2023-12-31 --filter=blob:none "$TARGET_REPO" "$ROOT"
+          git -C "$ROOT" rev-parse HEAD > "$OUT/head.txt"
+          git -C "$ROOT" branch --show-current > "$OUT/branch.txt"
+          python3 - "$ROOT" "$OUT" "$STRATUM" "$CONTRACT_RE" <<'PY'
+          from pathlib import Path
+          import sys,subprocess,csv,re,hashlib
+          root=Path(sys.argv[1]); out=Path(sys.argv[2]); st=sys.argv[3]; cre=re.compile(sys.argv[4])
+          if st=='V': specs=[':(glob)**/*.rs']
+          else: specs=[':(glob)**/*.fst',':(glob)**/*.fsti']
+          def run(args):
+              return subprocess.run(['git','-C',str(root),*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,text=True).stdout
+          cmd=['log','--since=2024-01-01','--format=%H','-G',sys.argv[4],'--',*specs]
+          shas=[]
+          for x in run(cmd).splitlines():
+              if x and x not in shas: shas.append(x)
+          rows=[]
+          for sha in shas:
+              p=run(['rev-list','--parents','-n','1',sha]).strip().split()
+              if len(p)<2: continue
+              parent=p[1]
+              date=run(['show','-s','--format=%cI',sha]).strip(); subj=run(['show','-s','--format=%s',sha]).strip()
+              pb=subprocess.run(['git','-C',str(root),'diff','--no-ext-diff','--unified=3',parent,sha,'--',*specs],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+              patch=pb.decode('utf-8','replace')
+              files=[]; c=o=0; same=False; hc=ho=False
+              for ln in patch.splitlines():
+                  if ln.startswith('diff --git '):
+                      parts=ln.split(' b/',1); files.append(parts[1] if len(parts)==2 else ln); continue
+                  if ln.startswith('@@'):
+                      if hc and ho: same=True
+                      hc=ho=False; continue
+                  if not (ln.startswith('+') or ln.startswith('-')) or ln.startswith('+++') or ln.startswith('---'): continue
+                  s=ln[1:].strip()
+                  if not s: continue
+                  if cre.search(s): c+=1; hc=True; continue
+                  if s.startswith(('//','/*','*','///','#')): continue
+                  if re.fullmatch(r'[{}();,\[\]]+',s): continue
+                  o+=1; ho=True
+              if hc and ho: same=True
+              rows.append(dict(stratum=st,commit=sha,parent=parent,date=date,subject=subj,source_files=len(files),contract_changed_lines=c,other_changed_lines=o,total_semantic_lines=c+o,same_hunk=int(same),files=';'.join(files),patch_sha256=hashlib.sha256(pb).hexdigest()))
+          rows.sort(key=lambda r:(r['source_files'],r['total_semantic_lines'],r['date'],r['commit']))
+          fields=['stratum','commit','parent','date','subject','source_files','contract_changed_lines','other_changed_lines','total_semantic_lines','same_hunk','files','patch_sha256']
+          with (out/'candidates.csv').open('w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          (out/'summary.txt').write_text(f'contract_diff_commits={len(rows)}\nbroad_structural={sum(r["other_changed_lines"]>0 for r in rows)}\nsame_hunk={sum(r["same_hunk"] for r in rows)}\n')
+          print((out/'summary.txt').read_text())
+          PY
+          printf 'stratum=%s\nrepo=%s\nmethod=shallow-since-2023-12-31\n' "$STRATUM" "$TARGET_REPO" > "$OUT/frame.txt"
+          sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-fast-${{ matrix.stratum }}
+          path: out
+          retention-days: 7

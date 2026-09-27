@@ -40,10 +40,24 @@ jobs:
           D=research/fse-classjump/countermodel
           mkdir -p "$D/results"
           BASE=31bb53ec1e93936eb3a72cda31a2d042c9cdbbdb
-          curl -L --fail --retry 3 "https://raw.githubusercontent.com/haalfi/remote-store/$BASE/sdd/formal/BackendContract.dfy" -o "$D/BackendContract.dfy"
+          ROOT=https://raw.githubusercontent.com/haalfi/remote-store
+          curl -L --fail --retry 3 "$ROOT/$BASE/sdd/formal/BackendContract.dfy" -o "$D/BackendContract.dfy"
           echo '1bb76910b726adf8bb21a8af06d76d02092aa777ee3e7c5e4580a94625a214d8  '"$D/BackendContract.dfy" | sha256sum -c -
           (cd "$D" && "$DAFNY" verify --verification-time-limit 120 countermodel_public_contract.dfy) | tee "$D/results/countermodel.log"
           sha256sum "$D/BackendContract.dfy" "$D/countermodel_public_contract.dfy" > "$D/results/SHA256SUMS.txt"
+
+      - name: Case B exact historical implementation counter-property
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=research/fse-classjump/countermodel
+          BASE=31bb53ec1e93936eb3a72cda31a2d042c9cdbbdb
+          ROOT=https://raw.githubusercontent.com/haalfi/remote-store
+          curl -L --fail --retry 3 "$ROOT/$BASE/sdd/formal/MemoryBackend.dfy" -o "$D/HISTORICAL_BASE_MemoryBackend.dfy"
+          echo '2c7bb2b6aa9b9c6818f2d0b610100c34756c24de7dc8f195019d7e9fefe6a487  '"$D/HISTORICAL_BASE_MemoryBackend.dfy" | sha256sum -c -
+          python3 "$D/make_historical_copy_counterimplementation.py" "$D/HISTORICAL_BASE_MemoryBackend.dfy" "$D/MemoryBackend_counterimplementation_probe.dfy" | tee "$D/results/historical_body_probe_generation.log"
+          (cd "$D" && "$DAFNY" verify --verification-time-limit 180 MemoryBackend_counterimplementation_probe.dfy) | tee "$D/results/historical_counterimplementation.log"
+          sha256sum "$D/HISTORICAL_BASE_MemoryBackend.dfy" "$D/MemoryBackend_counterimplementation_probe.dfy" "$D/MemoryBackend_counterimplementation_probe.dfy.body.sha256" >> "$D/results/SHA256SUMS.txt"
 
       - name: Recover exact PR 667 base/head source
         shell: bash

@@ -1,0 +1,76 @@
+name: fse-xeco-verus-expanded-spec-diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-verus-expanded-spec-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Post-replay expanded-spec diagnostic — not holdout replacement
+        shell: bash
+        run: |
+          set -u
+          OUT="$GITHUB_WORKSPACE/out"; mkdir -p "$OUT/logs" "$OUT/sources"
+          BASE=ce612f9252fe52fc8d4df3a317f39efae3ecb0df
+          HEAD=521f5e801c5321b1a9502f9955e0ef8c29606f65
+          UP=/tmp/verus
+          git clone --no-tags https://github.com/verus-lang/verus.git "$UP" > "$OUT/logs/clone.log" 2>&1
+          git -C "$UP" checkout "$HEAD" >> "$OUT/logs/clone.log" 2>&1
+          cp "$UP/source/vstd/cell.rs" "$OUT/sources/head-cell.rs"
+          git -C "$UP" show "$BASE:source/vstd/cell.rs" > "$OUT/sources/base-cell.rs"
+          printf 'This is a POST-REPLAY DIAGNOSTIC. It does not replace the preregistered head-background holdout matrix.\nIt expands S to include the historical wf/type_invariant representation change that caused S0 to be ill-formed in the frozen head background.\n' > "$OUT/NOTE.txt"
+          python3 - "$OUT" <<'PY'
+          from pathlib import Path
+          import sys
+          out=Path(sys.argv[1]); old=(out/'sources/base-cell.rs').read_text(); new=(out/'sources/head-cell.rs').read_text()
+          old_wf='''    pub closed spec fn wf(&self) -> bool {'''
+          new_wf='''    #[verifier::type_invariant]\n    closed spec fn wf(&self) -> bool {'''
+          old_req='''    pub fn get(&self) -> (val: T)\n        requires\n            self.wf(),\n        ensures\n            self.inv(val),\n    {'''
+          new_req='''    pub fn get(&self) -> (val: T)\n        ensures\n            self.inv(val),\n    {'''
+          proof='''\n        proof {\n            use_type_invariant(self);\n        }'''
+          for anchor in (new_wf,new_req,proof):
+              if anchor not in new: raise SystemExit('new anchor mismatch')
+          def mk(s_old,b_old):
+              t=new
+              if s_old:
+                  t=t.replace(new_wf,old_wf,1).replace(new_req,old_req,1)
+              if b_old:
+                  # only remove proof block in get, not replace; it is the first use_type_invariant in get/replace ordering? replace appears first.
+                  sig='    pub fn get(&self) -> (val: T)'; a=t.index(sig); p=t.index(proof,a); t=t[:p]+t[p+len(proof):]
+              return t
+          cases={'D00':mk(True,True),'D10':mk(True,False),'D01':mk(False,True),'D11':mk(False,False)}
+          for k,v in cases.items(): (out/'sources'/f'{k}-cell.rs').write_text(v)
+          assert cases['D11']==new
+          PY
+          sha256sum "$OUT/sources/"*.rs > "$OUT/sources/SHA256SUMS.txt"
+          cd "$UP/source"
+          ./tools/get-z3.sh > "$OUT/logs/get-z3.log" 2>&1
+          source ../tools/activate
+          printf 'case,exit_code,status\n' > "$OUT/results.csv"
+          # make prefix/suffix around entire head file unnecessary: each diagnostic source is a complete cell.rs.
+          for c in D00 D10 D01 D11; do
+            cp "$OUT/sources/$c-cell.rs" "$UP/source/vstd/cell.rs"
+            set +e
+            vargo build --release > "$OUT/logs/$c.log" 2>&1
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then st=PASS; else st=FAIL; fi
+            printf '%s,%s,%s\n' "$c" "$rc" "$st" >> "$OUT/results.csv"
+          done
+          cat "$OUT/results.csv"
+          find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-verus-expanded-spec-diagnostic
+          path: out
+          retention-days: 7

@@ -1,0 +1,182 @@
+name: fse-cross-ecosystem-holdout-scan
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-cross-ecosystem-holdout-scan.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: V1
+            ecosystem: verus
+            repo: verus-lang/verified-memory-allocator
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+          - id: V2
+            ecosystem: verus
+            repo: verus-lang/verified-ironkv
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: '*.rs'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+          - id: F2
+            ecosystem: fstar
+            repo: project-everest/mitls-fstar
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+          - id: F3
+            ecosystem: fstar
+            repo: FStarLang/FStar
+            regex: '\b(requires|ensures|decreases)\b'
+            paths: '*.fst *.fsti'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Clone frozen repository
+        shell: bash
+        env:
+          TARGET_REPO: ${{ matrix.repo }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-tags --single-branch "https://github.com/${TARGET_REPO}.git" src
+          git -C src rev-parse HEAD > head.txt
+          git -C src branch --show-current > branch.txt
+
+      - name: Build frozen blind queue
+        shell: bash
+        env:
+          HOLDOUT_ID: ${{ matrix.id }}
+          ECOSYSTEM: ${{ matrix.ecosystem }}
+          TARGET_REPO: ${{ matrix.repo }}
+          TOKEN_REGEX: ${{ matrix.regex }}
+          PATHS: ${{ matrix.paths }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/raw_patches out/blind
+          python3 - <<'PY'
+          import csv, gzip, hashlib, os, re, subprocess
+          from pathlib import Path
+
+          repo=Path('src')
+          out=Path('out')
+          hid=os.environ['HOLDOUT_ID']
+          eco=os.environ['ECOSYSTEM']
+          target=os.environ['TARGET_REPO']
+          token_re=re.compile(os.environ['TOKEN_REGEX'])
+          pathspec=os.environ['PATHS'].split()
+
+          def run(args, check=True):
+              p=subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
+              return p.stdout.decode('utf-8','replace')
+
+          # git log itself establishes the frozen date-desc queue.
+          cmd=['git','-C',str(repo),'log','--date-order','--format=%H%x09%P%x09%cI%x09%s','-G'+os.environ['TOKEN_REGEX'],'--']+pathspec
+          log=run(cmd)
+          raw=[]
+          for line in log.splitlines():
+              parts=line.split('\t',3)
+              if len(parts)!=4: continue
+              sha, parents, date, subject=parts
+              ps=parents.split()
+              raw.append((sha, ps, date, subject))
+
+          def changed_kind(s):
+              t=s.strip()
+              if not t: return 'blank'
+              if t.startswith('//') or t.startswith('/*') or t.startswith('*') or t.startswith('*/'):
+                  return 'comment'
+              if token_re.search(t): return 'contract'
+              if re.fullmatch(r'[{}()\[\];,:]+', t): return 'delimiter'
+              return 'other'
+
+          prov=[]
+          selected=0
+          examined=0
+          roots=0
+          for sha, parents, date, subject in raw:
+              if not parents:
+                  roots += 1
+                  continue
+              parent=parents[0]
+              examined += 1
+              patch_b=subprocess.run(['git','-C',str(repo),'diff','--no-ext-diff','--unified=3',parent,sha,'--']+pathspec,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
+              patch=patch_b.decode('utf-8','replace')
+              # Determine same-hunk structural queue membership.
+              h_contract=h_other=False
+              same=False
+              contract_lines=other_lines=0
+              for line in patch.splitlines()+['@@ END @@']:
+                  if line.startswith('@@'):
+                      if h_contract and h_other: same=True
+                      h_contract=h_other=False
+                      continue
+                  if not ((line.startswith('+') or line.startswith('-')) and not line.startswith('+++') and not line.startswith('---')):
+                      continue
+                  kind=changed_kind(line[1:])
+                  if kind=='contract':
+                      contract_lines += 1; h_contract=True
+                  elif kind=='other':
+                      other_lines += 1; h_other=True
+              if not same:
+                  continue
+              selected += 1
+              cid=f'{hid}-C{selected:03d}'
+              phash=hashlib.sha256(patch_b).hexdigest()
+              with gzip.open(out/'raw_patches'/f'{cid}.diff.gz','wb',compresslevel=9) as f:
+                  f.write(patch_b)
+              # Blind packet hides repository, SHA, date, subject, and blob index hashes.
+              sanitized=[]
+              for line in patch.splitlines():
+                  if line.startswith('index '):
+                      continue
+                  sanitized.append(line)
+              (out/'blind'/f'{cid}.patch').write_text('\n'.join(sanitized)+'\n',encoding='utf-8')
+              prov.append({
+                  'candidate_id':cid,'ecosystem':eco,'repo':target,'commit':sha,'parent':parent,
+                  'date':date,'subject':subject,'contract_changed_lines':contract_lines,
+                  'other_changed_lines':other_lines,'patch_sha256':phash
+              })
+              if selected >= 40:
+                  break
+
+          fields=['candidate_id','ecosystem','repo','commit','parent','date','subject','contract_changed_lines','other_changed_lines','patch_sha256']
+          with (out/'provenance.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(prov)
+          with (out/'scan_summary.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f)
+              w.writerow(['holdout_id','ecosystem','repo','default_branch_head','contract_diff_commits_found','root_hits','contract_diff_commits_examined','same_hunk_queue_preserved','queue_cap'])
+              head=Path('head.txt').read_text().strip()
+              w.writerow([hid,eco,target,head,len(raw),roots,examined,selected,40])
+          (out/'METHOD.md').write_text(
+              '# Frozen holdout discovery packet\n\n'
+              f'ID: {hid}\nEcosystem: {eco}\nRepository: {target}\n\n'
+              'Generated under the committed freeze receipts. `blind/` omits repository/commit/date/subject metadata; `provenance.csv` retains the mapping. '\
+              'The same-hunk flag is a mechanical discovery queue only, not a semantic co-evolution label.\n', encoding='utf-8')
+          print((out/'scan_summary.csv').read_text())
+          PY
+          find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+
+      - name: Upload holdout packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: holdout-${{ matrix.id }}
+          path: out
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,87 @@
+name: xeco-chunk-fallback-v2
+on:
+  push:
+    paths: ['.github/workflows/xeco-chunk-fallback-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: V1A, arm: V1, eco: V, repo: verus-lang/verus, since: '2018-01-01', until: '2021-12-31 23:59:59'}
+          - {id: V1B, arm: V1, eco: V, repo: verus-lang/verus, since: '2022-01-01', until: '2023-12-31 23:59:59'}
+          - {id: V1C, arm: V1, eco: V, repo: verus-lang/verus, since: '2024-01-01', until: '2025-12-31 23:59:59'}
+          - {id: V1D, arm: V1, eco: V, repo: verus-lang/verus, since: '2026-01-01', until: '2026-09-26 23:59:59'}
+          - {id: F1A, arm: F1, eco: F, repo: FStarLang/FStar, since: '2018-01-01', until: '2021-12-31 23:59:59'}
+          - {id: F1B, arm: F1, eco: F, repo: FStarLang/FStar, since: '2022-01-01', until: '2023-12-31 23:59:59'}
+          - {id: F1C, arm: F1, eco: F, repo: FStarLang/FStar, since: '2024-01-01', until: '2025-12-31 23:59:59'}
+          - {id: F1D, arm: F1, eco: F, repo: FStarLang/FStar, since: '2026-01-01', until: '2026-09-26 23:59:59'}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Scan exact frozen date chunk
+        shell: bash
+        env:
+          ID: ${{ matrix.id }}
+          ARM: ${{ matrix.arm }}
+          ECO: ${{ matrix.eco }}
+          REPO: ${{ matrix.repo }}
+          SINCE: ${{ matrix.since }}
+          UNTIL: ${{ matrix.until }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/patches
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          if [ "$ECO" = V ]; then EXTS=('*.rs'); else EXTS=('*.fst' '*.fsti'); fi
+          git -C repo log --all --no-merges --since="$SINCE" --until="$UNTIL" --format='%H' -G'(requires|ensures)' -- "${EXTS[@]}" | awk 'NF' | sort -u > out/commits.txt
+          ID="$ID" ARM="$ARM" ECO="$ECO" REPO="$REPO" SINCE="$SINCE" UNTIL="$UNTIL" python3 - <<'PY'
+          import csv,gzip,hashlib,os,re,subprocess
+          from pathlib import Path
+          R=Path('repo'); O=Path('out'); P=O/'patches'; eco=os.environ['ECO']; name=os.environ['REPO']
+          shas=[x.strip() for x in (O/'commits.txt').read_text().splitlines() if x.strip()]
+          pri=re.compile(r'\b(requires|ensures)\b'); exts=['*.rs'] if eco=='V' else ['*.fst','*.fsti']
+          def git(*a):return subprocess.run(['git','-C',str(R),*a],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+          rows=[]
+          for i,sha in enumerate(shas,1):
+            ps=git('rev-list','--parents','-n','1',sha).decode().strip().split()
+            if len(ps)<2:continue
+            par=ps[1]; date=git('show','-s','--format=%cs',sha).decode().strip(); subj=git('show','-s','--format=%s',sha).decode('utf8','replace').strip()
+            pb=git('diff','--no-ext-diff','--unified=3',par,sha,'--',*exts); txt=pb.decode('utf8','replace')
+            pc=oc=0; hp=ho=False; same=False; fs=[]
+            for ln in txt.splitlines():
+              if ln.startswith('diff --git '):
+                z=ln.split();
+                if len(z)>=4:fs.append(z[2][2:])
+              if ln.startswith('@@'):
+                if hp and ho:same=True
+                hp=ho=False;continue
+              if not (ln.startswith('+') or ln.startswith('-')) or ln.startswith('+++') or ln.startswith('---'):continue
+              s=ln[1:].strip()
+              if not s:continue
+              if pri.search(s):pc+=1;hp=True;continue
+              if s.startswith(('//','/*','*','*/','(*','*)')):continue
+              if re.fullmatch(r'[{}();,]+',s):continue
+              oc+=1;ho=True
+            if hp and ho:same=True
+            if same:
+              with gzip.open(P/f'{sha}.diff.gz','wb',compresslevel=9) as f:f.write(pb)
+            rows.append([os.environ['ID'],os.environ['ARM'],eco,name,sha,par,date,subj,';'.join(sorted(set(fs))),pc,oc,int(oc>0),int(same),hashlib.sha256(pb).hexdigest()])
+            if i%250==0:print(os.environ['ID'],i,len(shas),flush=True)
+          fields=['chunk','arm','ecosystem','repo','commit','parent','date','subject','changed_files','primary_contract_changed_lines','other_changed_lines','structural_candidate','same_hunk_candidate','patch_sha256']
+          with (O/'candidates.csv').open('w',newline='',encoding='utf8') as f:w=csv.writer(f);w.writerow(fields);w.writerows(rows)
+          with (O/'summary.csv').open('w',newline='',encoding='utf8') as f:w=csv.writer(f);w.writerow(['chunk','arm','ecosystem','repo','since','until','contract_commits','processable','structural','same_hunk']);w.writerow([os.environ['ID'],os.environ['ARM'],eco,name,os.environ['SINCE'],os.environ['UNTIL'],len(shas),len(rows),sum(r[11] for r in rows),sum(r[12] for r in rows)])
+          print((O/'summary.csv').read_text())
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\n' > out/provenance.csv
+          sha256sum out/*.csv out/commits.txt > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chunk-${{ matrix.id }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

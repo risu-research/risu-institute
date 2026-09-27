@@ -1,3 +1,4 @@
+# archive-only fallback probe; no replay
 name: fse-xeco-fstar-toolchain-probe-fast
 
 on:

@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Four-cell replay with historical hint-file rule
+      - name: Four-cell replay with near-historical F* weekly binary
         shell: bash
         run: |
           set -euo pipefail
@@ -37,19 +37,22 @@ jobs:
             with (w/c/'CELL_SHA256.txt').open('w') as f:
               for x in [i,s]: f.write(hashlib.sha256((w/c/x).read_bytes()).hexdigest()+'  '+x+'\n')
           PY
-          curl -L --retry 3 -sS -o "$WORK/fstar.tar.gz" https://github.com/FStarLang/FStar/releases/download/v2021.05.28/fstar_2021.05.28_Linux_x86_64.tar.gz
+          curl -L --retry 3 -sS -o "$WORK/fstar.tar.gz" https://raw.githubusercontent.com/FStarLang/binaries/master/weekly/fstar_202103220652_694b7c79cd_Linux_x86_64.tar.gz
           mkdir "$WORK/FStar"; tar -xzf "$WORK/fstar.tar.gz" -C "$WORK/FStar" --strip-components=1
-          FSTAR="$WORK/FStar/bin/fstar.exe"; "$FSTAR" --version > "$OUT/fstar-version.txt"
-          curl -L --retry 3 -sS -o "$WORK/z3.zip" https://raw.githubusercontent.com/FStarLang/binaries/master/z3-tested/z3-4.8.5-x64-ubuntu-16.04.zip
-          mkdir "$WORK/z3"; unzip -q "$WORK/z3.zip" -d "$WORK/z3"
-          Z3BIN=$(find "$WORK/z3" -type f -name z3 | head -1); chmod +x "$Z3BIN"; export PATH="$(dirname "$Z3BIN"):$PATH"
-          z3 --version > "$OUT/z3-version.txt"
+          FSTAR=$(find "$WORK/FStar" -type f -name fstar.exe | head -1); chmod +x "$FSTAR"; "$FSTAR" --version > "$OUT/fstar-version.txt"
+          Z3BIN=$(find "$WORK/FStar" -type f -name z3 | head -1 || true)
+          if [ -z "$Z3BIN" ]; then
+            curl -L --retry 3 -sS -o "$WORK/z3.zip" https://raw.githubusercontent.com/FStarLang/binaries/master/z3-tested/z3-4.8.5-x64-ubuntu-16.04.zip
+            mkdir "$WORK/z3"; unzip -q "$WORK/z3.zip" -d "$WORK/z3"; Z3BIN=$(find "$WORK/z3" -type f -name z3 | head -1)
+          fi
+          chmod +x "$Z3BIN"; export PATH="$(dirname "$Z3BIN"):$PATH"; z3 --version > "$OUT/z3-version.txt"
+          FSTAR_ROOT=$(cd "$(dirname "$FSTAR")/.." && pwd)
           printf 'cell,attempt,dep_rc,verify_rc,status,last_line\n' > "$OUT/results.csv"
           set +e
           for c in B0S0 B1S0 B0S1 B1S1; do
             d="$WORK/$c"; rm -rf "$d/obj"; mkdir "$d/obj"
             INC=""
-            for x in "$d/lib" "$d/specs" "$d/specs/lemmas" "$d/code/hash" "$d/code/hmac" "$d/code/hkdf" "$d/code/poly1305" "$d/code/chacha20" "$d/code/chacha20poly1305" "$d/code/streaming" "$d/code/blake2" "$d/code/curve25519" "$WORK/FStar/ulib/.cache" "$WORK/FStar/ulib"; do [ -d "$x" ] && INC="$INC --include $x"; done
+            for x in "$d/lib" "$d/specs" "$d/specs/lemmas" "$d/code/hash" "$d/code/hmac" "$d/code/hkdf" "$d/code/poly1305" "$d/code/chacha20" "$d/code/chacha20poly1305" "$d/code/streaming" "$d/code/blake2" "$d/code/curve25519" "$FSTAR_ROOT/ulib/.cache" "$FSTAR_ROOT/ulib"; do [ -d "$x" ] && INC="$INC --include $x"; done
             FLAGS="--odir $d/obj --cache_checked_modules $INC --cmi --already_cached 'Prims FStar LowStar C Spec.Loops TestLib WasmSupport' --cache_dir $d/obj --trivial_pre_for_unannotated_effectful_fns false --warn_error '+241@247-272' --z3rlimit 100"
             cd "$d/code/chacha20poly1305"
             eval "$FSTAR $FLAGS --dep full Hacl.Impl.Chacha20Poly1305.fst --warn_error '-285'" > "$OUT/$c.deps.mk" 2> "$OUT/$c.dep.err"
@@ -68,7 +71,7 @@ jobs:
             else rc=99; cp "$OUT/$c.dep.err" "$OUT/$c.verify.log"; fi
             [ $rc -eq 0 ] && st=PASS || st=FAIL_OR_INFRA
             last=$(tail -n 1 "$OUT/$c.verify.log" | tr ',' ';' | tr '\n' ' ')
-            printf '%s,G_hints_z3rlimit100_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
+            printf '%s,H_weekly_2021-03-22,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
           done
           set -e
           printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
@@ -78,7 +81,7 @@ jobs:
           find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: fstar-holdout-pr413-attemptG
+          name: fstar-holdout-pr413-attemptH
           path: fstar-holdout-out
           if-no-files-found: error
           retention-days: 7

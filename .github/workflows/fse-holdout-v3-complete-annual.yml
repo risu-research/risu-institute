@@ -1,0 +1,94 @@
+name: fse-holdout-v3-complete-annual
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-holdout-v3-complete-annual.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  annual:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {chunk: y2026, since: '2026-01-01T00:00:00Z', until: '2026-12-31T23:59:59Z'}
+          - {chunk: y2025, since: '2025-01-01T00:00:00Z', until: '2025-12-31T23:59:59Z'}
+          - {chunk: y2024, since: '2024-01-01T00:00:00Z', until: '2024-12-31T23:59:59Z'}
+          - {chunk: y2023, since: '2023-01-01T00:00:00Z', until: '2023-12-31T23:59:59Z'}
+          - {chunk: y2022, since: '2022-01-01T00:00:00Z', until: '2022-12-31T23:59:59Z'}
+          - {chunk: y2021, since: '2021-01-01T00:00:00Z', until: '2021-12-31T23:59:59Z'}
+          - {chunk: pre2021, since: '1970-01-01T00:00:00Z', until: '2020-12-31T23:59:59Z'}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Clone frozen V3 repository
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-tags --single-branch https://github.com/verus-lang/verus.git src
+          git -C src rev-parse HEAD > head.txt
+
+      - name: Build complete annual blind queue
+        env:
+          CHUNK: ${{ matrix.chunk }}
+          SINCE: ${{ matrix.since }}
+          UNTIL: ${{ matrix.until }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/blind out/raw_patches
+          python3 - <<'PY'
+          import csv,gzip,hashlib,os,re,subprocess
+          from pathlib import Path
+          repo=Path('src'); out=Path('out')
+          rx=r'\b(requires|ensures|invariant|decreases|recommends)\b'; cre=re.compile(rx)
+          cmd=['git','-C',str(repo),'log','--date-order','--format=%H%x09%P%x09%cI%x09%s','--since='+os.environ['SINCE'],'--until='+os.environ['UNTIL'],'-G'+rx,'--','*.rs']
+          p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True)
+          hits=[]
+          for line in p.stdout.decode('utf-8','replace').splitlines():
+              z=line.split('\t',3)
+              if len(z)==4:hits.append((z[0],z[1].split(),z[2],z[3]))
+          def kind(s):
+              t=s.strip()
+              if not t:return 'blank'
+              if t.startswith('//') or t.startswith('/*') or t.startswith('*') or t.startswith('*/'):return 'comment'
+              if cre.search(t):return 'contract'
+              if re.fullmatch(r'[{}()\[\];,:]+',t):return 'delimiter'
+              return 'other'
+          prov=[]; roots=0; examined=0; selected=0
+          for sha,parents,date,subject in hits:
+              if not parents:roots+=1;continue
+              examined+=1; parent=parents[0]
+              pb=subprocess.run(['git','-C',str(repo),'diff','--no-ext-diff','--unified=3',parent,sha,'--','*.rs'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+              patch=pb.decode('utf-8','replace'); hc=ho=False;same=False;nc=no=0
+              for line in patch.splitlines()+['@@ END @@']:
+                  if line.startswith('@@'):
+                      if hc and ho:same=True
+                      hc=ho=False;continue
+                  if not ((line.startswith('+') or line.startswith('-')) and not line.startswith('+++') and not line.startswith('---')):continue
+                  k=kind(line[1:])
+                  if k=='contract':nc+=1;hc=True
+                  elif k=='other':no+=1;ho=True
+              if not same:continue
+              selected+=1; cid=f"V3-{os.environ['CHUNK']}-Q{selected:04d}"
+              ph=hashlib.sha256(pb).hexdigest()
+              with gzip.open(out/'raw_patches'/f'{cid}.diff.gz','wb',9) as f:f.write(pb)
+              (out/'blind'/f'{cid}.patch').write_text('\n'.join(x for x in patch.splitlines() if not x.startswith('index '))+'\n',encoding='utf-8')
+              prov.append({'candidate_id':cid,'commit':sha,'parent':parent,'date':date,'subject':subject,'contract_changed_lines':nc,'other_changed_lines':no,'patch_sha256':ph})
+          fields=['candidate_id','commit','parent','date','subject','contract_changed_lines','other_changed_lines','patch_sha256']
+          with (out/'provenance.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(prov)
+          with (out/'summary.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f);w.writerow(['chunk','since','until','head','contract_hits','examined','roots','same_hunk_total']);w.writerow([os.environ['CHUNK'],os.environ['SINCE'],os.environ['UNTIL'],Path('head.txt').read_text().strip(),len(hits),examined,roots,selected])
+          print((out/'summary.csv').read_text())
+          PY
+          find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holdout-v3-complete-${{ matrix.chunk }}
+          path: out
+          if-no-files-found: error
+          retention-days: 7

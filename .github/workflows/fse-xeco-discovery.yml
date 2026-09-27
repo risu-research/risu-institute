@@ -1,0 +1,114 @@
+name: fse-xeco-discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frozen discovery only
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=out
+          mkdir -p "$OUT"
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, csv, re, hashlib, os
+
+          out=Path('out')
+          specs=[
+            dict(stratum='V', repo='https://github.com/verus-lang/verus.git', name='verus', exts=['*.rs'], cre=r'\b(requires|ensures|invariant|decreases|recommends)\b'),
+            dict(stratum='F', repo='https://github.com/FStarLang/FStar.git', name='fstar', exts=['*.fst','*.fsti'], cre=r'\b(requires|ensures|decreases)\b'),
+          ]
+          def run(cmd,cwd=None,check=True):
+              return subprocess.run(cmd,cwd=cwd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,check=check)
+          allrows=[]
+          for sp in specs:
+              root=Path('/tmp')/sp['name']
+              if root.exists(): subprocess.run(['rm','-rf',str(root)])
+              # partial clone, full reachable default-branch history, no tags
+              run(['git','clone','--filter=blob:none','--no-tags',sp['repo'],str(root)])
+              head=run(['git','rev-parse','HEAD'],cwd=root).stdout.strip()
+              branch=run(['git','branch','--show-current'],cwd=root).stdout.strip()
+              (out/f"{sp['stratum']}_frame.txt").write_text(f"repo={sp['repo']}\nhead={head}\nbranch={branch}\nsince=2024-01-01\n")
+              cre=re.compile(sp['cre'])
+              # enumerate commits with textual contract-lexeme diffs, default branch ancestry only
+              cmd=['git','log','--since=2024-01-01','--format=%H']
+              for ext in sp['exts']:
+                  # git pathspecs appended after --
+                  pass
+              # -G across relevant source
+              cmd=['git','log','--since=2024-01-01','--format=%H','-G',sp['cre'],'--',*sp['exts']]
+              shas=[]
+              for s in run(cmd,cwd=root).stdout.splitlines():
+                  s=s.strip()
+                  if s and s not in shas: shas.append(s)
+              rows=[]
+              for sha in shas:
+                  ps=run(['git','rev-list','--parents','-n','1',sha],cwd=root).stdout.strip().split()
+                  if len(ps)<2: continue
+                  parent=ps[1]
+                  date=run(['git','show','-s','--format=%cI',sha],cwd=root).stdout.strip()
+                  subj=run(['git','show','-s','--format=%s',sha],cwd=root).stdout.strip()
+                  args=['git','diff','--no-ext-diff','--unified=3',parent,sha,'--',*sp['exts']]
+                  pb=subprocess.run(args,cwd=root,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+                  patch=pb.decode('utf-8','replace')
+                  file_count=0; contract=0; other=0; sameh=False
+                  hf_c=False; hf_o=False
+                  files=[]
+                  for line in patch.splitlines():
+                      if line.startswith('diff --git '):
+                          file_count+=1
+                          parts=line.split(' b/',1)
+                          files.append(parts[1] if len(parts)==2 else line)
+                          continue
+                      if line.startswith('@@'):
+                          if hf_c and hf_o: sameh=True
+                          hf_c=hf_o=False
+                          continue
+                      if not (line.startswith('+') or line.startswith('-')) or line.startswith('+++') or line.startswith('---'):
+                          continue
+                      s=line[1:].strip()
+                      if not s: continue
+                      if cre.search(s): contract+=1; hf_c=True; continue
+                      if s.startswith('//') or s.startswith('/*') or s.startswith('*') or s.startswith('///') or s.startswith('#'):
+                          continue
+                      if re.fullmatch(r'[{}();,\[\]]+',s): continue
+                      other+=1; hf_o=True
+                  if hf_c and hf_o: sameh=True
+                  row=dict(stratum=sp['stratum'],commit=sha,parent=parent,date=date,subject=subj,
+                           source_files=file_count,contract_changed_lines=contract,other_changed_lines=other,
+                           total_semantic_lines=contract+other,same_hunk=int(sameh),files=';'.join(files),patch_sha256=hashlib.sha256(pb).hexdigest())
+                  rows.append(row); allrows.append(row)
+              rows.sort(key=lambda r:(r['source_files'],r['total_semantic_lines'],r['date'],r['commit']))
+              if rows:
+                  with (out/f"{sp['stratum']}_candidates.csv").open('w',newline='') as f:
+                      w=csv.DictWriter(f,fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+              (out/f"{sp['stratum']}_summary.txt").write_text(
+                  f"contract_diff_commits={len(rows)}\n"
+                  f"broad_structural={sum(r['other_changed_lines']>0 for r in rows)}\n"
+                  f"same_hunk={sum(r['same_hunk'] for r in rows)}\n")
+          if allrows:
+              with (out/'combined_candidates.csv').open('w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=allrows[0].keys()); w.writeheader(); w.writerows(allrows)
+          (out/'DISCOVERY_NOTE.md').write_text(
+              '# Frozen discovery output\n\nThis workflow enumerates lexeme-bearing historical diffs only. It does not construct or run counterfactual hybrids and does not select on verifier outcomes. The committed preregistration is the governing protocol. Same-hunk is a discovery diagnostic, not an eligibility judgment.\n')
+          subprocess.run("sha256sum out/* > out/SHA256SUMS.txt",shell=True,check=True)
+          PY
+          cat out/V_summary.txt
+          cat out/F_summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-discovery
+          path: out
+          retention-days: 7

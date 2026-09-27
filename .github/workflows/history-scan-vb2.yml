@@ -1,0 +1,33 @@
+name: history-scan-vb2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/history-scan-vb2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Run aligned pickaxe
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --mirror https://github.com/vmware-labs/verified-betrfs.git repo.git
+          git -C repo.git for-each-ref --format='delete %(refname)' refs/tags | git -C repo.git update-ref --stdin
+          mkdir -p out
+          git -C repo.git rev-list --all --count -- '*.dfy' | tee out/dfy_commits.txt
+          git -C repo.git log --all --format='%H' -G'(requires|ensures|invariant|modifies|reads|decreases)' -- '*.dfy' | awk 'NF' | sort -u > out/contract_commits.txt
+          wc -l out/contract_commits.txt | tee out/contract_diff_count.txt
+          printf '%s\n' 'Discovery audit only; not a prevalence estimate or semantic-repair count.' > out/BOUNDARY.txt
+          sha256sum out/* > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-scan-vb2
+          path: out
+          retention-days: 7

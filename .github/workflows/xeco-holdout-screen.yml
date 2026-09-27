@@ -1,0 +1,106 @@
+name: xeco-holdout-screen
+on:
+  push:
+    paths: ['.github/workflows/xeco-holdout-screen.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: V1, eco: V, repo: verus-lang/verus}
+          - {id: V2, eco: V, repo: verus-lang/verified-memory-allocator}
+          - {id: V3, eco: V, repo: secure-foundations/vest}
+          - {id: V4, eco: V, repo: verus-lang/verified-ironkv}
+          - {id: V5, eco: V, repo: anvil-verifier/verus-tla}
+          - {id: F1, eco: F, repo: FStarLang/FStar}
+          - {id: F2, eco: F, repo: project-everest/mitls-fstar}
+          - {id: F3, eco: F, repo: AeneasVerif/aeneas}
+          - {id: F4, eco: F, repo: catalin-hritcu/fstar-course}
+          - {id: F5, eco: F, repo: danelahman/esp32-fstar}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Scan frozen repository history
+        shell: bash
+        env:
+          ID: ${{ matrix.id }}
+          ECO: ${{ matrix.eco }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/patches
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          if [ "$ECO" = V ]; then
+            paths=( '*.rs' )
+            primary='\b(requires|ensures)\b'
+            secondary='\b(invariant|decreases|recommends)\b'
+          else
+            paths=( '*.fst' '*.fsti' )
+            primary='\b(requires|ensures)\b'
+            secondary='\b(decreases|Lemma)\b|^[[:space:]]*val[[:space:]]'
+          fi
+          git -C repo log --all --no-merges --since='2018-01-01' --until='2026-09-26 23:59:59' --format='%H' -G'(requires|ensures)' -- "${paths[@]}" | awk 'NF' | sort -u > out/primary_commits.txt
+          git -C repo log --all --no-merges --since='2018-01-01' --until='2026-09-26 23:59:59' --format='%H' -G'(requires|ensures|invariant|decreases|recommends|Lemma|val )' -- "${paths[@]}" | awk 'NF' | sort -u > out/broad_commits.txt
+          REPO="$REPO" ECO="$ECO" ID="$ID" python3 - <<'PY'
+          import csv,gzip,hashlib,os,re,subprocess
+          from pathlib import Path
+          repo=Path('repo'); out=Path('out'); patches=out/'patches'
+          eco=os.environ['ECO']; name=os.environ['REPO']; rid=os.environ['ID']
+          pri=re.compile(r'\b(requires|ensures)\b')
+          sec=re.compile(r'\b(invariant|decreases|recommends|Lemma)\b|^\s*val\s+')
+          shas=[x.strip() for x in (out/'primary_commits.txt').read_text().splitlines() if x.strip()]
+          rows=[]; roots=0; same=0; structural=0
+          def run(*a, check=True):
+              return subprocess.run(['git','-C',str(repo),*a],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=check).stdout
+          for i,sha in enumerate(shas,1):
+              ps=run('rev-list','--parents','-n','1',sha).decode().strip().split()
+              if len(ps)<2: roots+=1; continue
+              parent=ps[1]
+              date=run('show','-s','--format=%cs',sha).decode().strip()
+              subj=run('show','-s','--format=%s',sha).decode('utf-8','replace').strip()
+              exts=['*.rs'] if eco=='V' else ['*.fst','*.fsti']
+              pb=run('diff','--no-ext-diff','--unified=3',parent,sha,'--',*exts)
+              txt=pb.decode('utf-8','replace')
+              pcount=ocount=0; hpri=hother=False; same_h=False; files=[]
+              for ln in txt.splitlines():
+                  if ln.startswith('diff --git '):
+                      parts=ln.split();
+                      if len(parts)>=4: files.append(parts[2][2:])
+                  if ln.startswith('@@'):
+                      if hpri and hother: same_h=True
+                      hpri=hother=False; continue
+                  if not (ln.startswith('+') or ln.startswith('-')) or ln.startswith('+++') or ln.startswith('---'): continue
+                  s=ln[1:].strip()
+                  if not s: continue
+                  if pri.search(s): pcount+=1; hpri=True; continue
+                  if s.startswith('//') or s.startswith('/*') or s.startswith('*') or s.startswith('(*') or s.startswith('*') or s.startswith('*)'): continue
+                  if re.fullmatch(r'[{}();,]+',s): continue
+                  ocount+=1; hother=True
+              if hpri and hother: same_h=True
+              if ocount: structural+=1
+              if same_h:
+                  same+=1
+                  with gzip.open(patches/f'{sha}.diff.gz','wb',compresslevel=9) as f: f.write(pb)
+              rows.append({'id':rid,'ecosystem':eco,'repo':name,'commit':sha,'parent':parent,'date':date,'subject':subj,'changed_files':';'.join(sorted(set(files))),'primary_contract_changed_lines':pcount,'other_changed_lines':ocount,'structural_candidate':int(ocount>0),'same_hunk_candidate':int(same_h),'patch_sha256':hashlib.sha256(pb).hexdigest()})
+              if i%250==0: print(name,'processed',i,'/',len(shas),flush=True)
+          fields=['id','ecosystem','repo','commit','parent','date','subject','changed_files','primary_contract_changed_lines','other_changed_lines','structural_candidate','same_hunk_candidate','patch_sha256']
+          with (out/'candidates.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          with (out/'summary.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f); w.writerow(['id','ecosystem','repo','primary_contract_commits','processable_rows','structural_candidates','same_hunk_candidates','root_commits']); w.writerow([rid,eco,name,len(shas),len(rows),structural,same,roots])
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\nrepo,%s\necosystem,%s\n' "$REPO" "$ECO" > out/provenance.csv
+          sha256sum out/candidates.csv out/summary.csv out/primary_commits.txt out/broad_commits.txt > out/SHA256SUMS.txt
+          cat out/summary.csv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xeco-${{ matrix.id }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

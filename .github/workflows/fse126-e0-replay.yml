@@ -1,0 +1,80 @@
+name: FSE126 E0 census replay
+
+on:
+  push:
+    branches: ['research/fse126-semantic-census-20260927']
+    paths:
+      - '.github/workflows/fse126-e0-replay.yml'
+      - 'research/fse126-census/run_e0_replay.py'
+      - 'research/fse126-census/REPLAY_ENVIRONMENT_AND_CELL_FREEZE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  u003:
+    name: U003 Clover Dafny ${{ matrix.dafny }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        dafny: ['4.3.0', '4.4.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: ${{ matrix.dafny }}
+      - name: Record toolchain
+        run: |
+          mkdir -p out/U003
+          dafny --version | tee out/U003/dafny-version.txt
+      - name: Execute exact-fragment four-way replay
+        run: python3 research/fse126-census/run_e0_replay.py --unit U003
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fse126-U003-dafny-${{ matrix.dafny }}
+          path: out/U003
+          if-no-files-found: warn
+          retention-days: 30
+
+  u030:
+    name: U030 evm-dafny historical 4.4.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: '4.4.0'
+      - name: Record toolchain
+        run: |
+          mkdir -p out/U030
+          dafny --version | tee out/U030/dafny-version.txt
+      - name: Execute fixed-context four-way replay
+        run: python3 research/fse126-census/run_e0_replay.py --unit U030
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fse126-U030-dafny-4.4.0
+          path: out/U030
+          if-no-files-found: warn
+          retention-days: 30
+
+  u052:
+    name: U052 mechanical-isolation audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute R3 isolation audit
+        run: python3 research/fse126-census/run_e0_replay.py --unit U052
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fse126-U052-isolation-audit
+          path: out/U052
+          if-no-files-found: warn
+          retention-days: 30

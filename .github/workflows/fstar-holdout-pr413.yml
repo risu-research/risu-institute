@@ -1,112 +1,80 @@
 name: fstar-holdout-pr413
-
 on:
   push:
-    paths:
-      - '.github/workflows/fstar-holdout-pr413.yml'
+    paths: ['.github/workflows/fstar-holdout-pr413.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   replay:
     runs-on: ubuntu-22.04
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Build exact four-cell historical replay
+      - name: Target-only four-cell replay
         shell: bash
         run: |
           set -euo pipefail
-          OUT="$GITHUB_WORKSPACE/fstar-holdout-out"
-          WORK=/tmp/fstar413
-          BASE=190ad51e37fc1009d7f97492a533bf9f0cffb50e
-          HEAD=aef9671b5ace8112e9469a855bdbf39036ce6a94
+          OUT="$GITHUB_WORKSPACE/fstar-holdout-out"; WORK=/tmp/fstar413
+          BASE=190ad51e37fc1009d7f97492a533bf9f0cffb50e; HEAD=aef9671b5ace8112e9469a855bdbf39036ce6a94
           rm -rf "$OUT" "$WORK"; mkdir -p "$OUT" "$WORK"
           git clone -q https://github.com/hacl-star/hacl-star.git "$WORK/repo"
-          git -C "$WORK/repo" cat-file -e "$BASE^{commit}"
-          git -C "$WORK/repo" cat-file -e "$HEAD^{commit}"
-          for c in B0S0 B1S0 B0S1 B1S1; do
-            mkdir -p "$WORK/$c"
-            git -C "$WORK/repo" archive "$HEAD" | tar -x -C "$WORK/$c"
-          done
-          mkdir -p "$WORK/base"
-          git -C "$WORK/repo" archive "$BASE" | tar -x -C "$WORK/base"
-
+          for c in B0S0 B1S0 B0S1 B1S1; do mkdir -p "$WORK/$c"; git -C "$WORK/repo" archive "$HEAD" | tar -x -C "$WORK/$c"; done
+          mkdir -p "$WORK/base"; git -C "$WORK/repo" archive "$BASE" | tar -x -C "$WORK/base"
           python3 - "$WORK" <<'PY'
           from pathlib import Path
-          import sys, hashlib
-          w=Path(sys.argv[1])
-          impl='code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst'
-          spec='specs/Spec.Chacha20Poly1305.fst'
-          base_i=(w/'base'/impl).read_text(); head_i=(w/'B1S1'/impl).read_text()
-          base_s=(w/'base'/spec).read_text(); head_s=(w/'B1S1'/spec).read_text()
-          old_contract='    let acc = Spec.poly1305_padded r (as_seq h0 aad) acc in\n'
-          new_contract='    let acc = if (length aad <> 0) then Spec.poly1305_padded r (as_seq h0 aad) acc else acc in\n'
-          old_body='  poly1305_padded ctx aadlen aad;\n'
-          new_body='  if (aadlen <> 0ul) then (\n    poly1305_padded ctx aadlen aad)\n  else ();\n'
-          old_spec='  let acc = poly1305_padded r aad acc in\n'
-          new_spec='  let acc = if (length aad <> 0) then poly1305_padded r aad acc else acc in\n'
-          assert base_i.count(old_contract)==1 and head_i.count(new_contract)==1
-          assert base_i.count(old_body)==1 and head_i.count(new_body)==1
-          assert base_s.count(old_spec)==1 and head_s.count(new_spec)==1
-          b0s0_i=head_i.replace(new_contract,old_contract).replace(new_body,old_body)
-          b0s0_s=head_s.replace(new_spec,old_spec)
-          assert b0s0_i==base_i, 'impl endpoint differs beyond isolated deltas'
-          assert b0s0_s==base_s, 'spec endpoint differs beyond isolated deltas'
-          (w/'B0S0'/impl).write_text(b0s0_i); (w/'B0S0'/spec).write_text(b0s0_s)
-          (w/'B1S0'/impl).write_text(head_i.replace(new_contract,old_contract))
-          (w/'B1S0'/spec).write_text(head_s.replace(new_spec,old_spec))
-          (w/'B0S1'/impl).write_text(head_i.replace(new_body,old_body))
-          (w/'B0S1'/spec).write_text(head_s)
+          import sys,hashlib
+          w=Path(sys.argv[1]); i='code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst'; s='specs/Spec.Chacha20Poly1305.fst'
+          bi=(w/'base'/i).read_text(); hi=(w/'B1S1'/i).read_text(); bs=(w/'base'/s).read_text(); hs=(w/'B1S1'/s).read_text()
+          oc='    let acc = Spec.poly1305_padded r (as_seq h0 aad) acc in\n'; nc='    let acc = if (length aad <> 0) then Spec.poly1305_padded r (as_seq h0 aad) acc else acc in\n'
+          ob='  poly1305_padded ctx aadlen aad;\n'; nb='  if (aadlen <> 0ul) then (\n    poly1305_padded ctx aadlen aad)\n  else ();\n'
+          os='  let acc = poly1305_padded r aad acc in\n'; ns='  let acc = if (length aad <> 0) then poly1305_padded r aad acc else acc in\n'
+          assert hi.replace(nc,oc).replace(nb,ob)==bi and hs.replace(ns,os)==bs
+          (w/'B0S0'/i).write_text(bi); (w/'B0S0'/s).write_text(bs)
+          (w/'B1S0'/i).write_text(hi.replace(nc,oc)); (w/'B1S0'/s).write_text(hs.replace(ns,os))
+          (w/'B0S1'/i).write_text(hi.replace(nb,ob)); (w/'B0S1'/s).write_text(hs)
           for c in ['B0S0','B1S0','B0S1','B1S1']:
-              lines=[]
-              for rel in [impl,spec]:
-                  p=w/c/rel
-                  lines.append(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {rel}')
-              (w/c/'CELL_SHA256.txt').write_text('\n'.join(lines)+'\n')
+            with (w/c/'CELL_SHA256.txt').open('w') as f:
+              for x in [i,s]: f.write(hashlib.sha256((w/c/x).read_bytes()).hexdigest()+'  '+x+'\n')
           PY
-          printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
-          for c in B0S0 B1S0 B0S1 B1S1; do cp "$WORK/$c/CELL_SHA256.txt" "$OUT/$c.sha256"; done
-          diff -u "$WORK/B0S0/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" "$WORK/B1S0/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" > "$OUT/body_only.diff" || true
-          diff -u "$WORK/B0S0/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" "$WORK/B0S1/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" > "$OUT/contract_side_impl.diff" || true
-          diff -u "$WORK/B0S0/specs/Spec.Chacha20Poly1305.fst" "$WORK/B0S1/specs/Spec.Chacha20Poly1305.fst" > "$OUT/contract_side_spec.diff" || true
-
-          curl -L --retry 3 -o "$WORK/fstar.tar.gz" https://github.com/FStarLang/FStar/releases/download/v2021.05.28/fstar_2021.05.28_Linux_x86_64.tar.gz
-          mkdir -p "$WORK/FStar"; tar -xzf "$WORK/fstar.tar.gz" -C "$WORK/FStar" --strip-components=1
-          FSTAR="$WORK/FStar/bin/fstar.exe"
-          "$FSTAR" --version > "$OUT/fstar-version.txt" 2>&1 || true
-          find "$WORK/FStar" -maxdepth 3 -type f -name 'z3*' -print > "$OUT/z3-paths.txt" || true
-
-          printf 'cell,attempt,exit_code,status,last_error\n' > "$OUT/results.csv"
+          curl -L --retry 3 -sS -o "$WORK/fstar.tar.gz" https://github.com/FStarLang/FStar/releases/download/v2021.05.28/fstar_2021.05.28_Linux_x86_64.tar.gz
+          mkdir "$WORK/FStar"; tar -xzf "$WORK/fstar.tar.gz" -C "$WORK/FStar" --strip-components=1
+          FSTAR="$WORK/FStar/bin/fstar.exe"; "$FSTAR" --version > "$OUT/fstar-version.txt"
+          printf 'cell,attempt,dep_rc,verify_rc,status,last_line\n' > "$OUT/results.csv"
           set +e
           for c in B0S0 B1S0 B0S1 B1S1; do
-            d="$WORK/$c"
-            mkdir -p "$d/obj" "$d/hints"
-            mkdir -p "$WORK/kremlin/kremlib/obj" "$WORK/kremlin/kremlib" "$WORK/kremlin/runtime"
-            export HACL_HOME="$d" FSTAR_HOME="$WORK/FStar" KREMLIN_HOME="$WORK/kremlin" NOVALE=1 NOOPENSSLCHECK=1
-            (cd "$d" && make -s .fstar-depend-full) > "$OUT/$c.dep.log" 2>&1
-            dep_rc=$?
-            if [ $dep_rc -eq 0 ]; then
-              (cd "$d" && make -s obj/Hacl.Impl.Chacha20Poly1305.fst.checked) > "$OUT/$c.verify.log" 2>&1
+            d="$WORK/$c"; rm -rf "$d/obj"; mkdir "$d/obj"
+            INC=""
+            for x in "$d/lib" "$d/specs" "$d/specs/lemmas" "$d/code/hash" "$d/code/hmac" "$d/code/hkdf" "$d/code/poly1305" "$d/code/chacha20" "$d/code/chacha20poly1305" "$d/code/streaming" "$d/code/blake2" "$d/code/curve25519" "$WORK/FStar/ulib/.cache" "$WORK/FStar/ulib"; do [ -d "$x" ] && INC="$INC --include $x"; done
+            FLAGS="--odir $d/obj --cache_checked_modules $INC --cmi --already_cached 'Prims FStar LowStar C Spec.Loops TestLib WasmSupport' --cache_dir $d/obj --trivial_pre_for_unannotated_effectful_fns false --warn_error '+241@247-272'"
+            cd "$d/code/chacha20poly1305"
+            eval "$FSTAR $FLAGS --dep full Hacl.Impl.Chacha20Poly1305.fst --warn_error '-285'" > "$OUT/$c.deps.mk" 2> "$OUT/$c.dep.err"
+            drc=$?
+            if [ $drc -eq 0 ]; then
+              cat > "$WORK/$c/Mini.mk" <<EOF
+          FSTAR=$FSTAR
+          FLAGS=$FLAGS
+          include $OUT/$c.deps.mk
+          %.checked:
+          	\$(FSTAR) \$(FLAGS) \$<
+          EOF
+              cd "$d"
+              make -f Mini.mk -j1 "$d/obj/Hacl.Impl.Chacha20Poly1305.fst.checked" > "$OUT/$c.verify.log" 2>&1
               rc=$?
-            else
-              rc=$dep_rc
-              cp "$OUT/$c.dep.log" "$OUT/$c.verify.log"
-            fi
-            if [ $rc -eq 0 ]; then st=PASS; else st=FAIL_OR_INFRA; fi
+            else rc=99; cp "$OUT/$c.dep.err" "$OUT/$c.verify.log"; fi
+            [ $rc -eq 0 ] && st=PASS || st=FAIL_OR_INFRA
             last=$(tail -n 1 "$OUT/$c.verify.log" | tr ',' ';' | tr '\n' ' ')
-            printf '%s,A_make_2021.05.28,%s,%s,%s\n' "$c" "$rc" "$st" "$last" >> "$OUT/results.csv"
+            printf '%s,B_target_dep_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
           done
           set -e
+          printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
+          for c in B0S0 B1S0 B0S1 B1S1; do cp "$WORK/$c/CELL_SHA256.txt" "$OUT/$c.sha256"; done
           cat "$OUT/results.csv"
           cp "$GITHUB_WORKSPACE/.github/workflows/fstar-holdout-pr413.yml" "$OUT/workflow.yml"
           find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
-      - name: Upload holdout attempt A
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: fstar-holdout-pr413-attemptA
+          name: fstar-holdout-pr413-attemptB
           path: fstar-holdout-out
           if-no-files-found: error
           retention-days: 7

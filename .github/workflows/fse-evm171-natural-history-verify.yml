@@ -5,7 +5,7 @@ on:
     branches:
       - research/fse-migration-topology-classjump-20260927
     paths:
-      - 'research/fse-classjump/evm171/verify_natural_history.py'
+      - 'research/fse-classjump/evm171/**'
       - '.github/workflows/fse-evm171-natural-history-verify.yml'
   workflow_dispatch:
 
@@ -39,8 +39,11 @@ jobs:
           git clone -q https://github.com/Consensys-Incorporated/evm-dafny.git /tmp/evm-dafny
           git -C /tmp/evm-dafny cat-file -e 0d1fae88f5f6191fe249baecf404e5b846f7e116^{commit}
           git -C /tmp/evm-dafny cat-file -e 3e5ed81a48339acd79fb4e620219d81a099078ef^{commit}
+          git -C /tmp/evm-dafny cat-file -e 6edc437fe0051f9e30b06c7277dd9a9be778fee1^{commit}
       - name: Verify base plus all 14 natural PR commits
         run: python3 research/fse-classjump/evm171/verify_natural_history.py /tmp/evm-dafny "$DAFNY373" research/fse-classjump/evm171/natural-verify
+      - name: Replay natural bridge body against old and final contracts in fixed head
+        run: python3 research/fse-classjump/evm171/verify_bridge_cells.py /tmp/evm-dafny "$DAFNY373" research/fse-classjump/evm171/bridge-verify
       - name: Integrity manifest
         shell: bash
         run: |

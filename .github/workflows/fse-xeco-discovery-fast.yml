@@ -1,3 +1,4 @@
+# frozen protocol implementation B: shallow-since fallback
 name: fse-xeco-discovery-fast
 
 on:
@@ -19,12 +20,10 @@ jobs:
             repo: https://github.com/verus-lang/verus.git
             name: verus
             regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
-            paths: ':(glob)**/*.rs'
           - stratum: F
             repo: https://github.com/FStarLang/FStar.git
             name: fstar
             regex: '\b(requires|ensures|decreases)\b'
-            paths: ':(glob)**/*.fst : (glob)**/*.fsti'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

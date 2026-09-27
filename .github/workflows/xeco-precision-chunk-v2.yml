@@ -1,0 +1,163 @@
+name: xeco-precision-chunk-v2
+on:
+  push:
+    paths: ['.github/workflows/xeco-precision-chunk-v2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  precise:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: V1A, arm: V1, eco: V, repo: verus-lang/verus, since: '2018-01-01', until: '2021-12-31 23:59:59'}
+          - {id: V1B, arm: V1, eco: V, repo: verus-lang/verus, since: '2022-01-01', until: '2023-12-31 23:59:59'}
+          - {id: V1C, arm: V1, eco: V, repo: verus-lang/verus, since: '2024-01-01', until: '2025-12-31 23:59:59'}
+          - {id: V1D, arm: V1, eco: V, repo: verus-lang/verus, since: '2026-01-01', until: '2026-09-26 23:59:59'}
+          - {id: F1A, arm: F1, eco: F, repo: FStarLang/FStar, since: '2018-01-01', until: '2021-12-31 23:59:59'}
+          - {id: F1B, arm: F1, eco: F, repo: FStarLang/FStar, since: '2022-01-01', until: '2023-12-31 23:59:59'}
+          - {id: F1C, arm: F1, eco: F, repo: FStarLang/FStar, since: '2024-01-01', until: '2025-12-31 23:59:59'}
+          - {id: F1D, arm: F1, eco: F, repo: FStarLang/FStar, since: '2026-01-01', until: '2026-09-26 23:59:59'}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Precision screen exact frozen chunk
+        shell: bash
+        env:
+          ID: ${{ matrix.id }}
+          ARM: ${{ matrix.arm }}
+          ECO: ${{ matrix.eco }}
+          REPO: ${{ matrix.repo }}
+          SINCE: ${{ matrix.since }}
+          UNTIL: ${{ matrix.until }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" repo
+          git -C repo config gc.auto 0
+          if [ "$ECO" = V ]; then EXTS=('*.rs'); else EXTS=('*.fst' '*.fsti'); fi
+          git -C repo log --all --no-merges --since="$SINCE" --until="$UNTIL" --format='%H' -G'(requires|ensures)' -- "${EXTS[@]}" | awk 'NF' | sort -u > out/commits.txt
+          ID="$ID" ARM="$ARM" ECO="$ECO" REPO="$REPO" SINCE="$SINCE" UNTIL="$UNTIL" python3 - <<'PY'
+          import csv,os,re,subprocess,difflib
+          from pathlib import Path
+          rid,arm,eco,name=os.environ['ID'],os.environ['ARM'],os.environ['ECO'],os.environ['REPO'];R=Path('repo');O=Path('out')
+          shas=[x.strip() for x in (O/'commits.txt').read_text().splitlines() if x.strip()]
+          def run(*a):return subprocess.run(['git','-C',str(R),*a],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout.decode('utf8','replace')
+          def blob(rev,p):
+            q=subprocess.run(['git','-C',str(R),'show',f'{rev}:{p}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE);return q.stdout.decode('utf8','replace') if q.returncode==0 else None
+          def changed(par,sha):
+            ex=('.rs',) if eco=='V' else ('.fst','.fsti');return [x for x in run('diff','--name-only',par,sha).splitlines() if x.endswith(ex)]
+          def strip(s):
+            s=re.sub(r'/\*.*?\*/','',s,flags=re.S);s=re.sub(r'\(\*.*?\*\)','',s,flags=re.S);s=re.sub(r'//.*','',s);return s
+          def normlines(s):return [re.sub(r'\s+',' ',x).strip() for x in strip(s).splitlines() if re.sub(r'\s+',' ',x).strip()]
+          def dc(a,b):return sum(1 for x in difflib.ndiff(normlines(a),normlines(b)) if x[:2] in ('- ','+ '))
+          def rmproof(s):
+            out=[];i=0
+            while i<len(s):
+              m=re.search(r'\bproof\s*\{',s[i:])
+              if not m:out.append(s[i:]);break
+              a=i+m.start();b=i+m.end();out.append(s[i:a]);dep=1;j=b;ins=False;esc=False
+              while j<len(s) and dep:
+                c=s[j]
+                if ins:
+                  if esc:esc=False
+                  elif c=='\\':esc=True
+                  elif c=='"':ins=False
+                else:
+                  if c=='"':ins=True
+                  elif c=='{':dep+=1
+                  elif c=='}':dep-=1
+                j+=1
+              i=j
+            keep=[]
+            for ln in ''.join(out).splitlines():
+              z=ln.strip()
+              if re.match(r'^(assert|assume|reveal|hide|admit|invariant|decreases)\b',z):continue
+              if re.match(r'^let\s+(ghost|tracked)\b',z):continue
+              keep.append(ln)
+            return '\n'.join(keep)
+          def vdecl(src):
+            d={};
+            if src is None:return d
+            pat=re.compile(r'(?m)^[ \t]*(?:pub[ \t]+)?(?:(?:open|closed)[ \t]+)?(?:(proof|spec|exec)[ \t]+)?fn[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b')
+            for m in pat.finditer(src):
+              br=src.find('{',m.end());
+              if br<0:continue
+              dep=0;j=br;ins=False;esc=False;end=None
+              while j<len(src):
+                c=src[j]
+                if ins:
+                  if esc:esc=False
+                  elif c=='\\':esc=True
+                  elif c=='"':ins=False
+                else:
+                  if c=='"':ins=True
+                  elif c=='{':dep+=1
+                  elif c=='}':
+                    dep-=1
+                    if dep==0:end=j+1;break
+                j+=1
+              if end is None:continue
+              d.setdefault(m.group(2),[]).append((m.group(1) or 'exec',src[m.start():br],src[br+1:end-1]))
+            return d
+          def vcontract(sig):
+            ls=normlines(sig);active=False;xs=[]
+            for x in ls:
+              if re.match(r'^(requires|ensures)\b',x):active=True;xs.append(x);continue
+              if re.match(r'^(recommends|decreases|where)\b',x):active=False;continue
+              if active:xs.append(x)
+            return '\n'.join(xs)
+          def fdecl(src):
+            d={};
+            if src is None:return d
+            ms=list(re.finditer(r'(?m)^let(?:\s+rec)?\s+([A-Za-z_][A-Za-z0-9_\']*)\b',src))
+            for k,m in enumerate(ms):
+              e=ms[k+1].start() if k+1<len(ms) else len(src);blk=src[m.start():e];eq=blk.find('=')
+              if eq<0:continue
+              d.setdefault(m.group(1),[]).append((blk[:eq],blk[eq+1:]))
+            return d
+          rows=[]
+          for n,sha in enumerate(shas,1):
+            ps=run('rev-list','--parents','-n','1',sha).strip().split();
+            if len(ps)<2:continue
+            par=ps[1];date=run('show','-s','--format=%cs',sha).strip();subj=run('show','-s','--format=%s',sha).strip()
+            for p in changed(par,sha):
+              a,b=blob(par,p),blob(sha,p)
+              if a is None or b is None:continue
+              if eco=='V':
+                da,db=vdecl(a),vdecl(b)
+                for fn in sorted(set(da)&set(db)):
+                  if len(da[fn])!=1 or len(db[fn])!=1:continue
+                  ka,sa,ba=da[fn][0];kb,sb,bb=db[fn][0]
+                  if ka in ('proof','spec') or kb in ('proof','spec'):continue
+                  ca,cb=vcontract(sa),vcontract(sb)
+                  if normlines(ca)==normlines(cb):continue
+                  ea,eb=rmproof(ba),rmproof(bb);cc,ec=dc(ca,cb),dc(ea,eb)
+                  if ec:rows.append([rid,arm,eco,name,sha,par,date,subj,p,fn,cc,ec,cc+ec])
+              else:
+                da,db=fdecl(a),fdecl(b)
+                for fn in sorted(set(da)&set(db)):
+                  if len(da[fn])!=1 or len(db[fn])!=1:continue
+                  sa,ba=da[fn][0];sb,bb=db[fn][0]
+                  if re.search(r'\bLemma\b',sa+sb) or re.search(r'\bnoextract\b',sa+sb):continue
+                  ca='\n'.join(x for x in normlines(sa) if re.search(r'\b(requires|ensures)\b',x));cb='\n'.join(x for x in normlines(sb) if re.search(r'\b(requires|ensures)\b',x))
+                  if (not ca and not cb) or normlines(ca)==normlines(cb):continue
+                  cc,ec=dc(ca,cb),dc(ba,bb)
+                  if ec:rows.append([rid,arm,eco,name,sha,par,date,subj,p,fn,cc,ec,cc+ec])
+            if n%250==0:print(rid,n,len(shas),flush=True)
+          rows.sort(key=lambda r:(r[12],r[6],r[4],r[8],r[9]))
+          fields=['chunk','arm','ecosystem','repo','commit','parent','date','subject','path','declaration','contract_changed_lines','exec_changed_lines','isolated_changed_lines']
+          with (O/'precision_candidates.csv').open('w',newline='',encoding='utf8') as f:w=csv.writer(f);w.writerow(fields);w.writerows(rows)
+          with (O/'summary.csv').open('w',newline='',encoding='utf8') as f:w=csv.writer(f);w.writerow(['chunk','arm','ecosystem','repo','since','until','contract_commits','precision_candidates']);w.writerow([rid,arm,eco,name,os.environ['SINCE'],os.environ['UNTIL'],len(shas),len(rows)])
+          print((O/'summary.csv').read_text())
+          PY
+          printf 'protocol_sha256,3f83fd68604c521b877eede81947b7dba7137882fef881122b1ba192641bfcac\nframe_sha256,21e8ce5b3947c57c04c17faff73fb66615853ec85a4d2c4d36278caceed56be8\n' > out/provenance.csv
+          sha256sum out/*.csv out/commits.txt > out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: precise-${{ matrix.id }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 7

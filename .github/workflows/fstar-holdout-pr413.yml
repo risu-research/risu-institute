@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Target-only four-cell replay with qualified Z3 and fixed z3rlimit
+      - name: Four-cell replay with historical hint-file rule
         shell: bash
         run: |
           set -euo pipefail
@@ -42,8 +42,7 @@ jobs:
           FSTAR="$WORK/FStar/bin/fstar.exe"; "$FSTAR" --version > "$OUT/fstar-version.txt"
           curl -L --retry 3 -sS -o "$WORK/z3.zip" https://raw.githubusercontent.com/FStarLang/binaries/master/z3-tested/z3-4.8.5-x64-ubuntu-16.04.zip
           mkdir "$WORK/z3"; unzip -q "$WORK/z3.zip" -d "$WORK/z3"
-          Z3BIN=$(find "$WORK/z3" -type f -name z3 | head -1); chmod +x "$Z3BIN"
-          export PATH="$(dirname "$Z3BIN"):$PATH"
+          Z3BIN=$(find "$WORK/z3" -type f -name z3 | head -1); chmod +x "$Z3BIN"; export PATH="$(dirname "$Z3BIN"):$PATH"
           z3 --version > "$OUT/z3-version.txt"
           printf 'cell,attempt,dep_rc,verify_rc,status,last_line\n' > "$OUT/results.csv"
           set +e
@@ -61,7 +60,7 @@ jobs:
           FLAGS=$FLAGS
           include $OUT/$c.deps.mk
           %.checked:
-          	\$(FSTAR) \$(FLAGS) \$<
+          	\$(FSTAR) \$(FLAGS) \$< --hint_file $d/hints/\$(notdir \$*).hints
           EOF
               cd "$d/code/chacha20poly1305"
               make -f Mini.mk -j1 "$d/obj/Hacl.Impl.Chacha20Poly1305.fst.checked" > "$OUT/$c.verify.log" 2>&1
@@ -69,7 +68,7 @@ jobs:
             else rc=99; cp "$OUT/$c.dep.err" "$OUT/$c.verify.log"; fi
             [ $rc -eq 0 ] && st=PASS || st=FAIL_OR_INFRA
             last=$(tail -n 1 "$OUT/$c.verify.log" | tr ',' ';' | tr '\n' ' ')
-            printf '%s,F_z3qualified_z3rlimit100_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
+            printf '%s,G_hints_z3rlimit100_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
           done
           set -e
           printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
@@ -79,7 +78,7 @@ jobs:
           find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: fstar-holdout-pr413-attemptF
+          name: fstar-holdout-pr413-attemptG
           path: fstar-holdout-out
           if-no-files-found: error
           retention-days: 7

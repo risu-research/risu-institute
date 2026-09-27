@@ -1,0 +1,160 @@
+name: fse-xeco-adjudication-structural
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-adjudication-structural.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adjudicate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stratum: V
+            repo: https://github.com/verus-lang/verus.git
+            name: verus
+          - stratum: F
+            repo: https://github.com/FStarLang/FStar.git
+            name: fstar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source-only structural adjudication support
+        shell: bash
+        env:
+          STRATUM: ${{ matrix.stratum }}
+          TARGET_REPO: ${{ matrix.repo }}
+          TARGET_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          OUT=out; mkdir -p "$OUT"
+          ROOT=/tmp/$TARGET_NAME
+          git clone --no-tags --shallow-since=2023-12-31 "$TARGET_REPO" "$ROOT"
+          python3 - "$ROOT" "$OUT" "$STRATUM" <<'PY'
+          from pathlib import Path
+          import sys, subprocess, re, csv, difflib
+          root=Path(sys.argv[1]); out=Path(sys.argv[2]); st=sys.argv[3]
+          exact = re.compile(r'\b(requires|ensures|invariant|decreases|recommends)\b') if st=='V' else re.compile(r'\b(requires|ensures|decreases)\b')
+          specs=[':(glob)**/*.rs'] if st=='V' else [':(glob)**/*.fst',':(glob)**/*.fsti']
+          broad='(requires|ensures|invariant|decreases|recommends)' if st=='V' else '(requires|ensures|decreases)'
+          def git(args, check=True):
+              p=subprocess.run(['git','-C',str(root),*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,check=check)
+              return p.stdout
+          shas=[]
+          for x in git(['log','--since=2024-01-01','--format=%H','-G',broad,'--',*specs]).splitlines():
+              x=x.strip()
+              if x and x not in shas: shas.append(x)
+          rowsA=[]; rowsC=[]; audit=[]
+          def get_text(sha,path):
+              p=subprocess.run(['git','-C',str(root),'show',f'{sha}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode: return None
+              return p.stdout.decode('utf-8','replace')
+          def verus_functions(text):
+              # Conservative brace-based extraction. It is a shortlist generator; final eligibility is manually checked.
+              lines=text.splitlines(True); out=[]; i=0
+              sig_re=re.compile(r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:(?:exec|proof|spec|open|closed|broadcast|unsafe)\s+)*fn\s+([A-Za-z_][A-Za-z0-9_]*)')
+              while i<len(lines):
+                  m=sig_re.search(lines[i])
+                  if not m: i+=1; continue
+                  start=i; name=m.group(1); j=i; brace=0; opened=False
+                  # absorb attributes immediately above
+                  a=i-1
+                  while a>=0 and (lines[a].lstrip().startswith('#[') or lines[a].strip().startswith('//')): a-=1
+                  start=a+1
+                  while j<len(lines):
+                      s=lines[j]
+                      brace += s.count('{')-s.count('}')
+                      if '{' in s: opened=True
+                      if opened and brace<=0: break
+                      # declarations ending ; without body
+                      if not opened and ';' in s and j>i: break
+                      j+=1
+                  block=''.join(lines[start:min(j+1,len(lines))])
+                  out.append((name,start+1,min(j+1,len(lines)),block))
+                  i=max(j+1,i+1)
+              return out
+          def pulse_functions(text):
+              # Pulse fn blocks are brace-bodied and carry requires/ensures before the opening brace.
+              lines=text.splitlines(True); out=[]; i=0
+              sig_re=re.compile(r'^\s*(?:fn\s+(?:rec\s+)?|let\s+(?:rec\s+)?)([A-Za-z_][A-Za-z0-9_\']*)')
+              while i<len(lines):
+                  m=sig_re.search(lines[i])
+                  if not m: i+=1; continue
+                  start=i; name=m.group(1); j=i; brace=0; opened=False
+                  while j<len(lines):
+                      s=lines[j]; brace += s.count('{')-s.count('}')
+                      if '{' in s: opened=True
+                      # stop next top-level def for non-brace F* lets
+                      if not opened and j>i and re.match(r'^(let|val|fn)\s+',s): j-=1; break
+                      if opened and brace<=0: break
+                      j+=1
+                  block=''.join(lines[start:min(j+1,len(lines))])
+                  out.append((name,start+1,min(j+1,len(lines)),block))
+                  i=max(j+1,i+1)
+              return out
+          for sha in shas:
+              ps=git(['rev-list','--parents','-n','1',sha]).strip().split()
+              if len(ps)<2: continue
+              parent=ps[1]
+              date=git(['show','-s','--format=%cI',sha]).strip(); subj=git(['show','-s','--format=%s',sha]).strip()
+              files=git(['diff','--name-only',parent,sha,'--',*specs]).splitlines()
+              files=[f for f in files if f]
+              # exact lexeme screen based on actual first-parent diff
+              patch=git(['diff','--unified=3',parent,sha,'--',*specs])
+              changed_exact=sum(1 for l in patch.splitlines() if l[:1] in '+-' and not l.startswith(('+++','---')) and exact.search(l[1:]))
+              if not changed_exact: continue
+              # F* Tier C mechanical pair signal
+              if st=='F':
+                  fs=set(files)
+                  for f in sorted(fs):
+                      if f.endswith('.fst') and f[:-4]+'.fsti' in fs:
+                          rowsC.append(dict(commit=sha,parent=parent,date=date,subject=subj,fst=f,fsti=f[:-4]+'.fsti',changed_files=len(files)))
+              for path in files:
+                  if st=='V' and not path.endswith('.rs'): continue
+                  if st=='F' and not path.endswith(('.fst','.fsti')): continue
+                  old=get_text(parent,path); new=get_text(sha,path)
+                  if old is None or new is None: continue
+                  oldf={x[0]:x for x in (verus_functions(old) if st=='V' else pulse_functions(old))}
+                  newf={x[0]:x for x in (verus_functions(new) if st=='V' else pulse_functions(new))}
+                  for name in sorted(set(oldf)&set(newf)):
+                      ob=oldf[name][3]; nb=newf[name][3]
+                      if ob==nb: continue
+                      # exact changed lines within matched block
+                      diff=list(difflib.ndiff(ob.splitlines(),nb.splitlines()))
+                      changed=[d[2:] for d in diff if d[:2] in ('- ','+ ')]
+                      contract=[l for l in changed if exact.search(l)]
+                      noncontract=[l for l in changed if l.strip() and not exact.search(l) and not l.lstrip().startswith(('//','/*','*','///','#','(*'))]
+                      if not contract or not noncontract: continue
+                      mode='unknown'
+                      head='\n'.join(nb.splitlines()[:12])
+                      if st=='V':
+                          if re.search(r'\bproof\s+fn\b|\bspec\s+fn\b|\baxiom\s+fn\b',head): mode='nonexec'
+                          elif '#[verifier::external_body]' in nb or '#[verifier::external_body]' in ob: mode='external_body'
+                          elif re.search(r'\b(?:pub\s+)?(?:exec\s+)?fn\b',head): mode='exec_candidate'
+                      else:
+                          if re.match(r'^\s*fn\b',nb): mode='pulse_fn_candidate'
+                          elif re.match(r'^\s*let\b',nb): mode='fstar_let_candidate'
+                      rowsA.append(dict(commit=sha,parent=parent,date=date,subject=subj,path=path,name=name,mode=mode,contract_delta=len(contract),noncontract_delta=len(noncontract),old_start=oldf[name][1],new_start=newf[name][1],changed_files=len(files),contract_excerpt=' || '.join(contract[:4]),body_excerpt=' || '.join(noncontract[:6])))
+              audit.append(dict(commit=sha,parent=parent,date=date,subject=subj,changed_files=len(files),exact_contract_changed_lines=changed_exact,files=';'.join(files)))
+          def write(name,rows,fields):
+              with (out/name).open('w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          write('tierA_structural_shortlist.csv',rowsA,['commit','parent','date','subject','path','name','mode','contract_delta','noncontract_delta','old_start','new_start','changed_files','contract_excerpt','body_excerpt'])
+          write('tierC_pairs.csv',rowsC,['commit','parent','date','subject','fst','fsti','changed_files'])
+          write('exact_commit_audit.csv',audit,['commit','parent','date','subject','changed_files','exact_contract_changed_lines','files'])
+          (out/'summary.txt').write_text(f'exact_commits={len(audit)}\ntierA_structural_rows={len(rowsA)}\ntierA_exec_like={sum(r["mode"] in ("exec_candidate","pulse_fn_candidate","fstar_let_candidate") for r in rowsA)}\ntierC_pair_rows={len(rowsC)}\n')
+          print((out/'summary.txt').read_text())
+          PY
+          printf 'This is source-only structural adjudication support. No verifier or hybrid was run. Final tier eligibility must be frozen separately before replay.\n' > "$OUT/README.txt"
+          sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-adjudication-${{ matrix.stratum }}
+          path: out
+          retention-days: 7

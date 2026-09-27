@@ -1,0 +1,120 @@
+name: fse-xeco-replay-verus
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fse-xeco-replay-verus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frozen Verus strategy 1
+        shell: bash
+        run: |
+          set -u
+          OUT="$GITHUB_WORKSPACE/out"
+          mkdir -p "$OUT/logs" "$OUT/sources"
+          BASE=ce612f9252fe52fc8d4df3a317f39efae3ecb0df
+          HEAD=521f5e801c5321b1a9502f9955e0ef8c29606f65
+          UP=/tmp/verus-up
+          git clone --no-tags https://github.com/verus-lang/verus.git "$UP" >"$OUT/logs/clone.log" 2>&1
+          git -C "$UP" checkout "$HEAD" >>"$OUT/logs/clone.log" 2>&1
+          git -C "$UP" fetch origin "$BASE" >>"$OUT/logs/clone.log" 2>&1 || true
+          printf 'base=%s\nhead=%s\nstrategy=revision-local-rust-z3-vargo-build-release\n' "$BASE" "$HEAD" > "$OUT/refs.txt"
+          cp "$UP/rust-toolchain.toml" "$OUT/rust-toolchain.toml"
+          git -C "$UP" show "$BASE:source/vstd/cell.rs" > "$OUT/sources/base-cell.rs"
+          git -C "$UP" show "$HEAD:source/vstd/cell.rs" > "$OUT/sources/head-cell.rs"
+          sha256sum "$OUT/sources/"*.rs > "$OUT/sources/endpoint_sha256.txt"
+
+          python3 - "$OUT" <<'PY'
+          from pathlib import Path
+          import sys, hashlib
+          out=Path(sys.argv[1]); old=(out/'sources/base-cell.rs').read_text(); new=(out/'sources/head-cell.rs').read_text()
+          def block(t):
+              sig='    pub fn get(&self) -> (val: T)'
+              a=t.index(sig)
+              b=t.index('\n    }',a)+6
+              return t[a:b]
+          ob=block(old); nb=block(new)
+          (out/'sources/old-get.rs').write_text(ob); (out/'sources/new-get.rs').write_text(nb)
+          old_req='''    pub fn get(&self) -> (val: T)\n        requires\n            self.wf(),\n        ensures\n            self.inv(val),\n    {'''
+          new_req='''    pub fn get(&self) -> (val: T)\n        ensures\n            self.inv(val),\n    {'''
+          proof='''\n        proof {\n            use_type_invariant(self);\n        }'''
+          if old_req not in ob: raise SystemExit('old contract anchor mismatch')
+          if new_req not in nb or proof not in nb: raise SystemExit('new anchors mismatch')
+          # Mechanically cross the frozen dimensions, retaining the HEAD remainder of the body.
+          b1s1=nb
+          b0s1=nb.replace(proof,'',1)
+          b1s0=nb.replace(new_req,old_req,1)
+          b0s0=b1s0.replace(proof,'',1)
+          cases={'C00':b0s0,'C10':b1s0,'C01':b0s1,'C11':b1s1}
+          for k,v in cases.items(): (out/'sources'/f'{k}-get.rs').write_text(v)
+          assert cases['C11']==nb
+          assert cases['C00']==ob, 'C00 callable must equal historical old get block'
+          for k,v in cases.items():
+              print(k,hashlib.sha256(v.encode()).hexdigest())
+          PY
+          sha256sum "$OUT/sources/"C*-get.rs > "$OUT/sources/cell_sha256.txt"
+
+          # Install revision-local toolchain and Z3, then build HEAD once.
+          cd "$UP/source"
+          rustup show > "$OUT/logs/rustup-show.txt" 2>&1 || true
+          ./tools/get-z3.sh > "$OUT/logs/get-z3.log" 2>&1
+          z3 -version > "$OUT/logs/system-z3.txt" 2>&1 || true
+          source ../tools/activate
+          vargo --version > "$OUT/logs/vargo-version.txt" 2>&1 || true
+          rustc --version > "$OUT/logs/rustc-version.txt" 2>&1 || true
+
+          printf 'case,kind,exit_code,status,verified,errors\n' > "$OUT/results.csv"
+          run_build () {
+            c="$1"; kind="$2"
+            set +e
+            vargo build --release > "$OUT/logs/$c.log" 2>&1
+            rc=$?
+            set -e
+            v=$(grep -Eo 'verification results:: verified: [0-9]+ errors: [0-9]+' "$OUT/logs/$c.log" | tail -1 | sed -E 's/.*verified: ([0-9]+) errors: ([0-9]+).*/\1/' || true)
+            e=$(grep -Eo 'verification results:: verified: [0-9]+ errors: [0-9]+' "$OUT/logs/$c.log" | tail -1 | sed -E 's/.*verified: ([0-9]+) errors: ([0-9]+).*/\2/' || true)
+            if [ "$rc" -eq 0 ]; then st=PASS; else st=FAIL; fi
+            printf '%s,%s,%s,%s,%s,%s\n' "$c" "$kind" "$rc" "$st" "${v:-NA}" "${e:-NA}" >> "$OUT/results.csv"
+          }
+
+          # H1 exact historical head.
+          cp "$OUT/sources/head-cell.rs" "$UP/source/vstd/cell.rs"
+          run_build H1 historical
+
+          # Four fixed-head causal cells, all identical tree except frozen get block.
+          python3 - "$OUT" "$UP/source/vstd/cell.rs" <<'PY'
+          from pathlib import Path
+          import sys
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); head=(out/'sources/head-cell.rs').read_text(); full=p.read_text()
+          sig='    pub fn get(&self) -> (val: T)'; a=full.index(sig); b=full.index('\n    }',a)+6
+          pre=full[:a]; post=full[b:]
+          (out/'sources/head-prefix.txt').write_text(pre); (out/'sources/head-suffix.txt').write_text(post)
+          PY
+          for c in C00 C10 C01 C11; do
+            cat "$OUT/sources/head-prefix.txt" "$OUT/sources/$c-get.rs" "$OUT/sources/head-suffix.txt" > "$UP/source/vstd/cell.rs"
+            run_build "$c" causal
+          done
+
+          # Exact historical base tree endpoint, using the same already-installed revision-local Rust/Z3 family.
+          git -C "$UP" reset --hard "$BASE" > "$OUT/logs/base-reset.log" 2>&1
+          cd "$UP/source"
+          source ../tools/activate
+          ./tools/get-z3.sh > "$OUT/logs/base-get-z3.log" 2>&1 || true
+          run_build H0 historical
+
+          cat "$OUT/results.csv"
+          find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fse-xeco-replay-verus-s1
+          path: out
+          retention-days: 7

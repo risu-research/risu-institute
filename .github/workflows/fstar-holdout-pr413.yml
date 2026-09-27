@@ -21,11 +21,12 @@ jobs:
           set -euo pipefail
           OUT="$GITHUB_WORKSPACE/fstar-holdout-out"
           WORK=/tmp/fstar413
-          BASE=cf00cebd1c38efb69a0be7ac62f75fa1cdd339b4
+          BASE=190ad51e37fc1009d7f97492a533bf9f0cffb50e
           HEAD=aef9671b5ace8112e9469a855bdbf39036ce6a94
           rm -rf "$OUT" "$WORK"; mkdir -p "$OUT" "$WORK"
           git clone -q https://github.com/hacl-star/hacl-star.git "$WORK/repo"
-          git -C "$WORK/repo" fetch -q origin "$BASE" "$HEAD"
+          git -C "$WORK/repo" cat-file -e "$BASE^{commit}"
+          git -C "$WORK/repo" cat-file -e "$HEAD^{commit}"
           for c in B0S0 B1S0 B0S1 B1S1; do
             mkdir -p "$WORK/$c"
             git -C "$WORK/repo" archive "$HEAD" | tar -x -C "$WORK/$c"
@@ -50,19 +51,15 @@ jobs:
           assert base_i.count(old_contract)==1 and head_i.count(new_contract)==1
           assert base_i.count(old_body)==1 and head_i.count(new_body)==1
           assert base_s.count(old_spec)==1 and head_s.count(new_spec)==1
-          # B0S0: head substrate with all 3 semantic deltas reverted, then assert exact changed files equal base.
           b0s0_i=head_i.replace(new_contract,old_contract).replace(new_body,old_body)
           b0s0_s=head_s.replace(new_spec,old_spec)
           assert b0s0_i==base_i, 'impl endpoint differs beyond isolated deltas'
           assert b0s0_s==base_s, 'spec endpoint differs beyond isolated deltas'
           (w/'B0S0'/impl).write_text(b0s0_i); (w/'B0S0'/spec).write_text(b0s0_s)
-          # B1S0: new executable body, old semantic contract and pure spec.
           (w/'B1S0'/impl).write_text(head_i.replace(new_contract,old_contract))
           (w/'B1S0'/spec).write_text(head_s.replace(new_spec,old_spec))
-          # B0S1: old executable body, new semantic contract and pure spec.
           (w/'B0S1'/impl).write_text(head_i.replace(new_body,old_body))
           (w/'B0S1'/spec).write_text(head_s)
-          # B1S1 remains exact head.
           for c in ['B0S0','B1S0','B0S1','B1S1']:
               lines=[]
               for rel in [impl,spec]:
@@ -76,23 +73,19 @@ jobs:
           diff -u "$WORK/B0S0/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" "$WORK/B0S1/code/chacha20poly1305/Hacl.Impl.Chacha20Poly1305.fst" > "$OUT/contract_side_impl.diff" || true
           diff -u "$WORK/B0S0/specs/Spec.Chacha20Poly1305.fst" "$WORK/B0S1/specs/Spec.Chacha20Poly1305.fst" > "$OUT/contract_side_spec.diff" || true
 
-          # Fixed first toolchain attempt: official F* v2021.05.28 Linux binary.
           curl -L --retry 3 -o "$WORK/fstar.tar.gz" https://github.com/FStarLang/FStar/releases/download/v2021.05.28/fstar_2021.05.28_Linux_x86_64.tar.gz
           mkdir -p "$WORK/FStar"; tar -xzf "$WORK/fstar.tar.gz" -C "$WORK/FStar" --strip-components=1
           FSTAR="$WORK/FStar/bin/fstar.exe"
           "$FSTAR" --version > "$OUT/fstar-version.txt" 2>&1 || true
           find "$WORK/FStar" -maxdepth 3 -type f -name 'z3*' -print > "$OUT/z3-paths.txt" || true
 
-          # Each cell starts with an isolated cache. Use the historical source tree and its own dependency generator.
           printf 'cell,attempt,exit_code,status,last_error\n' > "$OUT/results.csv"
           set +e
           for c in B0S0 B1S0 B0S1 B1S1; do
             d="$WORK/$c"
             mkdir -p "$d/obj" "$d/hints"
-            # Supply dummy Kremlin include roots; this target's dependency closure is HACL/LowStar, and nonexistent glob roots are ignored.
             mkdir -p "$WORK/kremlin/kremlib/obj" "$WORK/kremlin/kremlib" "$WORK/kremlin/runtime"
             export HACL_HOME="$d" FSTAR_HOME="$WORK/FStar" KREMLIN_HOME="$WORK/kremlin" NOVALE=1 NOOPENSSLCHECK=1
-            # Attempt A: historical Makefile dependency graph + exact target.
             (cd "$d" && make -s .fstar-depend-full) > "$OUT/$c.dep.log" 2>&1
             dep_rc=$?
             if [ $dep_rc -eq 0 ]; then

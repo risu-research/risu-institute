@@ -1,3 +1,4 @@
+# one-pass implementation of the already-frozen protocol; no replay occurs here
 name: fse-xeco-discovery-stream
 
 on:

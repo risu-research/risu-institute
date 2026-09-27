@@ -1,0 +1,93 @@
+name: FSE class-jump migration/countermodel/sibling/audit
+
+on:
+  push:
+    branches:
+      - research/fse-migration-topology-classjump-20260927
+    paths:
+      - 'research/fse-classjump/**'
+      - '.github/workflows/fse-classjump-suite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  classjump:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and pin Dafny 4.11.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o /tmp/dafny.zip https://github.com/dafny-lang/dafny/releases/download/v4.11.0/dafny-4.11.0-x64-ubuntu-22.04.zip
+          echo 'a46a9ff7cdd720f7955854c78e95df13f4cfe6b80691b05f8654fe19e8267179  /tmp/dafny.zip' | sha256sum -c -
+          mkdir -p /tmp/dafny
+          unzip -q /tmp/dafny.zip -d /tmp/dafny
+          DAFNY=$(find /tmp/dafny -type f -name dafny | head -1)
+          chmod +x "$DAFNY"
+          echo "DAFNY=$DAFNY" >> "$GITHUB_ENV"
+          echo 'e540b4826363afb87c326446239a682d45086905425fa6299c103eca9693846d  '"$DAFNY" | sha256sum -c -
+          "$DAFNY" --version
+
+      - name: Case B public-interface semantic countermodel
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=research/fse-classjump/countermodel
+          mkdir -p "$D/results"
+          BASE=31bb53ec1e93936eb3a72cda31a2d042c9cdbbdb
+          curl -L --fail --retry 3 "https://raw.githubusercontent.com/haalfi/remote-store/$BASE/sdd/formal/BackendContract.dfy" -o "$D/BackendContract.dfy"
+          echo '1bb76910b726adf8bb21a8af06d76d02092aa777ee3e7c5e4580a94625a214d8  '"$D/BackendContract.dfy" | sha256sum -c -
+          (cd "$D" && "$DAFNY" verify --verification-time-limit 120 countermodel_public_contract.dfy) | tee "$D/results/countermodel.log"
+          sha256sum "$D/BackendContract.dfy" "$D/countermodel_public_contract.dfy" > "$D/results/SHA256SUMS.txt"
+
+      - name: Recover exact PR 667 base/head source
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=research/fse-classjump/pr667/source
+          mkdir -p "$D"
+          BASE=7e6f5489d5b6ab74adb7af21dc005c6ac17e97df
+          HEAD=5c1bb91eaaa669d91241883747b5907259f17fb9
+          ROOT=https://raw.githubusercontent.com/haalfi/remote-store
+          for refname in base head; do
+            if [ "$refname" = base ]; then ref=$BASE; else ref=$HEAD; fi
+            curl -L --fail --retry 3 "$ROOT/$ref/sdd/formal/BackendContract.dfy" -o "$D/$refname-BackendContract.dfy"
+            curl -L --fail --retry 3 "$ROOT/$ref/sdd/formal/MemoryBackend.dfy" -o "$D/$refname-MemoryBackend.dfy"
+          done
+          printf 'base=%s\nhead=%s\n' "$BASE" "$HEAD" > "$D/refs.txt"
+          (cd "$D" && sha256sum base-BackendContract.dfy head-BackendContract.dfy base-MemoryBackend.dfy head-MemoryBackend.dfy > SHA256SUMS.txt)
+
+      - name: Generate PR 667 four-way replay from frozen prediction
+        run: python3 research/fse-classjump/pr667/generate_pr667.py
+
+      - name: Execute PR 667 four-way replay
+        run: python3 research/fse-classjump/pr667/run_pr667.py "$DAFNY" --timeout 300
+
+      - name: Audit all 14 natural commits of evm-dafny PR 171
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/evm-dafny
+          git clone -q https://github.com/Consensys-Incorporated/evm-dafny.git /tmp/evm-dafny
+          git -C /tmp/evm-dafny cat-file -e 0d1fae88f5f6191fe249baecf404e5b846f7e116^{commit}
+          git -C /tmp/evm-dafny cat-file -e 3e5ed81a48339acd79fb4e620219d81a099078ef^{commit}
+          python3 research/fse-classjump/evm171/audit_evm171.py /tmp/evm-dafny research/fse-classjump/evm171/results
+
+      - name: Build integrity manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=research/fse-classjump
+          find "$D" -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > "$D/MANIFEST.sha256"
+
+      - name: Upload class-jump artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FSE2027-classjump-migration-countermodel-PR667-EVM171
+          path: research/fse-classjump
+          if-no-files-found: error

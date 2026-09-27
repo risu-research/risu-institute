@@ -51,20 +51,20 @@ jobs:
             eval "$FSTAR $FLAGS --dep full Hacl.Impl.Chacha20Poly1305.fst --warn_error '-285'" > "$OUT/$c.deps.mk" 2> "$OUT/$c.dep.err"
             drc=$?
             if [ $drc -eq 0 ]; then
-              cat > "$WORK/$c/Mini.mk" <<EOF
+              cat > "$d/code/chacha20poly1305/Mini.mk" <<EOF
           FSTAR=$FSTAR
           FLAGS=$FLAGS
           include $OUT/$c.deps.mk
           %.checked:
           	\$(FSTAR) \$(FLAGS) \$<
           EOF
-              cd "$d"
+              cd "$d/code/chacha20poly1305"
               make -f Mini.mk -j1 "$d/obj/Hacl.Impl.Chacha20Poly1305.fst.checked" > "$OUT/$c.verify.log" 2>&1
               rc=$?
             else rc=99; cp "$OUT/$c.dep.err" "$OUT/$c.verify.log"; fi
             [ $rc -eq 0 ] && st=PASS || st=FAIL_OR_INFRA
             last=$(tail -n 1 "$OUT/$c.verify.log" | tr ',' ';' | tr '\n' ' ')
-            printf '%s,B_target_dep_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
+            printf '%s,C_target_dep_2021.05.28,%s,%s,%s,%s\n' "$c" "$drc" "$rc" "$st" "$last" >> "$OUT/results.csv"
           done
           set -e
           printf 'base,%s\nhead,%s\n' "$BASE" "$HEAD" > "$OUT/historical_refs.csv"
@@ -74,7 +74,7 @@ jobs:
           find "$OUT" -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$OUT/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: fstar-holdout-pr413-attemptB
+          name: fstar-holdout-pr413-attemptC
           path: fstar-holdout-out
           if-no-files-found: error
           retention-days: 7

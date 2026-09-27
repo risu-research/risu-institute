@@ -1,0 +1,11 @@
+{
+  "freeze_date": "2026-09-27",
+  "target": "haalfi/remote-store PR #667 (BK-232 Move metadata repair)",
+  "base_sha": "7e6f5489d5b6ab74adb7af21dc005c6ac17e97df",
+  "head_sha": "5c1bb91eaaa669d91241883747b5907259f17fb9",
+  "prediction_basis": "Sibling repair discovered upstream from PR #664 review. Before replay, predict the same one-sided profile as Copy: repaired implementation remains compatible with old contract, while old implementation fails the strengthened metadata-preservation contract.",
+  "cell_order": ["I0_C0", "I1_C0", "I0_C1", "I1_C1"],
+  "expected_cell_pass": {"I0_C0": true, "I1_C0": true, "I0_C1": false, "I1_C1": true},
+  "expected_profile": "PASS/PASS/FAIL/PASS",
+  "evidence_status": "prospective sibling-mechanism prediction; same repository and defect family, not an independent prevalence observation"
+}

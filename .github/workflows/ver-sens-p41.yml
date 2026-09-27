@@ -1,0 +1,95 @@
+name: ver-sens-p41
+
+on:
+  push:
+    paths: ['.github/workflows/ver-sens-p41.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Reconstruct exact four cells
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cases out
+          base=bd006ce68807cd234a46658f39b2608bfeb53cd0
+          head=66fb3125a8855c6faecea866f2c5e9a0afbe34ae
+          path=examples/drug_interaction_checker/drug_interaction_checker.dfy
+          curl -fsSL "https://raw.githubusercontent.com/PayloadGuard-PLG/payloadguard-evidence/$base/$path" -o cases/B0S0.dfy
+          curl -fsSL "https://raw.githubusercontent.com/PayloadGuard-PLG/payloadguard-evidence/$head/$path" -o cases/B1S1.dfy
+          cp cases/B1S1.dfy cases/B1S0.dfy
+          cp cases/B1S1.dfy cases/B0S1.dfy
+          python3 - <<'PY'
+          from pathlib import Path
+          agents=['Rifampicin','Carbamazepine','Phenytoin','Phenobarbital']
+          p=Path('cases/B1S0.dfy')
+          lines=p.read_text().splitlines(True)
+          kept=[]
+          for line in lines:
+              if any((f'agent == {a}' in line and 'treatmentIndication == OrthopaedicVTEProphylaxis' in line and line.lstrip().startswith('ensures')) for a in agents):
+                  continue
+              kept.append(line)
+          p.write_text(''.join(kept))
+
+          p=Path('cases/B0S1.dfy')
+          text=p.read_text()
+          for a in agents:
+              new=(f'  case (Apixaban, {a}) =>\n'
+                   '    if treatmentIndication == AFStrokePrevention || treatmentIndication == RecurrentVTEPrevention\n'
+                   '    then InteractionResult(Caution, ThrombosisRisk)\n'
+                   '    else InteractionResult(NotCovered, UnknownRisk)')
+              old=f'  case (Apixaban, {a}) => InteractionResult(Caution, ThrombosisRisk)'
+              if text.count(new) != 1:
+                  raise SystemExit(f'unexpected block count for {a}: {text.count(new)}')
+              text=text.replace(new,old)
+          p.write_text(text)
+          PY
+          sha256sum cases/*.dfy | sort | tee out/case_sha256.txt
+          grep -q '50f06303d435dfcacc731b7be62640d1723597f6cb8a49bb64c258dafae4d8b2  cases/B0S0.dfy' out/case_sha256.txt
+          grep -q '18385c10975dc36cc451bc0c34d1fcf37bf1e663b7785247e27b21ef38667a7e  cases/B0S1.dfy' out/case_sha256.txt
+          grep -q '69ea3f5921eac5e69f37cdd559003923d5f1bb4b77ac15687272a43c87ec3461  cases/B1S0.dfy' out/case_sha256.txt
+          grep -q '96d5a9d778e24c48f99a944e174174e7b7ca54b5026a406bab9e49419007e357  cases/B1S1.dfy' out/case_sha256.txt
+
+      - name: Run three Dafny versions
+        shell: bash
+        run: |
+          set -u
+          printf 'version,cell,install_status,exit_code,verified,errors,result\n' > out/results.csv
+          for v in 4.10.0 4.11.0 4.12.0; do
+            mkdir -p "tools/$v" "out/$v"
+            if ! dotnet tool install --tool-path "tools/$v" Dafny --version "$v" >"out/$v/install.log" 2>&1; then
+              for c in B0S0 B1S0 B0S1 B1S1; do
+                printf '%s,%s,INSTALL_FAIL,NA,NA,NA,NOT_RUN\n' "$v" "$c" >> out/results.csv
+              done
+              continue
+            fi
+            "tools/$v/dafny" --version > "out/$v/version.txt" 2>&1 || true
+            for c in B0S0 B1S0 B0S1 B1S1; do
+              set +e
+              "tools/$v/dafny" verify --verification-time-limit 30 "cases/$c.dfy" >"out/$v/$c.log" 2>&1
+              ec=$?
+              set -e
+              line=$(grep -E 'Dafny program verifier finished with [0-9]+ verified, [0-9]+ error' "out/$v/$c.log" | tail -1 || true)
+              verified=$(printf '%s' "$line" | sed -nE 's/.*with ([0-9]+) verified, ([0-9]+) error.*/\1/p')
+              errors=$(printf '%s' "$line" | sed -nE 's/.*with ([0-9]+) verified, ([0-9]+) error.*/\2/p')
+              [ -n "$verified" ] || verified=NA
+              [ -n "$errors" ] || errors=NA
+              if [ "$ec" -eq 0 ]; then result=PASS; else result=FAIL; fi
+              printf '%s,%s,OK,%s,%s,%s,%s\n' "$v" "$c" "$ec" "$verified" "$errors" "$result" >> out/results.csv
+            done
+          done
+          cat out/results.csv
+          printf '%s\n' 'Robustness only: each version uses the identical four byte-verified cells. Version sensitivity does not replace the within-version causal comparison.' > out/BOUNDARY.txt
+          sha256sum out/results.csv out/case_sha256.txt > out/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ver-sens-p41
+          path: out
+          retention-days: 7

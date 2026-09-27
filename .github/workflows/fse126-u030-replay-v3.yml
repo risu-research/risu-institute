@@ -1,0 +1,36 @@
+name: FSE126 U030 submodule-correct replay
+
+on:
+  push:
+    branches: ['research/fse126-semantic-census-20260927']
+    paths:
+      - '.github/workflows/fse126-u030-replay-v3.yml'
+      - 'research/fse126-census/run_u030_replay_v3.py'
+      - 'research/fse126-census/INFRA_ERRATUM_U030_V2.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: '4.4.0'
+      - name: Record toolchain
+        run: |
+          mkdir -p out/U030-v3
+          dafny --version | tee out/U030-v3/dafny-version.txt
+      - name: Execute exact-endpoint and four-way replay with pinned submodules
+        run: python3 research/fse126-census/run_u030_replay_v3.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fse126-U030-v3-dafny-4.4.0
+          path: out/U030-v3
+          if-no-files-found: warn
+          retention-days: 30

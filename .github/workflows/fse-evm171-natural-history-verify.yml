@@ -1,0 +1,53 @@
+name: FSE evm-dafny 171 natural-history verification
+
+on:
+  push:
+    branches:
+      - research/fse-migration-topology-classjump-20260927
+    paths:
+      - 'research/fse-classjump/evm171/verify_natural_history.py'
+      - '.github/workflows/fse-evm171-natural-history-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-natural-history:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download historical Dafny 3.7.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o /tmp/dafny373.zip https://github.com/dafny-lang/dafny/releases/download/v3.7.3/dafny-3.7.3-x64-ubuntu-16.04.zip
+          mkdir -p /tmp/dafny373
+          unzip -q /tmp/dafny373.zip -d /tmp/dafny373
+          DAFNY373=$(find /tmp/dafny373 -type f -name dafny | head -1)
+          test -n "$DAFNY373"
+          chmod +x "$DAFNY373"
+          echo "DAFNY373=$DAFNY373" >> "$GITHUB_ENV"
+          sha256sum /tmp/dafny373.zip "$DAFNY373" | tee research/fse-classjump/evm171/dafny373.sha256
+          "$DAFNY373" /version
+      - name: Clone immutable upstream history
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/evm-dafny
+          git clone -q https://github.com/Consensys-Incorporated/evm-dafny.git /tmp/evm-dafny
+          git -C /tmp/evm-dafny cat-file -e 0d1fae88f5f6191fe249baecf404e5b846f7e116^{commit}
+          git -C /tmp/evm-dafny cat-file -e 3e5ed81a48339acd79fb4e620219d81a099078ef^{commit}
+      - name: Verify base plus all 14 natural PR commits
+        run: python3 research/fse-classjump/evm171/verify_natural_history.py /tmp/evm-dafny "$DAFNY373" research/fse-classjump/evm171/natural-verify
+      - name: Integrity manifest
+        shell: bash
+        run: |
+          find research/fse-classjump/evm171 -type f ! -name NATURAL_VERIFY_MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > research/fse-classjump/evm171/NATURAL_VERIFY_MANIFEST.sha256
+      - name: Upload natural-history verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: FSE2027-evm171-natural-history-verification
+          path: research/fse-classjump/evm171
+          if-no-files-found: error

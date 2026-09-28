@@ -1,0 +1,54 @@
+name: FSE126 U052 closure v2
+
+on:
+  push:
+    branches: ['research/fse126-u052-closure-20260927']
+    paths:
+      - '.github/workflows/fse126-u052-closure-v2.yml'
+      - 'research/fse126-census/run_u052_closure_v2.py'
+      - 'research/fse126-census/U052_V1_CLASSIFICATION_ERRATUM.md'
+      - 'research/fse126-census/U052_CLOSURE_FREEZE_PRE_VERIFIER.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: '4.4.0'
+      - name: Record runner and toolchain
+        run: |
+          mkdir -p out/U052-v2
+          uname -a | tee out/U052-v2/runner-uname.txt
+          git --version | tee out/U052-v2/git-version.txt
+          dafny --version | tee out/U052-v2/dafny-version.txt
+          python3 --version | tee out/U052-v2/python-version.txt
+      - name: Execute frozen U052 v2 closure
+        run: python3 research/fse126-census/run_u052_closure_v2.py
+      - name: Show disposition and diagnostic evidence
+        if: always()
+        run: |
+          echo '=== DISPOSITION ==='
+          cat out/U052-v2/DISPOSITION.txt 2>/dev/null || true
+          echo '=== PRIMARY ENDPOINTS ==='
+          cat out/U052-v2/endpoint_results.csv 2>/dev/null || true
+          echo '=== IMMEDIATE CHILD DIAGNOSTIC ==='
+          cat out/U052-v2/child_diagnostic_result.csv 2>/dev/null || true
+          cat out/U052-v2/child_helper_diagnostic.json 2>/dev/null || true
+          echo '=== ISOLATION ==='
+          cat out/U052-v2/isolation_certificate.json 2>/dev/null || true
+          echo '=== INFRA TRACE ==='
+          cat out/U052-v2/INFRA_FAILURE.txt 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fse126-U052-v2-closure-dafny-4.4.0
+          path: out/U052-v2
+          if-no-files-found: warn
+          retention-days: 90

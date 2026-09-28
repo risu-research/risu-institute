@@ -1,0 +1,7 @@
+holdout_id,ecosystem,repo,default_branch,frozen_head_sha,head_commit_utc,window_start_utc,source_globs,discovery_tokens,unique_unit_cap
+V1,verus,verus-lang/verified-memory-allocator,main,9f99d4c22e26024be4e3e2d40b7501daab570860,2026-07-31T09:20:09Z,2024-01-01T00:00:00Z,:(glob)**/*.rs,requires|ensures|invariant|decreases|recommends,40
+V2,verus,verus-lang/verified-ironkv,main,7e35ed097c4089b9fbda483ea2629a0033f4d874,2026-09-22T01:22:17Z,2024-01-01T00:00:00Z,:(glob)**/*.rs,requires|ensures|invariant|decreases|recommends,40
+V3,verus,verus-lang/verus,main,3cf18325f0fd0c3040fbdec8c0f2255c0504c91a,2026-09-27T03:41:19Z,2024-01-01T00:00:00Z,:(glob)**/*.rs,requires|ensures|invariant|decreases|recommends,40
+F1,fstar,hacl-star/hacl-star,main,504c2987452f87fe44bce9b9f12e19d6e051761f,2026-04-10T15:41:24Z,2024-01-01T00:00:00Z,:(glob)**/*.fst;:(glob)**/*.fsti,requires|ensures|decreases,40
+F2,fstar,project-everest/mitls-fstar,master,9a75fa8c46e50897b1f43002885d25a34dfa929a,2026-07-16T22:25:30Z,2024-01-01T00:00:00Z,:(glob)**/*.fst;:(glob)**/*.fsti,requires|ensures|decreases,40
+F3,fstar,FStarLang/FStar,master,7deb38a27c86990664c6b41e4b6093597acdebd4,2026-09-27T16:52:08Z,2024-01-01T00:00:00Z,:(glob)**/*.fst;:(glob)**/*.fsti,requires|ensures|decreases,40

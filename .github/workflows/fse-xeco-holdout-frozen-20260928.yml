@@ -1,0 +1,301 @@
+name: fse-xeco-holdout-frozen-20260928
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: V1
+            ecosystem: verus
+            repo: verus-lang/verified-memory-allocator
+            branch: main
+            frozen_sha: 9f99d4c22e26024be4e3e2d40b7501daab570860
+            search_regex: '(requires|ensures|invariant|decreases|recommends)'
+            exact_regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: ':(glob)**/*.rs'
+          - id: V2
+            ecosystem: verus
+            repo: verus-lang/verified-ironkv
+            branch: main
+            frozen_sha: 7e35ed097c4089b9fbda483ea2629a0033f4d874
+            search_regex: '(requires|ensures|invariant|decreases|recommends)'
+            exact_regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: ':(glob)**/*.rs'
+          - id: V3
+            ecosystem: verus
+            repo: verus-lang/verus
+            branch: main
+            frozen_sha: 3cf18325f0fd0c3040fbdec8c0f2255c0504c91a
+            search_regex: '(requires|ensures|invariant|decreases|recommends)'
+            exact_regex: '\b(requires|ensures|invariant|decreases|recommends)\b'
+            paths: ':(glob)**/*.rs'
+          - id: F1
+            ecosystem: fstar
+            repo: hacl-star/hacl-star
+            branch: main
+            frozen_sha: 504c2987452f87fe44bce9b9f12e19d6e051761f
+            search_regex: '(requires|ensures|decreases)'
+            exact_regex: '\b(requires|ensures|decreases)\b'
+            paths: ':(glob)**/*.fst|:(glob)**/*.fsti'
+          - id: F2
+            ecosystem: fstar
+            repo: project-everest/mitls-fstar
+            branch: master
+            frozen_sha: 9a75fa8c46e50897b1f43002885d25a34dfa929a
+            search_regex: '(requires|ensures|decreases)'
+            exact_regex: '\b(requires|ensures|decreases)\b'
+            paths: ':(glob)**/*.fst|:(glob)**/*.fsti'
+          - id: F3
+            ecosystem: fstar
+            repo: FStarLang/FStar
+            branch: master
+            frozen_sha: 7deb38a27c86990664c6b41e4b6093597acdebd4
+            search_regex: '(requires|ensures|decreases)'
+            exact_regex: '\b(requires|ensures|decreases)\b'
+            paths: ':(glob)**/*.fst|:(glob)**/*.fsti'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Clone exact frozen public repository
+        shell: bash
+        env:
+          TARGET_REPO: ${{ matrix.repo }}
+          DEFAULT_BRANCH: ${{ matrix.branch }}
+          FROZEN_SHA: ${{ matrix.frozen_sha }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-tags --single-branch --branch "$DEFAULT_BRANCH" --no-checkout "https://github.com/${TARGET_REPO}.git" src
+          git -C src checkout --detach "$FROZEN_SHA"
+          test "$(git -C src rev-parse HEAD)" = "$FROZEN_SHA"
+          git -C src rev-parse HEAD > frozen_head.txt
+
+      - name: Build frozen outcome-blind mechanical queue
+        shell: bash
+        env:
+          HOLDOUT_ID: ${{ matrix.id }}
+          ECOSYSTEM: ${{ matrix.ecosystem }}
+          TARGET_REPO: ${{ matrix.repo }}
+          FROZEN_SHA: ${{ matrix.frozen_sha }}
+          SEARCH_REGEX: ${{ matrix.search_regex }}
+          EXACT_REGEX: ${{ matrix.exact_regex }}
+          PATHS: ${{ matrix.paths }}
+          WINDOW_START: '2024-01-01T00:00:00Z'
+          UNIQUE_CAP: '40'
+        run: |
+          set -euo pipefail
+          mkdir -p out/raw_patches out/blind
+          python3 - <<'PY'
+          import csv, gzip, hashlib, os, re, subprocess
+          from pathlib import Path, PurePosixPath
+
+          repo = Path('src')
+          out = Path('out')
+          hid = os.environ['HOLDOUT_ID']
+          eco = os.environ['ECOSYSTEM']
+          target = os.environ['TARGET_REPO']
+          frozen = os.environ['FROZEN_SHA']
+          window = os.environ['WINDOW_START']
+          cap = int(os.environ['UNIQUE_CAP'])
+          exact_re = re.compile(os.environ['EXACT_REGEX'])
+          pathspec = os.environ['PATHS'].split('|')
+
+          def run(args, check=True):
+              p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
+              return p.stdout.decode('utf-8', 'replace')
+
+          log = run([
+              'git','-C',str(repo),'log',frozen,
+              '--since='+window,'--date-order',
+              '--format=%H%x09%P%x09%cI%x09%s',
+              '-G'+os.environ['SEARCH_REGEX'],'--',*pathspec
+          ])
+
+          raw_commits = []
+          for line in log.splitlines():
+              parts = line.split('\t', 3)
+              if len(parts) != 4:
+                  continue
+              sha, parents, date, subject = parts
+              ps = parents.split()
+              raw_commits.append((sha, ps, date, subject))
+
+          def changed_kind(s):
+              t = s.strip()
+              if not t:
+                  return 'blank'
+              if t.startswith('//') or t.startswith('///') or t.startswith('/*') or t.startswith('*') or t.startswith('*/') or t.startswith('(*') or t.startswith('*)'):
+                  return 'comment'
+              if exact_re.search(t):
+                  return 'contract'
+              if re.fullmatch(r'[{}()\[\];,:]+', t):
+                  return 'delimiter'
+              return 'other'
+
+          def same_hunk_and_counts(patch):
+              h_contract = h_other = False
+              same = False
+              contract_lines = other_lines = 0
+              for line in patch.splitlines() + ['@@ END @@']:
+                  if line.startswith('@@'):
+                      if h_contract and h_other:
+                          same = True
+                      h_contract = h_other = False
+                      continue
+                  if not ((line.startswith('+') or line.startswith('-')) and not line.startswith('+++') and not line.startswith('---')):
+                      continue
+                  kind = changed_kind(line[1:])
+                  if kind == 'contract':
+                      contract_lines += 1
+                      h_contract = True
+                  elif kind == 'other':
+                      other_lines += 1
+                      h_other = True
+              return same, contract_lines, other_lines
+
+          def blind_patch(patch):
+              # Obfuscate exact repository paths while preserving source text and extensions.
+              path_map = {}
+              next_id = 1
+              def anon(path):
+                  nonlocal next_id
+                  if path == '/dev/null':
+                      return path
+                  p = path[2:] if path.startswith(('a/','b/')) else path
+                  if p not in path_map:
+                      suffix = ''.join(PurePosixPath(p).suffixes)
+                      path_map[p] = f'file{next_id:03d}{suffix}'
+                      next_id += 1
+                  return path_map[p]
+
+              blinded = []
+              diff_re = re.compile(r'^diff --git a/(.+) b/(.+)$')
+              for line in patch.splitlines():
+                  if line.startswith('index '):
+                      continue
+                  m = diff_re.match(line)
+                  if m:
+                      blinded.append(f'diff --git a/{anon(m.group(1))} b/{anon(m.group(2))}')
+                  elif line.startswith('--- a/'):
+                      blinded.append('--- a/' + anon(line[6:]))
+                  elif line.startswith('+++ b/'):
+                      blinded.append('+++ b/' + anon(line[6:]))
+                  elif line.startswith('rename from '):
+                      blinded.append('rename from ' + anon(line[len('rename from '):]))
+                  elif line.startswith('rename to '):
+                      blinded.append('rename to ' + anon(line[len('rename to '):]))
+                  else:
+                      blinded.append(line)
+              return '\n'.join(blinded) + '\n'
+
+          selected = []
+          selected_by_hash = {}
+          aliases = []
+          examined = 0
+          roots = 0
+          structural_hits = 0
+
+          for sha, parents, date, subject in raw_commits:
+              if not parents:
+                  roots += 1
+                  continue
+              parent = parents[0]
+              examined += 1
+              patch_b = subprocess.run(
+                  ['git','-C',str(repo),'diff','--no-ext-diff','--unified=3',parent,sha,'--',*pathspec],
+                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+              ).stdout
+              patch = patch_b.decode('utf-8','replace')
+              same, contract_lines, other_lines = same_hunk_and_counts(patch)
+              if not same:
+                  continue
+              structural_hits += 1
+              phash = hashlib.sha256(patch_b).hexdigest()
+
+              if phash in selected_by_hash:
+                  cid = selected_by_hash[phash]['candidate_id']
+                  selected_by_hash[phash]['alias_count'] += 1
+                  aliases.append({
+                      'candidate_id': cid, 'commit': sha, 'parent': parent,
+                      'date': date, 'subject': subject, 'patch_sha256': phash,
+                      'canonical': 0
+                  })
+                  continue
+
+              if len(selected) >= cap:
+                  # New unique units beyond the predeclared cap are not retained.
+                  continue
+
+              cid = f'{hid}-C{len(selected)+1:03d}'
+              row = {
+                  'candidate_id': cid, 'holdout_id': hid, 'ecosystem': eco,
+                  'repo': target, 'frozen_head_sha': frozen,
+                  'commit': sha, 'parent': parent, 'date': date, 'subject': subject,
+                  'contract_changed_lines': contract_lines,
+                  'other_changed_lines': other_lines,
+                  'patch_sha256': phash, 'alias_count': 1
+              }
+              selected.append(row)
+              selected_by_hash[phash] = row
+              aliases.append({
+                  'candidate_id': cid, 'commit': sha, 'parent': parent,
+                  'date': date, 'subject': subject, 'patch_sha256': phash,
+                  'canonical': 1
+              })
+              with gzip.open(out/'raw_patches'/f'{cid}.diff.gz','wb',compresslevel=9) as f:
+                  f.write(patch_b)
+              (out/'blind'/f'{cid}.patch').write_text(blind_patch(patch), encoding='utf-8')
+
+          prov_fields = [
+              'candidate_id','holdout_id','ecosystem','repo','frozen_head_sha',
+              'commit','parent','date','subject','contract_changed_lines',
+              'other_changed_lines','patch_sha256','alias_count'
+          ]
+          with (out/'provenance.csv').open('w', newline='', encoding='utf-8') as f:
+              w = csv.DictWriter(f, fieldnames=prov_fields)
+              w.writeheader(); w.writerows(selected)
+
+          alias_fields = ['candidate_id','commit','parent','date','subject','patch_sha256','canonical']
+          with (out/'aliases.csv').open('w', newline='', encoding='utf-8') as f:
+              w = csv.DictWriter(f, fieldnames=alias_fields)
+              w.writeheader(); w.writerows(aliases)
+
+          with (out/'scan_summary.csv').open('w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow([
+                  'holdout_id','ecosystem','repo','frozen_head_sha','window_start',
+                  'contract_diff_commits_found','root_hits','commits_examined',
+                  'same_hunk_occurrences','unique_units_retained','unique_cap'
+              ])
+              w.writerow([
+                  hid, eco, target, frozen, window, len(raw_commits), roots, examined,
+                  structural_hits, len(selected), cap
+              ])
+
+          (out/'METHOD.md').write_text(
+              '# XH1 frozen mechanical holdout packet\n\n'
+              f'Freeze ID: XH1-20260928\nHoldout: {hid}\nEcosystem: {eco}\n'
+              f'Frozen head: {frozen}\nWindow start: {window}\nUnique-unit cap: {cap}\n\n'
+              'The queue is a mechanical same-hunk discovery frame only. It is not a semantic co-evolution label. '
+              'Blind packets remove repository/commit/date/subject metadata and obfuscate paths; provenance and alias mappings are separate. '
+              'No verifier or target program is executed by this workflow.\n',
+              encoding='utf-8'
+          )
+
+          print((out/'scan_summary.csv').read_text())
+          PY
+          find out -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+
+      - name: Upload frozen holdout packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: xh1-${{ matrix.id }}
+          path: out
+          if-no-files-found: error
+          retention-days: 14

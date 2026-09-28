@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-28",
+  "stage": "D1_population_synthesis_complete",
+  "frame": {
+    "commit_candidates": 126,
+    "unique_patch_units": 100,
+    "candidate_repositories_with_hits": 8
+  },
+  "frozen_labels": {"E0": 3, "E1": 9, "N0": 37, "N1": 51},
+  "corrected_overlay": {"E0": 3, "E1": 10, "N0": 35, "N1": 52},
+  "frozen_alias_counts": {"E0": 4, "E1": 10, "N0": 41, "N1": 71},
+  "corrected_alias_counts": {"E0": 4, "E1": 11, "N0": 39, "N1": 72},
+  "negative_audit": {
+    "targets": 31,
+    "confirm": 28,
+    "tension": 0,
+    "error": 3,
+    "corrections": [
+      {"unit_id": "U061", "frozen_label": "N0", "corrected_label": "N1"},
+      {"unit_id": "U083", "frozen_label": "N0", "corrected_label": "N1"},
+      {"unit_id": "U087", "frozen_label": "N1", "corrected_label": "E1"}
+    ]
+  },
+  "e0_replay": {
+    "denominator": 3,
+    "R4": 2,
+    "R2": 1,
+    "profiles": {"P/P/F/P": 1, "P/F/P/P": 1}
+  },
+  "integrity": {
+    "semantic_labels_recovered_exact_sha256": "b2b671cfeb17c25f5f5030cf1509fc17c1b28731983731ce88a76c552bb2e79a",
+    "reconstructed_126_alias_map_rows_matched": 126,
+    "unit_alias_counts_reproduced": 100
+  }
+}

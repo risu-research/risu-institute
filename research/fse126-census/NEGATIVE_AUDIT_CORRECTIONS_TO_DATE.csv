@@ -1,0 +1,2 @@
+unit_id,frozen_label,corrected_label,audit_outcome,repo,commit,parent,patch_sha256,reason
+U061,N0,N1,ERROR,franck44/evm-dis,46e495abbc8641a4bf70559daf69058f25e489df,49d20b3d4913b4ea2c950b5ccae5409ef8e87fa6,e093137427dec1be77d16ffbb419bee75a7ee106e61d995aada323f71deca9a6,"Five new non-ghost helper declarations with requires clauses and semantic bodies are added; parent has none. This is N1 new-declaration/non-pairable, not N0 formatting/proof-only."

@@ -1,0 +1,139 @@
+name: fse-xeco-holdout-pushrunner-20260928
+
+on:
+  push:
+    branches:
+      - research/fse-xeco-holdout-freeze-20260928
+    paths:
+      - research/fse-xeco-holdout-20260928/RUN_SENTINEL
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        id: [V1, V2, V3, F1, F2, F3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout exact sealed XH1 state
+        uses: actions/checkout@v4
+        with:
+          ref: 3b5827242eab51a41326b33dca048128749189eb
+          fetch-depth: 1
+
+      - name: Validate sealed scanner and load frozen row
+        shell: bash
+        env:
+          HOLDOUT_ID_REQUESTED: ${{ matrix.id }}
+          EXPECTED_SCANNER_BLOB: f5b233e573bf3f760dfeee50cb103231d063460a
+        run: |
+          set -euo pipefail
+          scanner=.github/workflows/fse-xeco-holdout-frozen-20260928.yml
+          manifest=research/fse-xeco-holdout-20260928/FROZEN_REPOSITORIES.csv
+          test "$(git hash-object "$scanner")" = "$EXPECTED_SCANNER_BLOB"
+          python3 - <<'PY'
+          import csv, os
+          from pathlib import Path
+
+          hid = os.environ['HOLDOUT_ID_REQUESTED']
+          rows = list(csv.DictReader(Path('research/fse-xeco-holdout-20260928/FROZEN_REPOSITORIES.csv').open()))
+          matches = [r for r in rows if r['holdout_id'] == hid]
+          if len(matches) != 1:
+              raise SystemExit(f'expected one manifest row for {hid}, got {len(matches)}')
+          r = matches[0]
+          tokens = r['discovery_tokens']
+          values = {
+              'HOLDOUT_ID': r['holdout_id'],
+              'ECOSYSTEM': r['ecosystem'],
+              'TARGET_REPO': r['repo'],
+              'DEFAULT_BRANCH': r['default_branch'],
+              'FROZEN_SHA': r['frozen_head_sha'],
+              'WINDOW_START': r['window_start_utc'],
+              'PATHS': r['source_globs'].replace(';', '|'),
+              'SEARCH_REGEX': '(' + tokens + ')',
+              'EXACT_REGEX': r'\b(' + tokens + r')\b',
+              'UNIQUE_CAP': r['unique_unit_cap'],
+          }
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as f:
+              for k, v in values.items():
+                  print(f'{k}={v}', file=f)
+          PY
+
+      - name: Extract exact sealed shell bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          src = Path('.github/workflows/fse-xeco-holdout-frozen-20260928.yml')
+          lines = src.read_text(encoding='utf-8').splitlines()
+
+          def extract(step_name, output):
+              marker = '- name: ' + step_name
+              starts = [i for i, line in enumerate(lines) if line.strip() == marker]
+              if len(starts) != 1:
+                  raise SystemExit(f'{step_name}: expected one step, found {len(starts)}')
+              i = starts[0] + 1
+              while i < len(lines) and lines[i].strip() != 'run: |':
+                  i += 1
+              if i >= len(lines):
+                  raise SystemExit(f'{step_name}: run block not found')
+              run_indent = len(lines[i]) - len(lines[i].lstrip())
+              body = []
+              i += 1
+              while i < len(lines):
+                  line = lines[i]
+                  if line.strip() == '':
+                      body.append('')
+                      i += 1
+                      continue
+                  indent = len(line) - len(line.lstrip())
+                  if indent <= run_indent:
+                      break
+                  body.append(line[run_indent + 2:])
+                  i += 1
+              text = '\n'.join(body).rstrip() + '\n'
+              Path(output).write_text(text, encoding='utf-8')
+
+          extract('Clone exact frozen public repository', 'sealed_clone_step.sh')
+          extract('Build frozen outcome-blind mechanical queue', 'sealed_scan_step.sh')
+          PY
+          chmod +x sealed_clone_step.sh sealed_scan_step.sh
+          sha256sum sealed_clone_step.sh sealed_scan_step.sh
+
+      - name: Execute exact sealed clone body
+        shell: bash
+        run: bash sealed_clone_step.sh
+
+      - name: Execute exact sealed outcome-blind scan body
+        shell: bash
+        run: bash sealed_scan_step.sh
+
+      - name: Record wrapper provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "freeze_id=XH1-20260928"
+            echo "seal_commit=3b5827242eab51a41326b33dca048128749189eb"
+            echo "sealed_scanner_blob=f5b233e573bf3f760dfeee50cb103231d063460a"
+            echo "execution_amendment=XH1-A1"
+            echo "holdout_id=${HOLDOUT_ID}"
+            echo "target_repo=${TARGET_REPO}"
+            echo "frozen_sha=${FROZEN_SHA}"
+            echo "verifier_executed=false"
+          } > out/WRAPPER_PROVENANCE.txt
+          sha256sum out/WRAPPER_PROVENANCE.txt >> out/SHA256SUMS.txt
+
+      - name: Upload frozen holdout packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: xh1-${{ matrix.id }}
+          path: out
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,73 @@
+name: FSE126 U003 closure
+
+on:
+  push:
+    branches:
+      - research/fse126-u003-closure-20260928
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup frozen primary Dafny 4.3.0
+        uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: '4.3.0'
+
+      - name: Record runner before primary
+        run: |
+          mkdir -p out/U003
+          uname -a | tee out/U003/runner-uname.txt
+          git --version | tee out/U003/git-version.txt
+          python3 --version | tee out/U003/python-version.txt
+          dafny --version | tee out/U003/primary-setup-dafny-version.txt
+
+      - name: Execute frozen U003 primary closure
+        run: python3 research/fse126-census/run_u003_closure.py --phase primary
+
+      - name: Setup predeclared Dafny 4.4.0 sensitivity
+        uses: dafny-lang/setup-dafny-action@v1.7.0
+        with:
+          dafny-version: '4.4.0'
+
+      - name: Record sensitivity verifier
+        run: dafny --version | tee out/U003/sensitivity-setup-dafny-version.txt
+
+      - name: Execute U003 4.4.0 sensitivity on identical cell bytes
+        run: python3 research/fse126-census/run_u003_closure.py --phase sensitivity
+
+      - name: Print compact closure evidence
+        if: always()
+        run: |
+          echo '=== PRIMARY DISPOSITION ==='
+          cat out/U003/primary/DISPOSITION.txt 2>/dev/null || true
+          echo '=== PRIMARY ENDPOINTS ==='
+          cat out/U003/primary/endpoint_results.csv 2>/dev/null || true
+          echo '=== PRIMARY CELLS ==='
+          cat out/U003/primary/cell_results.csv 2>/dev/null || true
+          echo '=== PRIMARY B0S1 WITNESS CORRELATION ==='
+          cat out/U003/primary/B0S1_witness_correlation.json 2>/dev/null || true
+          echo '=== SENSITIVITY ==='
+          cat out/U003/sensitivity/DISPOSITION.txt 2>/dev/null || true
+          cat out/U003/sensitivity/cell_results.csv 2>/dev/null || true
+          echo '=== SOURCE IDENTITY ==='
+          cat out/U003/source_identity.json 2>/dev/null || true
+          echo '=== SOURCE WITNESS ==='
+          cat out/U003/source_semantic_witness.json 2>/dev/null || true
+          echo '=== INFRA TRACE ==='
+          cat out/U003/INFRA_FAILURE_primary.txt 2>/dev/null || true
+          cat out/U003/INFRA_FAILURE_sensitivity.txt 2>/dev/null || true
+
+      - name: Upload U003 closure artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fse126-U003-closure-primary-4.3.0-sensitivity-4.4.0
+          path: out/U003
+          retention-days: 90

@@ -1,0 +1,52 @@
+name: AISTATS historical benchmark transport
+
+on:
+  push:
+    branches:
+      - research/aistats-benchmark-transport
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  historical-matrix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/aistats-benchmark-transport
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install analysis dependencies
+        run: pip install --disable-pip-version-check pandas numpy scipy tabulate
+
+      - name: Fetch exact historical TabZilla cleaned results
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/aistats_transport/input
+          URL='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32/tabzilla_analysis/final-selected18-algs/cleaned_results/tuned_aggregated_results.csv'
+          curl --fail --location --retry 4 --retry-all-errors "$URL" -o research/aistats_transport/input/tuned_aggregated_results.csv
+          test "$(wc -c < research/aistats_transport/input/tuned_aggregated_results.csv)" -eq 536711
+          printf '6afbc26593d51fad95927729305ab3b98ab0e56a  expected_git_blob_sha\n' > research/aistats_transport/input/PROVENANCE.txt
+          sha256sum research/aistats_transport/input/tuned_aggregated_results.csv >> research/aistats_transport/input/PROVENANCE.txt
+
+      - name: Execute 10k-bootstrap task-level matrix
+        run: python research/aistats_transport/run_historical_matrix.py | tee research/aistats_transport/results/console.txt
+
+      - name: Commit immutable results to computation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/aistats_transport/input/PROVENANCE.txt research/aistats_transport/results
+          git commit -m 'Record historical CC18 transport matrix results'
+          git push origin HEAD:research/aistats-benchmark-transport

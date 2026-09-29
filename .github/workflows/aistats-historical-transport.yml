@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p research/aistats_transport/input
+          mkdir -p research/aistats_transport/input research/aistats_transport/results
           URL='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32/tabzilla_analysis/final-selected18-algs/cleaned_results/tuned_aggregated_results.csv'
           curl --fail --location --retry 4 --retry-all-errors "$URL" -o research/aistats_transport/input/tuned_aggregated_results.csv
           test "$(wc -c < research/aistats_transport/input/tuned_aggregated_results.csv)" -eq 536711
@@ -39,7 +39,10 @@ jobs:
           sha256sum research/aistats_transport/input/tuned_aggregated_results.csv >> research/aistats_transport/input/PROVENANCE.txt
 
       - name: Execute 10k-bootstrap task-level matrix
-        run: python research/aistats_transport/run_historical_matrix.py | tee research/aistats_transport/results/console.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/aistats_transport/run_historical_matrix.py | tee research/aistats_transport/results/console.txt
 
       - name: Commit immutable results to computation branch
         shell: bash

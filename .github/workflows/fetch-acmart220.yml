@@ -1,4 +1,4 @@
-name: Fetch acmart 2.20 for FSE pixel comparison
+name: Fetch official acmart 2.20 for FSE pixel comparison
 
 on:
   push:
@@ -11,20 +11,25 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch two independent v2.20 copies
+      - name: Install minimal TeX for docstrip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-latex-base
+      - name: Generate acmart.cls from official v2.20 release commit
         run: |
           set -euo pipefail
-          curl -fsSL 'https://raw.githubusercontent.com/racket/scribble/a01cc707689527fd8f0d12155432d26b7c99ce21/scribble-lib/scribble/acmart/acmart.cls' -o acmart-racket.cls
-          curl -fsSL 'https://raw.githubusercontent.com/fQwQf/A20OS/43c501007092beba28d1f43727fa37a50dd9b645/docs/paper/acmart.cls' -o acmart-a20os.cls
-          grep -F '[2026/08/16 v2.20 Typesetting articles for the Association for Computing Machinery]' acmart-racket.cls
-          grep -F '[2026/08/16 v2.20 Typesetting articles for the Association for Computing Machinery]' acmart-a20os.cls
-          sha256sum acmart-racket.cls acmart-a20os.cls | tee SHA256SUMS.txt
-          cmp -s acmart-racket.cls acmart-a20os.cls
-          cp acmart-racket.cls acmart.cls
+          RELEASE_COMMIT='10d6d082e522c4034022f38437019ba75589456b'
+          curl -fsSL "https://raw.githubusercontent.com/borisveytsman/acmart/${RELEASE_COMMIT}/acmart.dtx" -o acmart.dtx
+          curl -fsSL "https://raw.githubusercontent.com/borisveytsman/acmart/${RELEASE_COMMIT}/acmart.ins" -o acmart.ins
+          latex -interaction=nonstopmode acmart.ins >/tmp/acmart-ins.log
+          grep -F '[2026/08/16 v2.20 Typesetting articles for the Association for Computing Machinery]' acmart.cls
+          sha256sum acmart.dtx acmart.ins acmart.cls | tee SHA256SUMS.txt
+          printf 'official_release_commit=%s\n' "$RELEASE_COMMIT" > PROVENANCE.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: acmart-v2.20-verified
+          name: acmart-v2.20-official-release
           path: |
             acmart.cls
             SHA256SUMS.txt
+            PROVENANCE.txt
           if-no-files-found: error

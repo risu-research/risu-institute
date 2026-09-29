@@ -1,0 +1,30 @@
+name: Fetch acmart 2.20 for FSE pixel comparison
+
+on:
+  push:
+    branches:
+      - research/fse-acmart220-pixel-compare-20260929
+    paths:
+      - .github/workflows/fetch-acmart220.yml
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch two independent v2.20 copies
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://raw.githubusercontent.com/racket/scribble/a01cc707689527fd8f0d12155432d26b7c99ce21/scribble-lib/scribble/acmart/acmart.cls' -o acmart-racket.cls
+          curl -fsSL 'https://raw.githubusercontent.com/fQwQf/A20OS/43c501007092beba28d1f43727fa37a50dd9b645/docs/paper/acmart.cls' -o acmart-a20os.cls
+          grep -F '[2026/08/16 v2.20 Typesetting articles for the Association for Computing Machinery]' acmart-racket.cls
+          grep -F '[2026/08/16 v2.20 Typesetting articles for the Association for Computing Machinery]' acmart-a20os.cls
+          sha256sum acmart-racket.cls acmart-a20os.cls | tee SHA256SUMS.txt
+          cmp -s acmart-racket.cls acmart-a20os.cls
+          cp acmart-racket.cls acmart.cls
+      - uses: actions/upload-artifact@v4
+        with:
+          name: acmart-v2.20-verified
+          path: |
+            acmart.cls
+            SHA256SUMS.txt
+          if-no-files-found: error

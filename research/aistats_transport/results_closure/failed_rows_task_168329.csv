@@ -1,0 +1,12 @@
+alg_name,dataset_name,num_hparam_samples,has_exception,timeout_excep,CUDA_memory_excep,CUDA_config_excep,allocate_memory_excep,target_type
+CatBoost,openml__helena__168329,0.0,,,,,,classification
+DANet,openml__helena__168329,0.0,True,True,False,False,False,classification
+DeepFM,openml__helena__168329,0.0,,,,,,classification
+LightGBM,openml__helena__168329,0.0,,,,,,classification
+LinearModel,openml__helena__168329,0.0,,,,,,classification
+NAM,openml__helena__168329,0.0,,,,,,classification
+NODE,openml__helena__168329,0.0,True,True,True,False,False,classification
+RandomForest,openml__helena__168329,0.0,,,,,,classification
+SVM,openml__helena__168329,0.0,,,,,,classification
+TabPFNModel,openml__helena__168329,0.0,True,False,False,False,False,classification
+XGBoost,openml__helena__168329,0.0,,,,,,classification

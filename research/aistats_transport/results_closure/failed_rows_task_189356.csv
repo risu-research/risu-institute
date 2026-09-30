@@ -1,0 +1,14 @@
+alg_name,dataset_name,num_hparam_samples,has_exception,timeout_excep,CUDA_memory_excep,CUDA_config_excep,allocate_memory_excep,target_type
+DANet,openml__albert__189356,0.0,True,True,False,False,False,binary
+DeepFM,openml__albert__189356,0.0,True,True,False,False,False,binary
+KNN,openml__albert__189356,0.0,True,True,False,False,False,binary
+LightGBM,openml__albert__189356,0.0,,,,,,binary
+NAM,openml__albert__189356,0.0,True,True,False,False,False,binary
+SAINT,openml__albert__189356,0.0,True,True,False,False,False,binary
+STG,openml__albert__189356,0.0,True,True,False,False,False,binary
+SVM,openml__albert__189356,0.0,True,True,False,False,False,binary
+TabNet,openml__albert__189356,0.0,True,True,False,False,False,binary
+TabPFNModel,openml__albert__189356,0.0,True,False,False,False,False,binary
+TabTransformer,openml__albert__189356,0.0,True,True,True,False,False,binary
+VIME,openml__albert__189356,0.0,True,True,False,False,False,binary
+rtdl_FTTransformer,openml__albert__189356,0.0,True,False,True,False,False,binary

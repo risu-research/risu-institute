@@ -1,0 +1,1 @@
+alg_name,dataset_name,num_hparam_samples,has_exception,timeout_excep,CUDA_memory_excep,CUDA_config_excep,allocate_memory_excep,target_type

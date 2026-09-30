@@ -1,0 +1,77 @@
+name: AISTATS benchmark-to-target closure v2
+
+on:
+  push:
+    branches:
+      - research/aistats-benchmark-transport
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  closure-v2:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/aistats-benchmark-transport
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install --disable-pip-version-check pandas numpy scipy tabulate
+      - name: Fetch exact pinned artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/aistats_transport/input research/aistats_transport/results_closure
+          BASE='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32'
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/tuned_aggregated_results.csv" -o research/aistats_transport/input/broad_tuned_aggregated_results.csv
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/TabSurvey/metafeatures.csv" -o research/aistats_transport/input/metafeatures.csv
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/failed_experiments.csv" -o research/aistats_transport/input/failed_experiments.csv
+          test "$(wc -c < research/aistats_transport/input/broad_tuned_aggregated_results.csv)" -eq 955596
+          test "$(wc -c < research/aistats_transport/input/metafeatures.csv)" -eq 24976558
+          test "$(wc -c < research/aistats_transport/input/failed_experiments.csv)" -eq 41792
+      - name: Reproduce authors' metafeature loading rename
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          p=Path('research/aistats_transport/input/metafeatures.csv')
+          d=pd.read_csv(p,low_memory=False)
+          print('raw metadata columns:', len(d.columns), 'first:', list(d.columns[:8]))
+          if 'dataset_fold_id' not in d.columns:
+              if 'dataset_name' in d.columns:
+                  d.rename(columns={'dataset_name':'dataset_fold_id'},inplace=True)
+              else:
+                  candidates=[]
+                  for c in d.select_dtypes(include=['object']).columns:
+                      q=d[c].astype(str).str.contains(r'__fold_\d+$',regex=True,na=False).mean()
+                      if q>0.5: candidates.append((q,c))
+                  if not candidates:
+                      raise RuntimeError(f'Could not identify fold-id column. Columns={list(d.columns)}')
+                  c=max(candidates)[1]
+                  d.rename(columns={c:'dataset_fold_id'},inplace=True)
+          d.to_csv(p,index=False)
+          print('fold key:', d['dataset_fold_id'].iloc[0], 'rows:', len(d))
+          PY
+      - name: Run full closure analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/aistats_transport/run_transport_closure.py | tee research/aistats_transport/results_closure/console_v2.txt
+      - name: Commit immutable closure results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/aistats_transport/results_closure
+          git commit -m 'Record benchmark-to-target closure v2 results'
+          git push origin HEAD:research/aistats-benchmark-transport

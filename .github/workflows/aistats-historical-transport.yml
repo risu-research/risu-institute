@@ -13,7 +13,7 @@ jobs:
   historical-matrix:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,22 +27,39 @@ jobs:
       - name: Install analysis dependencies
         run: pip install --disable-pip-version-check pandas numpy scipy tabulate
 
-      - name: Fetch exact historical TabZilla cleaned results
+      - name: Fetch exact historical TabZilla artifacts
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p research/aistats_transport/input research/aistats_transport/results
-          URL='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32/tabzilla_analysis/final-selected18-algs/cleaned_results/tuned_aggregated_results.csv'
-          curl --fail --location --retry 4 --retry-all-errors "$URL" -o research/aistats_transport/input/tuned_aggregated_results.csv
+          mkdir -p research/aistats_transport/input research/aistats_transport/results research/aistats_transport/results_broad
+          BASE='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32'
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/final-selected18-algs/cleaned_results/tuned_aggregated_results.csv" -o research/aistats_transport/input/tuned_aggregated_results.csv
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/tuned_aggregated_results.csv" -o research/aistats_transport/input/broad_tuned_aggregated_results.csv
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/TabSurvey/metafeatures.csv" -o research/aistats_transport/input/metafeatures.csv
           test "$(wc -c < research/aistats_transport/input/tuned_aggregated_results.csv)" -eq 536711
-          printf '6afbc26593d51fad95927729305ab3b98ab0e56a  expected_git_blob_sha\n' > research/aistats_transport/input/PROVENANCE.txt
-          sha256sum research/aistats_transport/input/tuned_aggregated_results.csv >> research/aistats_transport/input/PROVENANCE.txt
+          test "$(wc -c < research/aistats_transport/input/broad_tuned_aggregated_results.csv)" -eq 955596
+          test "$(wc -c < research/aistats_transport/input/metafeatures.csv)" -eq 24976558
+          {
+            printf 'Pinned TabZilla commit: feca5e554148bdc4ac17c3379984c2a71244cd32\n'
+            printf 'final-selected18 git blob: 6afbc26593d51fad95927729305ab3b98ab0e56a\n'
+            printf 'broad-results git blob: 63a9add515a5574a5f529757b071f3ee2d11d9da\n'
+            printf 'metafeatures git blob: a0408b880be9d474ce93e2fc0c23b0c9886b9c9b\n'
+            sha256sum research/aistats_transport/input/tuned_aggregated_results.csv
+            sha256sum research/aistats_transport/input/broad_tuned_aggregated_results.csv
+            sha256sum research/aistats_transport/input/metafeatures.csv
+          } > research/aistats_transport/input/PROVENANCE.txt
 
-      - name: Execute 10k-bootstrap task-level matrix
+      - name: Execute complete-case 104-task matrix
         shell: bash
         run: |
           set -euo pipefail
           python research/aistats_transport/run_historical_matrix.py | tee research/aistats_transport/results/console.txt
+
+      - name: Execute broad-frame replication and metafeature audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/aistats_transport/run_broad_validation.py | tee research/aistats_transport/results_broad/console.txt
 
       - name: Commit immutable results to computation branch
         shell: bash
@@ -50,6 +67,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add research/aistats_transport/input/PROVENANCE.txt research/aistats_transport/results
-          git commit -m 'Record historical CC18 transport matrix results'
+          git add research/aistats_transport/input/PROVENANCE.txt research/aistats_transport/results research/aistats_transport/results_broad
+          git commit -m 'Record broad-frame transport and metafeature validation'
           git push origin HEAD:research/aistats-benchmark-transport

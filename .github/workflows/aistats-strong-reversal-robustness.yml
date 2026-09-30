@@ -1,0 +1,48 @@
+name: AISTATS strong target-reversal robustness
+
+on:
+  push:
+    branches:
+      - research/aistats-benchmark-transport
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  robustness:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/aistats-benchmark-transport
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install --disable-pip-version-check pandas numpy tabulate
+      - name: Fetch exact pinned broad tuned results
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/aistats_transport/input research/aistats_transport/results_robustness
+          URL='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32/tabzilla_analysis/results/tuned_aggregated_results.csv'
+          curl --fail --location --retry 4 --retry-all-errors "$URL" -o research/aistats_transport/input/broad_tuned_aggregated_results.csv
+          test "$(wc -c < research/aistats_transport/input/broad_tuned_aggregated_results.csv)" -eq 955596
+      - name: Execute metric, dedupe, and LOO robustness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/aistats_transport/run_strong_reversal_robustness.py | tee research/aistats_transport/results_robustness/console.txt
+      - name: Commit immutable robustness results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/aistats_transport/results_robustness
+          git commit -m 'Record strong target-reversal robustness results'
+          git push origin HEAD:research/aistats-benchmark-transport

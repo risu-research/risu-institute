@@ -1,0 +1,21 @@
+# Strong benchmark-to-target reversal robustness
+
+| algorithm_a   | algorithm_b   | dedupe_dataset_base   |   metrics_available |   metrics_with_reversal |   min_bootstrap_reversal_probability |   min_loo_retention |
+|:--------------|:--------------|:----------------------|--------------------:|------------------------:|-------------------------------------:|--------------------:|
+| NODE          | RandomForest  | False                 |                   1 |                       1 |                               0.8222 |                   1 |
+| NODE          | RandomForest  | True                  |                   1 |                       1 |                               0.8149 |                   1 |
+| NODE          | SAINT         | False                 |                   1 |                       1 |                               0.8482 |                   1 |
+| NODE          | SAINT         | True                  |                   1 |                       1 |                               0.8543 |                   1 |
+| SAINT         | SVM           | False                 |                   1 |                       1 |                               0.8261 |                   1 |
+| SAINT         | SVM           | True                  |                   1 |                       1 |                               0.8334 |                   1 |
+
+## Full metric × dedupe × LOO results
+
+| algorithm_a   | algorithm_b   | metric              |   utility_sign | dedupe_dataset_base   |   n_cc18 |   n_outside |   delta_benchmark_utility |   delta_target_utility | sign_reversal   |   bootstrap_reversal_probability |   target_minus_benchmark |   shift_ci_lo |   shift_ci_hi |   loo_reversal_retention |   n_loo |
+|:--------------|:--------------|:--------------------|---------------:|:----------------------|---------:|------------:|--------------------------:|-----------------------:|:----------------|---------------------------------:|-------------------------:|--------------:|--------------:|-------------------------:|--------:|
+| NODE          | RandomForest  | Accuracy__test_mean |              1 | False                 |       58 |          79 |                0.00543811 |            -0.00817946 | True            |                           0.8222 |               -0.0136176 |   -0.0236053  |   -0.00396978 |                        1 |     137 |
+| NODE          | RandomForest  | Accuracy__test_mean |              1 | True                  |       56 |          75 |                0.00526696 |            -0.00890034 | True            |                           0.8149 |               -0.0141673 |   -0.0242611  |   -0.00431216 |                        1 |     131 |
+| NODE          | SAINT         | Accuracy__test_mean |              1 | False                 |       34 |          58 |                0.0120922  |            -0.00786518 | True            |                           0.8482 |               -0.0199574 |   -0.0363923  |   -0.00612818 |                        1 |      92 |
+| NODE          | SAINT         | Accuracy__test_mean |              1 | True                  |       33 |          57 |                0.0122168  |            -0.00832084 | True            |                           0.8543 |               -0.0205376 |   -0.0372503  |   -0.00640413 |                        1 |      90 |
+| SAINT         | SVM           | Accuracy__test_mean |              1 | False                 |       38 |          59 |               -0.00884995 |             0.0124208  | True            |                           0.8261 |                0.0212708 |    0.00372406 |    0.0409012  |                        1 |      97 |
+| SAINT         | SVM           | Accuracy__test_mean |              1 | True                  |       37 |          58 |               -0.00962919 |             0.0124437  | True            |                           0.8334 |                0.0220729 |    0.00385385 |    0.041956   |                        1 |      95 |

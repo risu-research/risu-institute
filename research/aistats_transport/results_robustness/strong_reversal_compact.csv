@@ -1,0 +1,7 @@
+algorithm_a,algorithm_b,dedupe_dataset_base,metrics_available,metrics_with_reversal,min_bootstrap_reversal_probability,min_loo_retention
+NODE,RandomForest,False,1,1,0.8222,1.0
+NODE,RandomForest,True,1,1,0.8149,1.0
+NODE,SAINT,False,1,1,0.8482,1.0
+NODE,SAINT,True,1,1,0.8543,1.0
+SAINT,SVM,False,1,1,0.8261,1.0
+SAINT,SVM,True,1,1,0.8334,1.0

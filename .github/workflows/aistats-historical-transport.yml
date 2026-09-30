@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  corrected-validation:
+  transport-closure:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -31,36 +31,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p research/aistats_transport/input research/aistats_transport/results_corrected
+          mkdir -p research/aistats_transport/input research/aistats_transport/results_closure
           BASE='https://raw.githubusercontent.com/naszilla/tabzilla/feca5e554148bdc4ac17c3379984c2a71244cd32'
           curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/tuned_aggregated_results.csv" -o research/aistats_transport/input/broad_tuned_aggregated_results.csv
-          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/tuned_aggregated_results_with_default_hparams.csv" -o research/aistats_transport/input/broad_with_default_hparams.csv
           curl --fail --location --retry 4 --retry-all-errors "$BASE/TabSurvey/metafeatures.csv" -o research/aistats_transport/input/metafeatures.csv
+          curl --fail --location --retry 4 --retry-all-errors "$BASE/tabzilla_analysis/results/failed_experiments.csv" -o research/aistats_transport/input/failed_experiments.csv
           test "$(wc -c < research/aistats_transport/input/broad_tuned_aggregated_results.csv)" -eq 955596
-          test "$(wc -c < research/aistats_transport/input/broad_with_default_hparams.csv)" -eq 1880492
           test "$(wc -c < research/aistats_transport/input/metafeatures.csv)" -eq 24976558
+          test "$(wc -c < research/aistats_transport/input/failed_experiments.csv)" -eq 41792
           {
             printf 'Pinned TabZilla commit: feca5e554148bdc4ac17c3379984c2a71244cd32\n'
             printf 'broad tuned blob: 63a9add515a5574a5f529757b071f3ee2d11d9da\n'
-            printf 'broad tuned+default blob: e29e5d2d3953b6f74f83acf4090c89f650e4ea44\n'
             printf 'metafeatures blob: a0408b880be9d474ce93e2fc0c23b0c9886b9c9b\n'
+            printf 'failed experiments blob: 9ce009c0e203535d7e818bc4302cede35640ef2b\n'
             sha256sum research/aistats_transport/input/broad_tuned_aggregated_results.csv
-            sha256sum research/aistats_transport/input/broad_with_default_hparams.csv
             sha256sum research/aistats_transport/input/metafeatures.csv
-          } > research/aistats_transport/input/PROVENANCE_CORRECTED.txt
+            sha256sum research/aistats_transport/input/failed_experiments.csv
+          } > research/aistats_transport/input/PROVENANCE_CLOSURE.txt
 
-      - name: Execute corrected final18 and metadata validation
+      - name: Execute benchmark-to-target closure
         shell: bash
         run: |
           set -euo pipefail
-          python research/aistats_transport/run_corrected_validation.py | tee research/aistats_transport/results_corrected/console.txt
+          python research/aistats_transport/run_transport_closure.py | tee research/aistats_transport/results_closure/console.txt
 
-      - name: Commit corrected immutable results
+      - name: Commit immutable closure results
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add research/aistats_transport/input/PROVENANCE_CORRECTED.txt research/aistats_transport/results_corrected
-          git commit -m 'Record corrected 18-algorithm transport validation'
+          git add research/aistats_transport/input/PROVENANCE_CLOSURE.txt research/aistats_transport/results_closure
+          git commit -m 'Record benchmark-to-target closure results'
           git push origin HEAD:research/aistats-benchmark-transport

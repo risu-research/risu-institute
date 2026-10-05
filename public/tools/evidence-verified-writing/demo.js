@@ -52,37 +52,17 @@ async function renderEvidence(certificate) {
   grid.innerHTML = "";
   for (const src of EVIDENCE) {
     const recorded = certificate.payload.evidence.sources.find(x => x.id === src.id);
-    const card = document.createElement("article");
-    card.className = "evw-evidence-card";
-    card.innerHTML = `
-      <div class="source-id">SOURCE ${src.id} · ILLUSTRATIVE</div>
-      <h3>${src.title}</h3>
-      <p>“${src.excerpt}”</p>
-      <span class="evw-evidence-relation">${relationLabel(recorded.relation)}</span>
-      <div class="evw-evidence-meta">
-        <div><span>Population</span><code>${src.population}</code></div>
-        <div><span>Horizon</span><code>${src.horizon}</code></div>
-        <div><span>Outcome</span><code>${src.outcome}</code></div>
-        <div><span>Excerpt SHA-256</span><code>${recorded.excerpt_sha256.slice(0,16)}…</code></div>
-      </div>`;
-    grid.appendChild(card);
+    const relationClass = recorded.relation === "SUPPORTS" ? "supports" :
+      recorded.relation === "OUT_OF_SCOPE" ? "out" : "warn";
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><span class="source-id">SOURCE ${src.id}</span><span class="source-title">${src.title}</span></td>
+      <td><span class="source-excerpt">“${src.excerpt}”</span></td>
+      <td><span class="source-scope"><span>${src.population}</span><span>${src.horizon}</span><span>${src.outcome}</span></span></td>
+      <td><span class="evw-relation ${relationClass}">${relationLabel(recorded.relation)}</span></td>
+      <td><span class="evw-binding-hash">${recorded.excerpt_sha256.slice(0,16)}…</span></td>`;
+    grid.appendChild(row);
   }
-}
-
-function renderProducerChecks(certificate) {
-  const a = certificate.payload.analysis;
-  const d = certificate.payload.decision;
-  const checks = [
-    ["In-scope evidence", `${a.in_scope}/${certificate.payload.claim.semantics.quantifier.total}`, a.coverage_pass ? "pass" : "fail"],
-    ["Positive results", String(a.supports), a.supports > 0 ? "pass" : "fail"],
-    ["Null results", String(a.nulls), "warn"],
-    ["Scope coverage", a.coverage_pass ? "PASS" : "FAIL", a.coverage_pass ? "pass" : "fail"],
-    ["Quantifier contract", a.quantifier_pass ? "PASS" : "FAIL", a.quantifier_pass ? "pass" : "fail"],
-    ["Reason code", d.reason, d.verdict === "VERIFIED" ? "pass" : "warn"]
-  ];
-  el("check-list").innerHTML = checks.map(([name,value,cls]) =>
-    `<div class="evw-check"><span>${name}</span><b class="${cls}">${value}</b></div>`
-  ).join("");
 }
 
 function renderVerifier(verification) {
@@ -115,7 +95,7 @@ function renderTrace(key) {
     ]
   }[key];
   el("revision-trace").innerHTML = rows.map(([step,status,desc]) =>
-    `<div class="evw-trace-step"><span>${step}</span><strong>${status}</strong><p>${desc}</p></div>`
+    `<div class="evw-history-step"><span>${step}</span><strong>${status}</strong><p>${desc}</p></div>`
   ).join("");
 }
 
@@ -165,11 +145,10 @@ async function issueScenario(key) {
   el("evidence-hash").textContent = currentCertificate.payload.evidence.set_sha256.slice(0,20) + "…";
   el("certificate-json").textContent = JSON.stringify(currentCertificate,null,2);
 
-  renderProducerChecks(currentCertificate);
   renderVerifier(currentVerification);
   renderTrace(key);
   await renderEvidence(currentCertificate);
-  el("mutation-results").innerHTML = '<div class="evw-muted-box">Run the mutation gate against the currently loaded certificate.</div>';
+  el("mutation-results").innerHTML = '<tr><td colspan="4" class="evw-empty-row">Run the integrity test against the loaded certificate.</td></tr>';
 }
 
 async function recheckCurrent() {
@@ -266,7 +245,7 @@ async function runMutations() {
   el("mutation-results").innerHTML = results.map(r => {
     const rejected = !r.verification.accepted;
     const failed = r.verification.checks.filter(c => !c.pass).map(c => c.name).join(", ");
-    return `<article class="evw-mutation-card"><span>ADVERSARIAL CASE</span><strong class="${rejected ? "pass" : "fail"}">${rejected ? "REJECTED" : "ESCAPED"}</strong><p><b>${r.name}</b><br>${r.detail}<br>${rejected ? "Caught by: " + failed : "No independent check rejected it."}</p></article>`;
+    return `<tr><td><strong>${r.name}</strong></td><td>${r.detail}</td><td><span class="evw-mutation-result ${rejected ? "pass" : "fail"}">${rejected ? "REJECTED" : "ESCAPED"}</span></td><td>${rejected ? failed : "No independent check rejected it."}</td></tr>`;
   }).join("");
 }
 

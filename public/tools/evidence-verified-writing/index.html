@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/style.css?v=20260829-v3">
-<link rel="stylesheet" href="/tools/evidence-verified-writing/demo.css?v=20261005">
+<link rel="stylesheet" href="/tools/evidence-verified-writing/demo.css?v=20261005-v2">
 <title>Evidence-Verified Research Writing | RISU Institute</title>
-<meta name="description" content="A browser-local prototype showing how a research-writing agent can keep evolving manuscript claims tied to sufficient evidence and stop for review when that relationship breaks.">
+<meta name="description" content="A proof-carrying browser prototype that binds manuscript claims to exact evidence and independently rechecks the binding after revision.">
 <link rel="canonical" href="https://risuinstitute.org/tools/evidence-verified-writing/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Evidence-Verified Research Writing | RISU Institute">
-<meta property="og:description" content="A deterministic prototype for claim-to-evidence continuity across manuscript revisions.">
+<meta property="og:description" content="A proof-carrying prototype for independently checked claim-to-evidence continuity across manuscript revisions.">
 <meta property="og:url" content="https://risuinstitute.org/tools/evidence-verified-writing/">
 </head>
 <body>
@@ -25,28 +25,28 @@
 <section class="page-hero evw-hero">
   <div class="wrap page-grid">
     <div>
-      <p class="eyebrow">Research-writing prototype · October 2026</p>
+      <p class="eyebrow">Proof-carrying research-writing prototype · October 2026</p>
       <h1>Evidence-Verified Research Writing</h1>
-      <p class="page-lede">A manuscript claim can change while its citations stay in place. This prototype checks whether the evidence still supports the exact current wording and stops the workflow when support becomes contradictory, incomplete, or stale.</p>
+      <p class="page-lede">A manuscript claim can change while its citations stay in place. This prototype binds the exact wording and structured claim meaning to exact evidence, issues a content-addressed certificate, and independently checks that certificate before the workflow can continue.</p>
     </div>
     <aside class="page-aside">
       <strong>Prototype boundary</strong>
-      Preloaded illustrative evidence. Deterministic browser logic. No live search, no model inference, and no claim of production deployment.
+      Preloaded illustrative evidence. Deterministic claim contracts. Two separate browser implementations for certificate production and verification. No live search or model inference.
     </aside>
   </div>
 </section>
 
 <section class="evw-intro">
   <div class="wrap evw-intro-grid">
-    <div class="section-kicker">What this demonstrates</div>
+    <div class="section-kicker">What changed</div>
     <div>
-      <p>A research-writing agent should preserve more than a bibliography. For each material sentence it should retain the evidence used, the scope of that evidence, and the manuscript version the evidence justified. When the sentence changes, the binding is rechecked before the workflow continues.</p>
-      <div class="evw-flow" aria-label="Prototype workflow">
-        <div><span>01</span><strong>Draft claim</strong><small>current manuscript wording</small></div>
-        <div><span>02</span><strong>Bind evidence</strong><small>source, span, scope, digest</small></div>
-        <div><span>03</span><strong>Revise</strong><small>wording or scope changes</small></div>
-        <div><span>04</span><strong>Recheck</strong><small>support, contradiction, coverage</small></div>
-        <div><span>05</span><strong>Decide</strong><small>retain, review, or block</small></div>
+      <p>The first prototype showed revision-aware evidence checking. This version makes the decision portable and independently checkable. The producer emits a certificate over the claim, evidence set, scope, counts and verdict. A separate checker rehashes the supplied bytes and recomputes the decision from the evidence.</p>
+      <div class="evw-flow" aria-label="Proof-carrying workflow">
+        <div><span>01</span><strong>Claim contract</strong><small>wording + explicit semantics</small></div>
+        <div><span>02</span><strong>Evidence binding</strong><small>source + span + scope + digest</small></div>
+        <div><span>03</span><strong>Certificate</strong><small>counts + verdict + content hash</small></div>
+        <div><span>04</span><strong>Independent check</strong><small>rehash + recompute</small></div>
+        <div><span>05</span><strong>Mutation gate</strong><small>tampering must fail closed</small></div>
       </div>
     </div>
   </div>
@@ -60,16 +60,16 @@
         <span class="evw-app-kicker">Illustrative manuscript workspace</span>
         <strong>Claim 4.2 · Results synthesis</strong>
       </div>
-      <div class="evw-local">Browser-local · deterministic demo</div>
+      <div class="evw-local">Browser-local · proof-carrying demo</div>
     </header>
 
     <div class="evw-toolbar">
-      <div class="evw-scenarios" role="group" aria-label="Load claim version">
-        <button type="button" class="evw-scenario active" data-scenario="supported">Supported wording</button>
-        <button type="button" class="evw-scenario" data-scenario="overstated">Stronger revision</button>
+      <div class="evw-scenarios" role="group" aria-label="Load claim contract">
+        <button type="button" class="evw-scenario active" data-scenario="supported">Supported contract</button>
+        <button type="button" class="evw-scenario" data-scenario="overstated">Universal revision</button>
         <button type="button" class="evw-scenario" data-scenario="unsupported">Unsupported horizon</button>
       </div>
-      <button type="button" class="evw-secondary" id="verify-claim">Verify current wording</button>
+      <button type="button" class="evw-secondary" id="verify-claim">Recheck loaded certificate</button>
     </div>
 
     <div class="evw-workspace">
@@ -89,9 +89,19 @@
           <p class="evw-citations">Retained references: <span>[A]</span> <span>[B]</span> <span>[C]</span></p>
         </div>
 
+        <div class="evw-contract">
+          <div class="evw-contract-head"><span>Machine-readable claim contract</span><strong id="contract-mode">EXACT COUNT</strong></div>
+          <div class="evw-contract-grid">
+            <div><span>Population</span><code id="contract-population"></code></div>
+            <div><span>Outcome</span><code id="contract-outcome"></code></div>
+            <div><span>Horizon</span><code id="contract-horizon"></code></div>
+            <div><span>Quantifier</span><code id="contract-quantifier"></code></div>
+          </div>
+        </div>
+
         <div class="evw-binding">
           <div><span>Claim ID</span><code>claim-4.2</code></div>
-          <div><span>Bound version</span><code id="bound-version">v1</code></div>
+          <div><span>Certificate version</span><code id="bound-version">v1</code></div>
           <div><span>Evidence set</span><code>A · B · C</code></div>
           <div><span>Binding state</span><strong id="binding-state">CURRENT</strong></div>
         </div>
@@ -100,20 +110,31 @@
       <aside class="evw-verdict">
         <div class="evw-panel-head">
           <div>
-            <span>Continuity check</span>
-            <h2>Can this claim stay?</h2>
+            <span>Certificate producer</span>
+            <h2>What may the workflow do?</h2>
           </div>
         </div>
         <div class="evw-status" id="verdict-status" data-state="verified">
-          <span class="evw-status-label">VERIFIED</span>
-          <strong id="verdict-title">Current wording is supported.</strong>
-          <p id="verdict-summary">The wording matches the frozen evidence bundle: two trials report short-term gains and one does not.</p>
+          <span class="evw-status-label" id="verdict-label">VERIFIED</span>
+          <strong id="verdict-title">Current claim is supported.</strong>
+          <p id="verdict-summary"></p>
         </div>
         <div class="evw-checks" id="check-list"></div>
         <div class="evw-next">
           <span>Workflow action</span>
-          <strong id="workflow-action">RETAIN CLAIM</strong>
-          <p id="human-action">No mandatory human intervention for this illustrative state.</p>
+          <strong id="workflow-action">RETAIN_CLAIM</strong>
+          <p id="human-action"></p>
+        </div>
+
+        <div class="evw-independent" id="independent-panel" data-state="pass">
+          <span>Independent browser checker</span>
+          <strong id="independent-status">PASS</strong>
+          <p id="independent-summary">Certificate bytes and semantic decision independently reproduced.</p>
+          <dl>
+            <div><dt>Certificate</dt><dd id="certificate-hash"></dd></div>
+            <div><dt>Claim</dt><dd id="claim-hash"></dd></div>
+            <div><dt>Evidence</dt><dd id="evidence-hash"></dd></div>
+          </dl>
         </div>
       </aside>
     </div>
@@ -122,11 +143,34 @@
       <div class="evw-panel-head evidence-head">
         <div>
           <span>Retained evidence ledger</span>
-          <h2>What the current claim is allowed to rely on</h2>
+          <h2>Exact evidence consumed by the certificate</h2>
         </div>
-        <button type="button" class="evw-secondary" id="download-receipt">Export audit receipt</button>
+        <button type="button" class="evw-secondary" id="download-receipt">Export proof-carrying record</button>
       </div>
       <div class="evw-evidence-grid" id="evidence-grid"></div>
+    </section>
+
+    <section class="evw-proof-section">
+      <div class="evw-panel-head">
+        <div>
+          <span>Independent verification record</span>
+          <h2>Producer output is not trusted on its own</h2>
+        </div>
+      </div>
+      <div class="evw-proof-grid" id="verifier-checks"></div>
+      <details class="evw-raw"><summary>Inspect current evidence certificate</summary><pre id="certificate-json"></pre></details>
+    </section>
+
+    <section class="evw-mutation-section">
+      <div class="evw-panel-head evidence-head">
+        <div>
+          <span>Adversarial mutation gate</span>
+          <h2>Rehashing a tampered record is not enough to make it valid</h2>
+        </div>
+        <button type="button" class="evw-secondary" id="run-mutations">Run four attacks</button>
+      </div>
+      <p class="evw-section-note">Each attack changes one consequence-relevant object. The verdict-flip attack also recomputes the outer certificate hash, so the independent checker must reject semantic inconsistency rather than relying on a stale checksum.</p>
+      <div class="evw-mutation-grid" id="mutation-results"></div>
     </section>
 
     <section class="evw-trace-section">
@@ -144,14 +188,14 @@
 
 <section class="section">
   <div class="wrap evw-note-grid">
-    <div class="section-kicker">How this relates to RISU</div>
+    <div class="section-kicker">Technical relationship to RISU</div>
     <div>
-      <h2 class="evw-note-title">The product question comes first. Existing assurance work supplies the checking discipline.</h2>
-      <p>This prototype reuses several patterns already exercised in RISU research software: explicit claim boundaries, content-addressed records, exact identity checks, fail-closed outcomes, and human escalation when evidence is insufficient. The manuscript workflow is a new application surface.</p>
+      <h2 class="evw-note-title">The manuscript workflow has its own claim model. RISU contributes the assurance pattern.</h2>
+      <p>The prototype carries over explicit semantic boundaries, content-addressed evidence, independent checking and mutation-based qualification from existing RISU assurance work. It applies those mechanisms to a new research-writing object: the relationship between a versioned manuscript claim and the evidence that licenses it.</p>
       <div class="evw-links">
         <a class="arrow-link" href="/tools/">RISU Verify and public tools <span aria-hidden="true">→</span></a>
         <a class="arrow-link" href="/work/projection-assurance/#research-frontier">October assurance checkpoint <span aria-hidden="true">→</span></a>
-        <a class="arrow-link" href="https://github.com/risu-research/risu-verify/blob/main/docs/MEDIATED_REFINEMENT_CHECKPOINT_2026-10.md">Technical checkpoint <span aria-hidden="true">↗</span></a>
+        <a class="arrow-link" href="https://github.com/risu-research/risu-verify/blob/main/docs/MEDIATED_REFINEMENT_CHECKPOINT_2026-10.md">Independent certificate qualification <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </div>
@@ -160,6 +204,6 @@
 
 <footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div><div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
 
-<script src="/tools/evidence-verified-writing/demo.js?v=20261005"></script>
+<script type="module" src="/tools/evidence-verified-writing/demo.js?v=20261005-v2"></script>
 </body>
 </html>

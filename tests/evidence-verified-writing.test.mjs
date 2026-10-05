@@ -32,14 +32,16 @@ test("proof-carrying writing surface exposes certificate, independent checker, a
   const h = await read("public/tools/evidence-verified-writing/index.html");
   for (const phrase of [
     "Evidence-Verified Research Writing",
-    "proof-carrying",
-    "Machine-readable claim contract",
-    "Independent browser checker",
-    "Producer output is not trusted on its own",
-    "Run four attacks",
-    "Rehashing a tampered record is not enough to make it valid",
-    "No live search or model inference"
+    "Proof-carrying record",
+    "Claim contract",
+    "Evidence ledger",
+    "Recheck current wording",
+    "Independent checker",
+    "Adversarial mutations must fail closed",
+    "Illustrative evidence"
   ]) assert.ok(h.includes(phrase), phrase);
+  assert.match(h, /id="verdict-status"[^>]+aria-live="polite"/u);
+  assert.match(h, /id="independent-panel"[^>]+aria-live="polite"/u);
 });
 
 test("supported exact-count claim produces a valid independently checked certificate", async () => {

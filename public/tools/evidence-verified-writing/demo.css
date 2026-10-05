@@ -49,3 +49,34 @@
 @media(max-width:900px){.evw-workspace{grid-template-columns:1fr}.evw-manuscript{border-right:0;border-bottom:1px solid var(--line)}.evw-evidence-grid,.evw-trace{grid-template-columns:1fr}.evw-evidence-card{padding-bottom:16px}.evw-trace-step,.evw-trace-step:not(:first-child){padding:14px 0;border-right:0;border-bottom:1px solid var(--line)}.evw-trace-step:last-child{border-bottom:0}}
 @media(max-width:760px){.evw-intro-grid,.evw-note-grid{grid-template-columns:1fr;gap:14px}.evw-flow{grid-template-columns:1fr}.evw-flow div,.evw-flow div:not(:first-child){padding:13px 0;border-right:0;border-bottom:1px solid var(--line)}.evw-flow div:last-child{border-bottom:0}.evw-toolbar{align-items:flex-start;flex-direction:column}.evw-manuscript,.evw-verdict,.evw-evidence-section,.evw-trace-section{padding-left:18px;padding-right:18px}.evw-paper{padding:20px 18px}.evw-binding{grid-template-columns:1fr 1fr}.evw-appbar{align-items:flex-start;flex-direction:column}.evw-appbar>div:first-child{display:block}.evw-app-kicker{display:block;margin-bottom:4px}}
 @media(max-width:480px){.evw-scenarios{display:grid;width:100%}.evw-scenario{width:100%;text-align:left}.evw-binding{grid-template-columns:1fr}.evw-panel-head{align-items:flex-start;flex-direction:column}}
+
+.evw-contract{margin-top:16px;padding:15px 16px;border:1px solid var(--line);background:#f7f8f6}
+.evw-contract-head{display:flex;justify-content:space-between;gap:16px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.evw-contract-head span{color:var(--muted);font-size:.61rem;text-transform:uppercase;letter-spacing:.09em;font-weight:760}
+.evw-contract-head strong{font:700 .64rem var(--mono)}
+.evw-contract-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.evw-contract-grid span{display:block;color:var(--muted);font-size:.58rem;text-transform:uppercase;letter-spacing:.08em}
+.evw-contract-grid code{display:block;margin-top:4px;font-size:.68rem;overflow-wrap:anywhere}
+.evw-independent{margin-top:20px;padding:15px;border:1px solid var(--line);background:#fafbf9}
+.evw-independent>span{display:block;color:var(--muted);font-size:.6rem;text-transform:uppercase;letter-spacing:.09em}
+.evw-independent>strong{display:block;margin-top:5px;font:700 .76rem var(--mono)}
+.evw-independent[data-state="pass"]>strong{color:#0b6949}.evw-independent[data-state="fail"]>strong{color:#9b2c2c}
+.evw-independent p{margin:7px 0 11px;color:var(--muted);font-size:.7rem}
+.evw-independent dl{margin:0;display:grid;gap:6px}.evw-independent dl div{display:grid;grid-template-columns:72px minmax(0,1fr);gap:9px}.evw-independent dt{color:var(--muted);font-size:.6rem}.evw-independent dd{margin:0;font: .6rem var(--mono);overflow-wrap:anywhere}
+.evw-proof-section,.evw-mutation-section{padding:27px 30px 30px;border-top:1px solid var(--line)}
+.evw-proof-section{background:#fbfcfa}
+.evw-proof-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 18px}
+.evw-proof-check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.evw-proof-check span{font-size:.73rem}.evw-proof-check b{font:700 .64rem var(--mono)}
+.evw-proof-check b.pass{color:#0b6949}.evw-proof-check b.fail{color:#9b2c2c}
+.evw-proof-check small{grid-column:1/-1;color:var(--muted);font:.6rem var(--mono);overflow-wrap:anywhere}
+.evw-raw{margin-top:18px;border-top:1px solid var(--ink);padding-top:12px}.evw-raw summary{cursor:pointer;font-size:.72rem;font-weight:700}.evw-raw pre{margin:12px 0 0;max-height:360px;overflow:auto;padding:14px;background:#171b18;color:#eef2ef;font: .63rem/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.evw-section-note{max-width:900px;margin:-5px 0 18px;color:var(--muted);font-size:.75rem}
+.evw-mutation-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.evw-mutation-card{padding:14px;border:1px solid var(--line);background:#fbfbf8}
+.evw-mutation-card span{display:block;color:var(--muted);font:.6rem var(--mono)}
+.evw-mutation-card strong{display:block;margin-top:8px;font:.76rem var(--mono)}
+.evw-mutation-card strong.pass{color:#0b6949}.evw-mutation-card strong.fail{color:#9b2c2c}
+.evw-mutation-card p{margin:7px 0 0;color:var(--muted);font-size:.68rem;line-height:1.45}
+@media(max-width:900px){.evw-contract-grid,.evw-mutation-grid{grid-template-columns:1fr 1fr}.evw-proof-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.evw-contract-grid,.evw-mutation-grid{grid-template-columns:1fr}}

@@ -121,20 +121,20 @@ code { font-family: var(--mono); }
 
 /* Homepage: editorial institutional surface */
 .home-hero {
-  padding: clamp(86px, 10vw, 132px) 0 58px;
+  padding: clamp(66px, 7vw, 94px) 0 clamp(48px, 5vw, 70px);
   border-bottom: 1px solid var(--line);
 }
 .home-hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(360px, .78fr);
-  gap: clamp(58px, 8vw, 118px);
-  align-items: end;
+  grid-template-columns: minmax(0, 1.18fr) minmax(340px, .82fr);
+  gap: clamp(36px, 5vw, 76px);
+  align-items: center;
 }
 .home-hero h1 {
   max-width: 900px;
   margin: 18px 0 0;
   font-family: var(--display);
-  font-size: clamp(3.7rem, 7.2vw, 6.9rem);
+  font-size: clamp(3.45rem, 6.15vw, 6.1rem);
   font-weight: 500;
   line-height: .93;
   letter-spacing: -.05em;
@@ -353,12 +353,15 @@ code { font-family: var(--mono); }
 
 
 
-/* The Washington photograph signals location, without implying public affiliation. */
-.home-place-wrap { margin-top:42px; }
-.home-place { margin:0; }
-.home-place img { display:block; width:100%; height:clamp(220px,29vw,355px); object-fit:cover; object-position:center 54%; }
-.home-place figcaption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; margin-top:10px; color:var(--muted); font-size:.67rem; }
-.home-place figcaption span:first-child { font-weight:730; color:var(--text); }
+/* City photograph belongs to the opening editorial spread, not a separate banner. */
+.home-hero-photo { min-width:0; margin:0; align-self:center; }
+.home-hero-photo img { display:block; width:100%; aspect-ratio:1.72; height:auto; object-fit:cover; object-position:50% 52%; }
+.home-hero-photo figcaption { display:flex; justify-content:space-between; gap:8px 18px; flex-wrap:wrap; margin-top:11px; color:var(--muted); font-size:.66rem; }
+.home-hero-photo figcaption span { color:var(--text); }
+.hero-recognition { display:flex; gap:11px 20px; align-items:baseline; flex-wrap:wrap; margin-top:27px; padding-top:14px; border-top:1px solid var(--line); }
+.hero-recognition>span { color:var(--accent); font-size:.65rem; text-transform:uppercase; font-weight:780; letter-spacing:.105em; }
+.hero-recognition a { font-size:.82rem; font-weight:670; text-decoration:none; }
+#updates { scroll-margin-top:84px; }
 
 .visually-hidden { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 /* Newsroom-style image-and-type ledger */
@@ -381,9 +384,12 @@ code { font-family: var(--mono); }
   .update-side { grid-column:3; border-left:0; border-top:1px solid var(--line); padding:12px 0 0; gap:7px; }
 }
 @media (max-width:760px) {
-  .home-place-wrap { margin-top:30px; }
-  .home-place img { height:220px; }
-  .update-entry { grid-template-columns:116px minmax(0,1fr); gap:11px 16px; padding:23px 0; }
+  .home-hero { padding:24px 0 48px; }
+  .home-hero-grid { gap:25px; }
+  .home-hero-photo { order:-1; }
+  .home-hero-photo img { aspect-ratio:1.8; }
+  .hero-recognition { margin-top:23px; }
+  .update-entry { grid-template-columns:clamp(140px,39vw,178px) minmax(0,1fr); gap:11px 16px; padding:23px 0; }
   .update-entry time { grid-column:1 / -1; }
   .update-thumb { grid-column:1; grid-row:2; }
   .update-main { grid-column:2; grid-row:2; }
@@ -393,8 +399,10 @@ code { font-family: var(--mono); }
   .update-side { grid-column:2; grid-row:3; }
 }
 @media (max-width:420px) {
-  .update-entry { grid-template-columns:98px minmax(0,1fr); gap:9px 12px; }
-  .home-place img { height:185px; }
+  .update-entry { grid-template-columns:minmax(135px,42%) minmax(0,1fr); gap:9px 12px; }
+  .update-main h3 { overflow-wrap:anywhere; }
+  .hero-links { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .hero-facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
 /* Page heroes */

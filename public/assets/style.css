@@ -119,42 +119,38 @@ code { font-family: var(--mono); }
   text-transform: uppercase;
 }
 
-/* Homepage: photography-led institutional introduction */
+/* Homepage: calm editorial masthead followed by the full-width Washington photograph */
 .home-hero { padding:0; border-bottom:1px solid var(--line); }
-.home-hero-media { position:relative; }
+.home-hero-opening {
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,.7fr);
+  gap:clamp(36px,7vw,110px); align-items:end;
+  padding-top:clamp(40px,5vw,74px); padding-bottom:32px;
+}
+.home-hero-title-panel { max-width:725px; min-width:0; }
+.home-hero h1 {
+  margin:17px 0 0; max-width:700px;
+  font:500 clamp(2.7rem,4vw,4.1rem)/1.02 var(--display);
+  letter-spacing:-.045em; text-wrap:balance;
+}
+.home-hero .lede {
+  margin:0; max-width:500px; color:var(--text);
+  font-size:clamp(.96rem,1.15vw,1.09rem); line-height:1.55;
+}
 .home-hero-visual { position:relative; overflow:hidden; background:#29342f; }
 .home-hero-visual img {
-  display:block; width:100%; height:clamp(440px,43vw,620px);
-  object-fit:cover; object-position:50% 52%;
+  display:block; width:100%; height:clamp(415px,36vw,610px);
+  object-fit:cover; object-position:50% 51%;
 }
 .home-hero-location {
-  position:absolute; right:max(28px,calc((100vw - var(--max))/2)); bottom:20px;
+  position:absolute; right:max(28px,calc((100vw - var(--max))/2)); bottom:17px;
   padding:7px 10px; color:#f4f6f2; background:rgba(15,22,20,.72);
   font-size:.69rem; letter-spacing:.045em;
 }
-.home-hero-overlay {
-  position:absolute; inset:0; z-index:1; display:flex;
-  flex-direction:column; align-items:flex-start;
-  padding-top:clamp(30px,5vw,73px); pointer-events:none;
+.home-hero-actions {
+  display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px 35px;
+  align-items:baseline; padding-top:22px; padding-bottom:25px;
 }
-.home-hero-title-panel {
-  max-width:575px; padding:clamp(22px,2.6vw,36px);
-  background:rgba(16,25,22,.77); color:#f7f8f5;
-  pointer-events:auto;
-}
-.home-hero-title-panel .eyebrow { color:#d5e6dd; }
-.home-hero h1 {
-  max-width:510px; margin:16px 0 0;
-  font:500 clamp(2.65rem,4vw,4.3rem)/1.045 var(--display);
-  letter-spacing:-.045em; text-wrap:balance;
-}
-.home-hero-intro {
-  display:grid; grid-template-columns:minmax(0,1.14fr) minmax(320px,.86fr);
-  align-items:start; gap:clamp(34px,6vw,85px);
-  padding-top:32px; padding-bottom:36px;
-}
-.home-hero .lede { max-width:790px; margin:0; color:var(--text); font-size:clamp(1rem,1.35vw,1.17rem); line-height:1.55; }
-.hero-links { display:flex; flex-wrap:wrap; gap:10px 24px; margin-top:18px; }
+.hero-links { display:flex; flex-wrap:wrap; gap:10px 24px; }
 .text-link {
   display: inline-flex;
   align-items: center;
@@ -382,13 +378,11 @@ code { font-family: var(--mono); }
   .update-side { grid-column:3; border-left:0; border-top:1px solid var(--line); padding:12px 0 0; gap:7px; }
 }
 @media (max-width:760px) {
-  .home-hero-visual img { height:clamp(225px,58vw,345px); }
+  .home-hero-opening { grid-template-columns:1fr; gap:17px; padding-top:35px; padding-bottom:23px; }
+  .home-hero h1 { font-size:clamp(2.5rem,9.4vw,3.45rem); }
+  .home-hero-visual img { height:clamp(230px,58vw,345px); }
   .home-hero-location { right:16px; bottom:12px; }
-  .home-hero-overlay { position:static; padding-top:24px; pointer-events:auto; }
-  .home-hero-title-panel { max-width:100%; padding:0; background:transparent; color:var(--ink); }
-  .home-hero-title-panel .eyebrow { color:var(--accent); }
-  .home-hero-intro { display:grid; grid-template-columns:1fr; gap:16px; padding-top:18px; padding-bottom:32px; }
-  .home-hero h1 { font-size:clamp(2.4rem,9.5vw,3.4rem); line-height:1.05; }
+  .home-hero-actions { padding-top:19px; padding-bottom:25px; align-items:flex-start; }
   .hero-recognition { margin-top:0; }
   .update-entry { grid-template-columns:clamp(140px,39vw,178px) minmax(0,1fr); gap:11px 16px; padding:23px 0; }
   .update-entry time { grid-column:1 / -1; }
@@ -565,7 +559,7 @@ code { font-family: var(--mono); }
 .footer-inner a:hover { color:#fff; }
 
 @media (max-width: 1040px) {
-  .home-hero-intro,
+  .home-hero-opening,
   .software-feature,
   .page-hero .page-grid,
   .about-overview-grid { grid-template-columns:1fr; }

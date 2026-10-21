@@ -360,6 +360,7 @@ code { font-family: var(--mono); }
 .home-place figcaption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; margin-top:10px; color:var(--muted); font-size:.67rem; }
 .home-place figcaption span:first-child { font-weight:730; color:var(--text); }
 
+.visually-hidden { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 /* Newsroom-style image-and-type ledger */
 .updates-list { border-top:1px solid var(--ink); }
 .update-entry { display:grid; grid-template-columns:90px 164px minmax(0,1fr) 185px; align-items:start; gap:24px; padding:29px 0 30px; border-bottom:1px solid var(--line); }

@@ -373,6 +373,10 @@ code { font-family: var(--mono); }
 .update-location { color:var(--muted); font-size:.76rem; }
 .update-side a { width:fit-content; margin-top:5px; color:var(--ink); font-size:.76rem; font-weight:700; text-decoration:none; }
 .update-side a:hover { color:var(--accent); }
+.update-entry--secondary { padding-top:23px; padding-bottom:24px; }
+.update-entry--secondary .update-main h3 { font-size:clamp(1.34rem,2vw,1.72rem); }
+.update-image-credits { margin:12px 0 0; font-size:.64rem; line-height:1.55; color:var(--faint); }
+.update-image-credits a { color:inherit; text-decoration-color:var(--line-strong); }
 @media (max-width:1080px) {
   .update-entry { grid-template-columns:86px 160px minmax(0,1fr); gap:19px; }
   .update-side { grid-column:3; border-left:0; border-top:1px solid var(--line); padding:12px 0 0; gap:7px; }

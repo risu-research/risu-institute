@@ -1223,3 +1223,15 @@ code { font-family: var(--mono); }
   .risu-editorial-tab .rv-public .rv-proof-grid { grid-template-columns: 1fr; gap: 26px; }
   .risu-editorial-tab .rv-public .rv-other-grid { grid-template-columns: 1fr; }
 }
+
+/* Smaller tablet and phone layouts for the editorial evidence comparison. */
+@media (min-width: 761px) and (max-width: 1050px) {
+  .risu-editorial-tab .rv-public .rv-proof-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .risu-editorial-tab .rv-public .rv-flow {
+    grid-template-columns: 1fr;
+  }
+}

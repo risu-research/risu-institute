@@ -660,3 +660,208 @@ code { font-family: var(--mono); }
   .principle:not(:first-child) { padding-left:0; border-right:0; border-top:1px solid var(--line); }
   .principle:first-child { border-top:0; }
 }
+
+
+/* RISU homepage editorial refresh | 2026-10-28 */
+/*
+ * Scoped to the homepage below the existing Washington photograph and research
+ * news. The header, hero, accepted-conference entries, and other pages retain
+ * their original styling. Editorial typography replaces ornamental dividers.
+ */
+.rs-section {
+  padding: clamp(56px, 6.7vw, 94px) 0;
+}
+.rs-section--software {
+  background: #fff;
+}
+.rs-section--records {
+  padding-bottom: clamp(62px, 7vw, 100px);
+}
+.rs-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  margin-bottom: clamp(29px, 4vw, 51px);
+}
+.rs-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 clamp(2.2rem, 3.4vw, 3.35rem)/1.08 var(--display);
+  letter-spacing: -.031em;
+}
+.rs-heading > a {
+  font-size: .86rem;
+  font-weight: 640;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: .22em;
+  text-decoration-color: #a4aea6;
+}
+.rs-heading > a:hover { color: var(--accent); }
+.rs-work-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  column-gap: clamp(26px,4vw,66px);
+  row-gap: 34px;
+}
+.rs-work { min-width: 0; }
+.rs-work h3 {
+  margin: 0 0 16px;
+  font: 500 clamp(1.65rem, 2.3vw, 2.2rem)/1.12 var(--display);
+  letter-spacing: -.027em;
+}
+.rs-work h3 a {
+  text-decoration: none;
+}
+.rs-work h3 a:hover { color: var(--accent); }
+.rs-work p {
+  margin: 0;
+  max-width: 340px;
+  font-size: .97rem;
+  line-height: 1.64;
+  color: var(--text);
+}
+.rs-work-links {
+  margin-top: 23px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 22px;
+}
+.rs-work-links a {
+  color: var(--ink);
+  font-size: .8rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .23em;
+  text-decoration-color: #acb6ad;
+}
+.rs-work-links a:hover { color: var(--accent); }
+.rs-software-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, .72fr);
+  gap: clamp(45px, 9vw, 130px);
+  align-items: start;
+}
+.rs-software-main h3 {
+  margin: 0 0 17px;
+  font: 500 clamp(2rem, 3.1vw, 3rem)/1.07 var(--display);
+  letter-spacing: -.03em;
+}
+.rs-software-main p {
+  margin: 0;
+  max-width: 660px;
+  color: var(--text);
+  font-size: 1.035rem;
+  line-height: 1.67;
+}
+.rs-software-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 26px;
+  margin-top: 28px;
+}
+.rs-software-links a {
+  font-size: .85rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: #aeb8b0;
+  text-underline-offset: .22em;
+}
+.rs-software-links a:hover { color: var(--accent); }
+.rs-software-spec {
+  margin: 4px 0 0;
+}
+.rs-software-spec div {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 0 22px;
+}
+.rs-software-spec dt {
+  font-size: .78rem;
+  color: var(--muted);
+  font-weight: 630;
+}
+.rs-software-spec dd {
+  margin: 0;
+  font-size: .91rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.rs-record-list {
+  display: grid;
+  gap: 27px;
+}
+.rs-record {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: baseline;
+}
+.rs-record time {
+  color: var(--muted);
+  font: 600 .71rem var(--mono);
+}
+.rs-record h3 {
+  margin: 0;
+  max-width: 910px;
+  font: 500 clamp(1.25rem, 1.65vw, 1.55rem)/1.35 var(--display);
+}
+.rs-record h3 a { text-decoration: none; }
+.rs-record h3 a:hover { color: var(--accent); }
+.rs-record-note {
+  display: block;
+  color: var(--muted);
+  font-size: .77rem;
+  margin-top: 6px;
+}
+.rs-record-action {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: .22em;
+  text-decoration-color: #aeb8b0;
+  font-size: .79rem;
+  white-space: nowrap;
+}
+.rs-archives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 41px;
+}
+.rs-archives a {
+  color: var(--text);
+  font-size: .81rem;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  text-decoration-color: #b4bcb5;
+}
+.rs-archives a:hover { color: var(--accent); }
+@media (max-width: 880px) {
+  .rs-work-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rs-software-layout { grid-template-columns: 1fr; gap: 30px; }
+  .rs-software-spec { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+  .rs-software-spec div { display: block; }
+  .rs-software-spec dd { margin-top: 6px; }
+}
+@media (max-width: 650px) {
+  .rs-section { padding: 53px 0 60px; }
+  .rs-heading { align-items: flex-start; gap: 13px; margin-bottom: 30px; }
+  .rs-heading h2 { font-size: 2.22rem; }
+  .rs-work-grid { grid-template-columns: 1fr; gap: 37px; }
+  .rs-work h3 { font-size: 1.8rem; margin-bottom: 10px; }
+  .rs-work p { max-width: 600px; font-size: .94rem; }
+  .rs-work-links { margin-top: 13px; }
+  .rs-software-main p { font-size: .97rem; }
+  .rs-software-spec { grid-template-columns: 1fr; gap: 0; }
+  .rs-software-spec div { display: grid; grid-template-columns: 91px minmax(0,1fr); gap: 14px; padding-bottom: 13px; }
+  .rs-software-spec dd { margin-top: 0; }
+  .rs-record-list { gap: 29px; }
+  .rs-record { grid-template-columns: 1fr; gap: 4px; }
+  .rs-record h3 { font-size: 1.29rem; }
+  .rs-record-action { display: none; }
+  .rs-archives { margin-top: 30px; }
+}

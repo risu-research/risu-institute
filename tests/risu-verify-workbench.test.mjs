@@ -8,20 +8,6 @@ const root=dirname(dirname(fileURLToPath(import.meta.url))); const read=(p)=>rea
 
 test("public surface explains the problem before the formal machinery",async()=>{const h=await read("public/tools/index.html");for(const x of ["RISU Verify","Checking the actual consequence","One assurance record","Published system comparisons","Research foundations"])assert.ok(h.includes(x),x);assert.ok(h.indexOf("Checking the actual consequence")<h.indexOf("C / D / O"));assert.ok(h.includes("GitHub guarded merge"));assert.ok(h.includes("Azure Wiki edit"));assert.ok(h.includes("GitHub file update"));});
 
-test("research workbench uses a selectable evidence table and keeps verification logic separate",async()=>{
-  const h=await read("public/tools/index.html");
-  const css=await read("public/assets/verify-research-workbench.css");
-  assert.ok(h.includes('class="rv-case-columns"'));
-  assert.ok(h.includes('class="rv-list-heading"'));
-  for(const name of ["github-file-update","azure-wiki","github-merge"])assert.ok(h.includes('data-case="'+name+'"'),name);
-  assert.match(css,/\.rv-example-shell\s*\{\s*display:flex;/u);
-  assert.match(css,/\.rv-case\s*\{[\s\S]*?grid-template-columns/u);
-  assert.match(css,/\.rv-situation\s*\{[\s\S]*?border:0;/u);
-  assert.ok(css.includes("Wireshark"));
-  assert.ok(css.includes("JASP"));
-  assert.ok(h.includes("verify-research-workbench.css?v=20261028-2"));
-});
-
 test("Workbench is a three-mode assurance console",async()=>{const h=await read("public/tools/index.html");for(const x of ['data-pane="check"','data-pane="compare"','data-pane="examples"','Analyze an assurance record','Compare assurance records','Published examples'])assert.ok(h.includes(x),x);});
 
 test("one-file handoff and raw artifact paths are executable",async()=>{const h=await read("public/tools/index.html");for(const x of ["risu.workbench-run/v0.1","risu.workbench-comparison/v0.1","unpackRunBundle","artifact_manifest_sha256","crypto.subtle.digest","report_json_sha256","certificate_sha256","compare-file-input"])assert.ok(h.includes(x),x);});

@@ -255,7 +255,6 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "assets/media/yale.webp",
     "assets/research-ledger.css",
     "assets/style.css",
-    "assets/verify-research-workbench.css",
     "index.html",
     "rels/appeal.html",
     "research/index.html",

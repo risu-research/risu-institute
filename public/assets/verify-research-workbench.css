@@ -1,0 +1,553 @@
+/*
+ * RISU Verify | Research Workbench
+ * References: Wireshark packet list/details, JASP analysis/results,
+ * ParaView pipeline browser/properties. Visual layer only.
+ *
+ * No script, results, record schema, or verification behavior in this file.
+ * Scoped to app mode. Public institutional pages are unaffected.
+ */
+.rv-appmode .rv-workbench {
+  --rv-bg:#f1f2f1;
+  --rv-panel:#fff;
+  --rv-soft:#f7f8f7;
+  --rv-ink:#202725;
+  --rv-text:#303b37;
+  --rv-muted:#596561;
+  --rv-faint:#7d8883;
+  --rv-line:#d0d6d2;
+  --rv-line2:#bec9c2;
+  --rv-good:#256b50;
+  --rv-good-bg:#eff6f0;
+  --rv-good-line:#bed7c6;
+  --rv-bad:#a63b37;
+  --rv-bad-bg:#fbf3f2;
+  --rv-bad-line:#e7c7c5;
+  --rv-warn:#865c20;
+  --rv-warn-bg:#faf6ee;
+  --rv-warn-line:#daccaf;
+  --rv-blue:#245f6b;
+  --rv-blue-bg:#f0f5f6;
+  --rv-blue-line:#bfd0d3;
+  --rv-shadow:none;
+  --rv-r:2px;
+  background:var(--rv-bg);
+  color:var(--rv-text);
+  font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+  font-size:13px;
+  line-height:1.48;
+  letter-spacing:0;
+}
+.rv-appmode .rv-workbench * { scroll-margin-top:95px; }
+.rv-appmode .rv-workbench button,
+.rv-appmode .rv-workbench input,
+.rv-appmode .rv-workbench select {
+  font-family:inherit;
+}
+.rv-appmode .rv-workbench button:focus-visible,
+.rv-appmode .rv-workbench a:focus-visible,
+.rv-appmode .rv-workbench summary:focus-visible {
+  outline:2px solid #256b78;
+  outline-offset:2px;
+}
+.rv-appmode .rv-workbench .rv-shell {min-height:100vh;}
+/* Light desktop-program chrome: one restrained header and task tabs. */
+.rv-appmode .rv-workbench .rv-topbar {
+  position:relative;
+  height:51px;
+  background:#e7eae7;
+  padding:0 clamp(15px,2.2vw,32px);
+  border-bottom:1px solid #bdc8c2;
+}
+.rv-appmode .rv-workbench .rv-product {gap:11px;}
+.rv-appmode .rv-workbench .rv-mark {
+  width:23px;height:23px;
+  border-radius:2px;
+  background:#365b56;
+  font:700 13px/1 Georgia,serif;
+}
+.rv-appmode .rv-workbench .rv-product-text b {
+  font-size:14px;font-weight:650;letter-spacing:.005em;
+}
+.rv-appmode .rv-workbench .rv-product-text span {
+  display:inline-block;
+  margin:0 0 0 11px;
+  color:#67736d;
+  font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-local {
+  font-size:11px;
+  font-weight:450;
+}
+.rv-appmode .rv-workbench .rv-local:before {
+  width:6px;height:6px;background:#567c6a;box-shadow:none;
+}
+.rv-appmode .rv-workbench .rv-close {
+  padding:5px 9px;
+  border:1px solid #b9c4bd;
+  border-radius:2px;
+  background:#f6f7f5;
+  color:#35413b;
+  font-size:12px;
+}
+.rv-appmode .rv-workbench .rv-close:hover {
+  background:#e0e7e2;
+}
+.rv-appmode .rv-workbench .rv-appbar {
+  height:43px;
+  padding:0 clamp(10px,2.2vw,32px);
+  background:#f8f9f7;
+  border-bottom:1px solid #ccd4ce;
+}
+.rv-appmode .rv-workbench .rv-tabs {gap:0;height:100%;align-items:stretch;}
+.rv-appmode .rv-workbench .rv-tab {
+  padding:0 17px;
+  border-radius:0;
+  border-bottom:2px solid transparent;
+  color:#525e57;
+  font-size:12px;
+  font-weight:520;
+}
+.rv-appmode .rv-workbench .rv-tab[aria-selected="true"] {
+  color:#1c3c3a;
+  border-bottom-color:#286c67;
+  background:#fff;
+  font-weight:670;
+}
+.rv-appmode .rv-workbench .rv-tab:hover:not([aria-selected="true"]){background:#edf1ed;}
+.rv-appmode .rv-workbench .rv-appmeta {
+  font-size:11px;
+  color:#7b867f;
+}
+.rv-appmode .rv-workbench .rv-statusbar {
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px 20px;
+  border-top:1px solid #ccd5cf;
+  background:#e8ece8;
+  color:#536159;
+  padding:7px clamp(15px,2.2vw,32px);
+  font-size:11px;line-height:1.35;
+}
+.rv-appmode .rv-workbench .rv-statusbar strong {font-weight:600;}
+/* Wireshark: fixed list pane and readable detail area, without cards. */
+.rv-appmode .rv-workbench .rv-example-shell {
+  display:grid;
+  grid-template-columns:270px minmax(0,1fr);
+  width:100%;
+  min-height:640px;
+  background:#fff;
+}
+.rv-appmode .rv-workbench .rv-example-nav {
+  padding:18px 0;
+  background:#f1f3f1;
+  border-right:1px solid #c8d0ca;
+}
+.rv-appmode .rv-workbench .rv-example-nav h2 {
+  margin:0 17px 12px;
+  padding:0;
+  color:#57645d;
+  font-size:11px;
+  font-weight:630;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.rv-appmode .rv-workbench .rv-case {
+  min-height:59px;
+  padding:10px 15px;
+  grid-template-columns:7px minmax(0,1fr);
+  gap:9px;
+  border-radius:0;
+  border-left:3px solid transparent;
+  color:#29342e;
+  text-align:left;
+}
+.rv-appmode .rv-workbench .rv-case[aria-pressed="true"] {
+  border-left-color:#357870;
+  background:#fff;
+  box-shadow:inset 0 1px 0 #dce1dc,inset 0 -1px 0 #dce1dc;
+}
+.rv-appmode .rv-workbench .rv-case:hover:not([aria-pressed="true"]) {background:#e6ebe7;}
+.rv-appmode .rv-workbench .rv-case-dot {
+  width:6px;height:6px;margin-top:5px;
+}
+.rv-appmode .rv-workbench .rv-case-dot.good{background:#357b5b;}
+.rv-appmode .rv-workbench .rv-case-dot.bad{background:#a45e51;}
+.rv-appmode .rv-workbench .rv-case b {
+  font-size:12px;
+  font-weight:640;
+}
+.rv-appmode .rv-workbench .rv-case>span:last-child>span {
+  font-size:11px;
+  margin-top:2px;
+}
+.rv-appmode .rv-workbench .rv-example-main {background:#fff;}
+.rv-appmode .rv-workbench .rv-contextbar {
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:7px 15px;
+  padding:9px clamp(16px,2.3vw,32px);
+  background:#f8f9f8;border-bottom:1px solid #d7dcd8;
+  color:#65716b;font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-contextbar strong{color:#32433a;font-weight:620;}
+.rv-appmode .rv-workbench .rv-example-head {
+  padding:21px clamp(18px,2.7vw,36px) 19px;
+  border-bottom:1px solid var(--rv-line);
+}
+.rv-appmode .rv-workbench .rv-example-breadcrumb {
+  color:#67756e;font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-example-titleline {
+  align-items:baseline;
+}
+.rv-appmode .rv-workbench .rv-example-titleline h2 {
+  color:#1b2921;
+  font-size:clamp(21px,2.2vw,29px);
+  letter-spacing:-.018em;
+  line-height:1.22;
+  font-weight:600;
+}
+.rv-appmode .rv-workbench .rv-example-summary {
+  max-width:810px;
+  color:#46544c;
+  margin-top:10px;
+  font-size:13px;
+  line-height:1.6;
+}
+.rv-appmode .rv-workbench .rv-phase-tabs {
+  background:transparent;border:1px solid #bbc6bf;
+  padding:0;border-radius:2px;gap:0;
+}
+.rv-appmode .rv-workbench .rv-phase {
+  padding:6px 10px;border-radius:0;
+  font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-phase[aria-pressed="true"] {
+  color:#1f504b;background:#e1ebe6;
+  box-shadow:none;font-weight:650;
+}
+.rv-appmode .rv-workbench .rv-pill,
+.rv-appmode .rv-workbench .rv-status-pill {
+  border-radius:2px;
+  border:1px solid transparent;
+  background:transparent;
+  padding:3px 6px;
+  font-size:10px;
+  font-weight:660;
+}
+.rv-appmode .rv-workbench .rv-pill.good,
+.rv-appmode .rv-workbench .rv-status-pill.good {
+  background:#e8f2ec;color:#21694b;border-color:#ccdfd1;
+}
+.rv-appmode .rv-workbench .rv-pill.bad,
+.rv-appmode .rv-workbench .rv-status-pill.bad {
+  background:#f7eae8;color:#973c38;border-color:#e8c8c4;
+}
+.rv-appmode .rv-workbench .rv-pill.warn,
+.rv-appmode .rv-workbench .rv-pill.unknown,
+.rv-appmode .rv-workbench .rv-status-pill.unknown {
+  background:#f8f3e8;color:#825621;border-color:#e5d7bd;
+}
+.rv-appmode .rv-workbench .rv-example-grid {
+  grid-template-columns:minmax(0,1.18fr) minmax(300px,.82fr);
+}
+.rv-appmode .rv-workbench .rv-finding,
+.rv-appmode .rv-workbench .rv-diagnosis {
+  padding:23px clamp(17px,2.4vw,34px);
+}
+.rv-appmode .rv-workbench .rv-finding {
+  border-right:1px solid #d2d9d3;
+}
+.rv-appmode .rv-workbench .rv-panel-head h3,
+.rv-appmode .rv-workbench .rv-section-head h3 {
+  color:#26332b;font-size:13px;font-weight:670;
+}
+.rv-appmode .rv-workbench .rv-panel-head span,
+.rv-appmode .rv-workbench .rv-section-head span {
+  font-size:11px;letter-spacing:0;text-transform:none;
+}
+.rv-appmode .rv-workbench .rv-situations {gap:0;}
+.rv-appmode .rv-workbench .rv-situation {
+  border:0;border-radius:0;
+  border-top:1px solid #d7dfd8;
+  padding:15px 0 17px;
+  background:transparent;
+}
+.rv-appmode .rv-workbench .rv-situation.fail {
+  border-top-color:#dcbab7;background:transparent;
+}
+.rv-appmode .rv-workbench .rv-situation-label {font-size:12px;font-weight:660;color:#3d4c41;}
+.rv-appmode .rv-workbench .rv-coords {font-size:11px;color:#55645c;}
+.rv-appmode .rv-workbench .rv-outcome-cell span{font-size:11px;}
+.rv-appmode .rv-workbench .rv-outcome-cell strong{font-size:12px;}
+.rv-appmode .rv-workbench .rv-match{font-size:11px;}
+.rv-appmode .rv-workbench .rv-diagnosis-card {
+  background:transparent;
+  padding:11px 0;
+  border-bottom:1px solid #e0e4e0;
+  border-radius:0;margin:0;
+}
+.rv-appmode .rv-workbench .rv-diagnosis-card span {
+  font-size:11px;text-transform:none;letter-spacing:0;
+}
+.rv-appmode .rv-workbench .rv-diagnosis-card strong {
+  font-size:12px;line-height:1.5;
+}
+.rv-appmode .rv-workbench .rv-transition {
+  border:1px solid #d3dbd4;border-radius:2px;
+  margin-top:18px;padding:13px;
+}
+.rv-appmode .rv-workbench .rv-transition-state {
+  border-radius:0;
+  background:#f3f5f3;
+}
+.rv-appmode .rv-workbench .rv-transition-state strong{font-size:12px;}
+/* JASP: open-file settings and technical result views. */
+.rv-appmode .rv-workbench .rv-page {
+  max-width:none;
+  margin:0;
+  padding:clamp(18px,2.3vw,32px);
+}
+.rv-appmode .rv-workbench .rv-intro-grid {
+  grid-template-columns:minmax(0,1fr) minmax(260px,330px);
+  gap:0;
+  border:1px solid #cbd3cd;
+  background:#fff;
+}
+.rv-appmode .rv-workbench .rv-surface {
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+  background:#fff;
+}
+.rv-appmode .rv-workbench .rv-main-card {
+  padding:clamp(20px,2.6vw,34px);
+}
+.rv-appmode .rv-workbench .rv-kicker {
+  color:#5d6d63;font-size:11px;
+  letter-spacing:.04em;text-transform:none;
+}
+.rv-appmode .rv-workbench .rv-app-title {
+  font-size:clamp(22px,2.5vw,29px);
+  letter-spacing:-.02em;
+  line-height:1.2;font-weight:600;
+}
+.rv-appmode .rv-workbench .rv-app-lede {
+  font-size:13px;line-height:1.65;color:#536158;
+}
+.rv-appmode .rv-workbench .rv-drop {
+  border:1px dashed #9baaa2;
+  border-radius:2px;
+  margin-top:24px;
+  padding:33px 22px;
+  background:#fafbfa;
+  transition:background .1s;
+}
+.rv-appmode .rv-workbench .rv-drop.drag {
+  background:#edf5f0;border-color:#28796a;
+}
+.rv-appmode .rv-workbench .rv-drop-icon {
+  width:28px;height:28px;
+  border:none;border-radius:0;
+  background:transparent;
+  font-size:20px;
+}
+.rv-appmode .rv-workbench .rv-drop h2 {
+  font-size:14px;font-weight:650;
+}
+.rv-appmode .rv-workbench .rv-drop p {
+  font-size:12px;
+}
+.rv-appmode .rv-workbench .rv-btn {
+  min-height:31px;
+  border-radius:2px;
+  padding:6px 12px;
+  background:#e8ece8;
+  border:1px solid #a9b7ad;
+  color:#273b30;
+  box-shadow:none;
+  font-size:12px;
+  font-weight:610;
+}
+.rv-appmode .rv-workbench .rv-btn:hover {
+  border-color:#789688;
+  background:#dde8df;
+  color:#203c30;
+}
+.rv-appmode .rv-workbench .rv-btn.secondary {
+  background:#fff;
+  border:1px solid #bcc8bf;
+  color:#3f4e44;
+}
+.rv-appmode .rv-workbench .rv-flow-mini {margin-top:25px;}
+.rv-appmode .rv-workbench .rv-flow-mini>div:not(.arrow) {
+  border:0;
+  border-radius:0;
+  border-top:2px solid #ccd9d0;
+  padding:10px 5px;
+  background:transparent;
+}
+.rv-appmode .rv-workbench .rv-flow-mini span,
+.rv-appmode .rv-workbench .rv-flow-mini b {
+  font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-rail {
+  gap:0;
+  border-left:1px solid #d0d8d1;
+  align-content:start;
+  background:#f6f8f6;
+}
+.rv-appmode .rv-workbench .rv-rail-card {
+  border:0;border-radius:0;
+  padding:18px 19px;
+  border-bottom:1px solid #dbe1db;
+  background:transparent;
+}
+.rv-appmode .rv-workbench .rv-rail-card h2 {
+  font-size:12px;font-weight:670;
+}
+.rv-appmode .rv-workbench .rv-rail-card p{font-size:11.5px;line-height:1.6;}
+.rv-appmode .rv-workbench .rv-num {
+  border-radius:2px;
+  width:21px;height:21px;
+  font-size:11px;background:#e8ede8;color:#466353;
+}
+.rv-appmode .rv-workbench .rv-code {
+  background:#fff;
+  border:1px solid #d0d8d1;
+  border-radius:2px;
+  padding:10px;
+  color:#28382f;
+  font-size:11px;
+}
+.rv-appmode .rv-workbench .rv-empty {
+  border-radius:0;
+  border-left:2px solid #98ada1;
+  background:#f6f8f6;
+  padding:11px;
+  font-size:12px;
+}
+/* Dense but readable reports, without decorative dashboards. */
+.rv-appmode .rv-workbench .rv-record-shell {
+  border:1px solid #cbd3cd;
+  border-radius:2px;
+  box-shadow:none;
+}
+.rv-appmode .rv-workbench .rv-record-head {
+  padding:23px clamp(17px,2.4vw,33px);
+}
+.rv-appmode .rv-workbench .rv-record-head h2 {
+  font-size:clamp(22px,2.6vw,30px);
+  font-weight:610;
+}
+.rv-appmode .rv-workbench .rv-record-head p{font-size:13px;}
+.rv-appmode .rv-workbench .rv-record-eyebrow {
+  font-size:11px;text-transform:none;letter-spacing:0;
+}
+.rv-appmode .rv-workbench .rv-head-metrics {
+  padding-left:20px;
+}
+.rv-appmode .rv-workbench .rv-head-metrics span {
+  font-size:11px;letter-spacing:0;text-transform:none;
+}
+.rv-appmode .rv-workbench .rv-head-metrics strong {font-size:12px;}
+.rv-appmode .rv-workbench .rv-record-grid>section,
+.rv-appmode .rv-workbench .rv-record-grid>aside {
+  padding:22px clamp(17px,2.4vw,33px);
+}
+.rv-appmode .rv-workbench .rv-why {
+  padding:12px 0;
+  background:transparent;
+  border-top:1px solid #dce3dc;
+  border-bottom:1px solid #dce3dc;
+  border-radius:0;
+  color:#394941;font-size:12px;
+}
+.rv-appmode .rv-workbench .rv-identity div {
+  border-right:0;
+  padding:13px 23px;
+  border-bottom:1px dotted #d5dcd5;
+}
+.rv-appmode .rv-workbench .rv-identity span {
+  font-size:11px;text-transform:none;letter-spacing:0;
+}
+.rv-appmode .rv-workbench .rv-identity strong{font-size:12px;}
+.rv-appmode .rv-workbench .rv-actions-row {
+  background:#f8f9f7;
+  padding:12px 23px;
+}
+.rv-appmode .rv-workbench .rv-tech summary{font-size:12px;}
+.rv-appmode .rv-workbench .rv-axis>div {
+  border:0;
+  border-top:2px solid #b8cabc;
+  border-radius:0;
+  background:#f7f9f7;
+  padding:12px 14px;
+}
+.rv-appmode .rv-workbench .rv-axis span{font-size:11px;}
+.rv-appmode .rv-workbench .rv-axis strong{font-size:20px;}
+.rv-appmode .rv-workbench .rv-record-footer {
+  font-size:11px;
+  background:#f8f9f7;
+  line-height:1.55;
+}
+.rv-appmode .rv-workbench .rv-compare-record {
+  border-radius:2px;
+  border-color:#d4dcd4;
+  padding:15px;
+}
+.rv-appmode .rv-workbench .rv-delta-card {
+  border-radius:0;
+  border:0;
+  border-top:1px solid #dce2dc;
+  padding:14px 0;
+}
+.rv-appmode .rv-workbench .rv-muted-box {
+  border-radius:0;
+  background:#f5f7f5;
+}
+@media (max-width:1050px) {
+  .rv-appmode .rv-workbench .rv-appmeta {display:none;}
+  .rv-appmode .rv-workbench .rv-example-grid {grid-template-columns:1fr;}
+  .rv-appmode .rv-workbench .rv-finding{border-right:0;border-bottom:1px solid var(--rv-line);}
+}
+@media (max-width:800px) {
+  .rv-appmode .rv-workbench .rv-example-shell {grid-template-columns:1fr;}
+  .rv-appmode .rv-workbench .rv-example-nav {
+    display:flex;gap:0;overflow-x:auto;
+    border-right:0;border-bottom:1px solid #c8d0ca;
+    padding:0;align-items:stretch;
+  }
+  .rv-appmode .rv-workbench .rv-example-nav h2 {display:none;}
+  .rv-appmode .rv-workbench .rv-case {
+    min-width:185px;width:auto;
+    border-left:0;border-bottom:3px solid transparent;
+  }
+  .rv-appmode .rv-workbench .rv-case[aria-pressed="true"] {
+    border-left:0;border-bottom-color:#357870;box-shadow:none;
+  }
+  .rv-appmode .rv-workbench .rv-intro-grid {grid-template-columns:1fr;}
+  .rv-appmode .rv-workbench .rv-rail {
+    border-left:0;border-top:1px solid var(--rv-line);
+    grid-template-columns:1fr;
+  }
+  .rv-appmode .rv-workbench .rv-record-head,
+  .rv-appmode .rv-workbench .rv-record-grid,
+  .rv-appmode .rv-workbench .rv-compare-records {grid-template-columns:1fr;}
+  .rv-appmode .rv-workbench .rv-head-metrics {
+    padding:15px 0 0;border-left:0;border-top:1px solid var(--rv-line);
+  }
+}
+@media (max-width:600px) {
+  .rv-appmode .rv-workbench .rv-topbar {padding:0 12px;}
+  .rv-appmode .rv-workbench .rv-product-text span {display:none;}
+  .rv-appmode .rv-workbench .rv-appbar {padding:0 8px;}
+  .rv-appmode .rv-workbench .rv-tab {padding:0 11px;font-size:12px;}
+  .rv-appmode .rv-workbench .rv-page {padding:12px;}
+  .rv-appmode .rv-workbench .rv-contextbar {padding:9px 13px;}
+  .rv-appmode .rv-workbench .rv-example-head,
+  .rv-appmode .rv-workbench .rv-finding,
+  .rv-appmode .rv-workbench .rv-diagnosis {padding:18px 15px;}
+  .rv-appmode .rv-workbench .rv-example-topline {flex-wrap:wrap;}
+  .rv-appmode .rv-workbench .rv-example-titleline h2 {font-size:21px;}
+  .rv-appmode .rv-workbench .rv-outcome-map,
+  .rv-appmode .rv-workbench .rv-delta-flow {grid-template-columns:1fr;}
+  .rv-appmode .rv-workbench .rv-main-card {padding:18px 14px;}
+  .rv-appmode .rv-workbench .rv-identity div {padding:12px 16px;}
+}

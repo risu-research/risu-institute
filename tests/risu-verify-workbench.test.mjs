@@ -22,7 +22,7 @@ test("published calibration outcomes and historical source identity remain uncha
 
 test("claim boundary remains explicit",async()=>{const h=(await read("public/tools/index.html")).toLowerCase();for(const x of ["does not issue","does not rerun the python producer","not an independent bug-discovery claim","same declared source semantics","authoritative assurance verdict"])assert.ok(h.includes(x),x);});
 
-test("homepage presents RISU Verify as a real result lifecycle",async()=>{const h=await read("public/index.html");for(const x of ["Check consequences, not appearances.","CLI / CI → .risu record → browser consumer","Open Assurance Workbench","10.5281/zenodo.22152024"])assert.ok(h.includes(x),x);});
+test("homepage identifies RISU Verify and links to real workbench and archive",async()=>{const h=await read("public/index.html");for(const x of ["Research software","RISU Verify","Executable checks for consequence preservation",'href="/tools/#workbench"',"10.5281/zenodo.22152024"])assert.ok(h.includes(x),x);assert.ok(!h.includes('class="assurance-frame"'));});
 
 test("Workbench responds to hash navigation after initial load",async()=>{const h=await read("public/tools/index.html");for(const x of ["function routeWorkbenchFromLocation()",'window.addEventListener("hashchange",routeWorkbenchFromLocation)','hash.startsWith("#workbench")'])assert.ok(h.includes(x),x);});
 

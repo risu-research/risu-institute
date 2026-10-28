@@ -856,3 +856,370 @@ code { font-family: var(--mono); }
   .rs-record h3 { font-size: 1.29rem; }
   .rs-archives { margin-top: 30px; }
 }
+
+
+/* RISU editorial subpages · 2026-10-28 */
+/* Editorial listing style for the four primary tabs. The existing homepage,
+   research detail pages, and RISU Verify interactive workbench are untouched. */
+.risu-editorial-tab .page-hero {
+  padding: clamp(52px, 5.5vw, 78px) 0 clamp(30px, 3.6vw, 48px);
+  border-bottom: 0;
+}
+.risu-editorial-tab .page-hero .page-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(200px, .32fr);
+  gap: clamp(26px, 5vw, 76px);
+}
+.risu-editorial-tab .page-hero h1 {
+  max-width: 800px;
+  margin-top: 10px;
+  font-size: clamp(2.65rem, 4vw, 4.05rem);
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+.risu-editorial-tab .page-lede {
+  max-width: 690px;
+  margin-top: 19px;
+  font-size: 1.03rem;
+  line-height: 1.62;
+}
+.risu-editorial-tab .page-aside {
+  border-top: 0;
+  padding-top: 0;
+  font-size: .82rem;
+  line-height: 1.65;
+}
+.risu-editorial-tab .page-aside strong { letter-spacing: .045em; }
+.risu-editorial-tab .eyebrow,
+.risu-editorial-tab .section-kicker {
+  font-size: .73rem;
+  letter-spacing: .045em;
+  font-weight: 670;
+  text-transform: none;
+}
+/* Research: compact editorial articles. All detail pages remain available. */
+.risu-editorial-tab .research-map { display: none; }
+.risu-editorial-tab .thread-section {
+  padding: 40px 0 clamp(38px, 5.5vw, 66px);
+  border-bottom: 0;
+}
+.risu-editorial-tab .thread-section + .thread-section { padding-top: 18px; }
+.risu-editorial-tab .thread-head {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 35px;
+  margin-bottom: 21px;
+}
+.risu-editorial-tab .thread-head h2 {
+  font-size: clamp(1.8rem, 2.65vw, 2.6rem);
+  line-height: 1.12;
+}
+.risu-editorial-tab .research-ledger { border-top: 0; }
+.risu-editorial-tab .research-entry {
+  grid-template-columns: 45px minmax(0, 1fr);
+  gap: clamp(14px, 2.3vw, 28px);
+  padding: 24px 0 27px;
+  border-bottom: 0;
+}
+.risu-editorial-tab .research-entry + .research-entry {
+  border-top: 1px dotted #c4cec8;
+}
+.risu-editorial-tab .research-entry .entry-index {
+  font-size: .72rem;
+  color: #487a72;
+  padding-top: 5px;
+}
+.risu-editorial-tab .research-entry h3 {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 2.1vw, 2rem);
+  line-height: 1.18;
+  max-width: 880px;
+}
+.risu-editorial-tab .research-entry .entry-label {
+  margin-bottom: 6px;
+  color: #6f7671;
+  font-weight: 600;
+  font-size: .72rem;
+  letter-spacing: .015em;
+  text-transform: none;
+}
+.risu-editorial-tab .research-entry .entry-question {
+  max-width: 770px;
+  font-size: .94rem;
+  line-height: 1.58;
+}
+.risu-editorial-tab .research-entry .entry-summary {
+  display: -webkit-box;
+  max-width: 790px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: .84rem;
+  line-height: 1.6;
+  margin-top: 9px;
+}
+.risu-editorial-tab .entry-meta { display: none; }
+.risu-editorial-tab .entry-links { margin-top: 11px; }
+.risu-editorial-tab .entry-links a {
+  font-size: .78rem;
+  font-weight: 630;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  text-decoration-color: #bdc8c1;
+}
+/* Publications: remove stacked ledger rules, retain citation and DOI links. */
+.risu-editorial-tab .publication-intro { display: none; }
+.risu-editorial-tab .publication-index { padding: 8px 0 86px; }
+.risu-editorial-tab .publication-year { grid-template-columns: 116px minmax(0, 1fr); gap: 32px; }
+.risu-editorial-tab .publication-year-label {
+  color: #397e75;
+  font: 500 1.48rem var(--display);
+}
+.risu-editorial-tab .publication-ledger { border-top: 0; }
+.risu-editorial-tab .publication-row {
+  grid-template-columns: 92px minmax(0, 1fr) 156px;
+  gap: clamp(14px, 2.5vw, 28px);
+  border-bottom: 0;
+  padding: 11px 0 29px;
+}
+.risu-editorial-tab .publication-row + .publication-row {
+  border-top: 1px dotted #c4cec8;
+  padding-top: 29px;
+}
+.risu-editorial-tab .publication-row .pub-no {
+  font-size: .73rem;
+  line-height: 1.8;
+  color: #53786e;
+  font-weight: 560;
+}
+.risu-editorial-tab .publication-row h2 {
+  max-width: 780px;
+  font-size: clamp(1.38rem, 2.05vw, 1.8rem);
+  line-height: 1.24;
+}
+.risu-editorial-tab .pub-actions { gap: 8px; }
+.risu-editorial-tab .pub-actions a {
+  font-size: .79rem;
+  font-weight: 640;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+  text-decoration-color: #bec8c2;
+}
+/* About: fewer typographic proclamations and almost no structural lines. */
+.risu-editorial-tab .about-overview { padding: 20px 0 14px; }
+.risu-editorial-tab .about-overview-grid {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 36px;
+}
+.risu-editorial-tab .about-overview-copy h2 {
+  font-size: clamp(1.8rem, 2.65vw, 2.5rem);
+  line-height: 1.16;
+}
+.risu-editorial-tab .about-overview-copy p { max-width: 770px; }
+.risu-editorial-tab .about-facts { display: none; }
+.risu-editorial-tab .about-section {
+  padding: 38px 0 42px;
+  border-bottom: 0;
+}
+.risu-editorial-tab .about-section-grid {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 36px;
+}
+.risu-editorial-tab .about-copy h2 {
+  font-size: clamp(1.65rem, 2.4vw, 2.25rem);
+  line-height: 1.18;
+}
+.risu-editorial-tab .about-copy>p { max-width: 750px; line-height: 1.68; }
+.risu-editorial-tab .commitment-list {
+  margin-top: 31px;
+  border-top: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 25px 48px;
+}
+.risu-editorial-tab .commitment-row {
+  display: block;
+  padding: 0;
+  border-bottom: 0;
+}
+.risu-editorial-tab .commitment-row span { color: #387f74; }
+.risu-editorial-tab .commitment-row h3 {
+  margin-top: 9px;
+  font-size: 1.27rem;
+}
+.risu-editorial-tab .commitment-row p { margin-top: 7px; line-height: 1.6; }
+/* Tools: public editorial portion only; never restyle the interactive workbench. */
+.risu-editorial-tab .rv-public .rv-hero {
+  padding: clamp(50px, 6vw, 82px) 0 46px;
+  border-bottom: 0;
+}
+.risu-editorial-tab .rv-public .rv-hero h1 {
+  font-family: var(--display);
+  max-width: 800px;
+  font-size: clamp(2.9rem, 4.4vw, 4.55rem);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -.034em;
+}
+.risu-editorial-tab .rv-public .rv-hero .lede {
+  max-width: 730px;
+  margin-top: 20px;
+  font-size: clamp(1.06rem, 1.4vw, 1.17rem);
+}
+.risu-editorial-tab .rv-public .rv-hero .plain {
+  max-width: 720px;
+  font-size: .92rem;
+}
+.risu-editorial-tab .rv-public .section {
+  border-bottom: 0;
+  padding: clamp(42px, 5.8vw, 76px) 0;
+}
+.risu-editorial-tab .rv-public .rv-public-grid {
+  gap: clamp(24px, 4vw, 62px);
+}
+.risu-editorial-tab .rv-public h2 {
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 2.9vw, 2.75rem);
+  line-height: 1.14;
+  letter-spacing: -.025em;
+}
+.risu-editorial-tab .rv-public .rv-kicker-public {
+  text-transform: none;
+  letter-spacing: .035em;
+  font-size: .74rem;
+  font-weight: 650;
+}
+.risu-editorial-tab .rv-public .rv-public-copy>p {
+  font-size: .95rem;
+  line-height: 1.66;
+}
+.risu-editorial-tab .rv-public .rv-contrast { border-top: 0; }
+.risu-editorial-tab .rv-public .rv-contrast-row {
+  border-bottom: 1px dotted #b7c7c1;
+  padding: 15px 0;
+}
+.risu-editorial-tab .rv-public .rv-contrast-row span {
+  text-transform: none;
+  letter-spacing: .02em;
+  font-size: .78rem;
+}
+.risu-editorial-tab .rv-public .rv-flow {
+  border: 0;
+  gap: 18px 29px;
+  margin-top: 25px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.risu-editorial-tab .rv-public .rv-flow article,
+.risu-editorial-tab .rv-public .rv-flow article:nth-child(3) {
+  padding: 0 0 13px;
+  border: 0;
+  background: transparent;
+}
+.risu-editorial-tab .rv-public .rv-flow strong { margin-top: 9px; font-size: 1.02rem; }
+.risu-editorial-tab .rv-public .rv-flow p { font-size: .84rem; max-width: 260px; }
+.risu-editorial-tab .rv-public .rv-proof-grid {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: clamp(24px, 4vw, 60px);
+  margin-top: 28px;
+}
+.risu-editorial-tab .rv-public .rv-proof-card {
+  padding: 18px 0 6px;
+  border: 0;
+  border-top: 2px solid #238178;
+  background: transparent;
+  box-shadow: none;
+}
+.risu-editorial-tab .rv-public .rv-proof-card .status {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: .73rem;
+  letter-spacing: .015em;
+}
+.risu-editorial-tab .rv-public .rv-proof-card .status.bad {
+  color: #97514b;
+  background: transparent;
+}
+.risu-editorial-tab .rv-public .rv-proof-card .status.good {
+  color: #186b56;
+  background: transparent;
+}
+.risu-editorial-tab .rv-public .rv-proof-card > span:not(.status) {
+  margin-top: 17px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: .78rem;
+}
+.risu-editorial-tab .rv-public .rv-proof-card h3 {
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 2.1vw, 1.88rem);
+  line-height: 1.22;
+  margin: 9px 0;
+}
+.risu-editorial-tab .rv-public .rv-proof-card p {
+  font-size: .91rem;
+  line-height: 1.58;
+}
+.risu-editorial-tab .rv-public .rv-proof-card .transition {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 13px;
+  font-family: var(--mono);
+  font-size: .78rem;
+}
+.risu-editorial-tab .rv-public .rv-other-grid {
+  gap: 24px 50px;
+}
+.risu-editorial-tab .rv-public .rv-other-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.risu-editorial-tab .rv-public .rv-other-card h3 { font-size: 1.43rem; }
+.risu-editorial-tab .rv-public .rv-other-card p {
+  line-height: 1.61;
+  max-width: 460px;
+}
+.risu-editorial-tab .rv-public .rv-other-card a {
+  text-decoration: underline;
+  text-underline-offset: .19em;
+  text-decoration-color: #b7c6bd;
+}
+.risu-editorial-tab .rv-public .rv-record-list {
+  margin-top: 5px;
+  border-top: 0;
+}
+.risu-editorial-tab .rv-public .rv-record-list div {
+  border-bottom: 1px dotted #ccd5d0;
+  padding: 12px 0;
+}
+.risu-editorial-tab .rv-public .rv-btn.secondary {
+  border-color: transparent;
+  padding-left: 6px;
+  padding-right: 6px;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+@media (max-width: 900px) {
+  .risu-editorial-tab .page-hero .page-grid { grid-template-columns: 1fr; gap: 18px; }
+  .risu-editorial-tab .page-aside { max-width: 720px; }
+  .risu-editorial-tab .rv-public .rv-proof-grid { gap: 25px; }
+}
+@media (max-width: 760px) {
+  .risu-editorial-tab .page-hero { padding: 38px 0 28px; }
+  .risu-editorial-tab .thread-head,
+  .risu-editorial-tab .about-overview-grid,
+  .risu-editorial-tab .about-section-grid,
+  .risu-editorial-tab .publication-year { grid-template-columns: 1fr; gap: 10px; }
+  .risu-editorial-tab .research-entry { grid-template-columns: 30px minmax(0, 1fr); gap: 11px; }
+  .risu-editorial-tab .research-entry .entry-question { font-size: .91rem; }
+  .risu-editorial-tab .publication-row { grid-template-columns: 1fr; gap: 9px; }
+  .risu-editorial-tab .pub-actions { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+  .risu-editorial-tab .about-overview { padding-top: 12px; }
+  .risu-editorial-tab .commitment-list { grid-template-columns: 1fr; gap: 22px; }
+  .risu-editorial-tab .rv-public .rv-public-grid { grid-template-columns: 1fr; }
+  .risu-editorial-tab .rv-public .rv-flow { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .risu-editorial-tab .rv-public .rv-proof-grid { grid-template-columns: 1fr; gap: 26px; }
+  .risu-editorial-tab .rv-public .rv-other-grid { grid-template-columns: 1fr; }
+}

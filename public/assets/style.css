@@ -797,7 +797,7 @@ code { font-family: var(--mono); }
 }
 .rs-record {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
+  grid-template-columns: 92px minmax(0, 1fr);
   gap: 22px;
   align-items: baseline;
 }
@@ -817,14 +817,6 @@ code { font-family: var(--mono); }
   color: var(--muted);
   font-size: .77rem;
   margin-top: 6px;
-}
-.rs-record-action {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: .22em;
-  text-decoration-color: #aeb8b0;
-  font-size: .79rem;
-  white-space: nowrap;
 }
 .rs-archives {
   display: flex;
@@ -862,6 +854,5 @@ code { font-family: var(--mono); }
   .rs-record-list { gap: 29px; }
   .rs-record { grid-template-columns: 1fr; gap: 4px; }
   .rs-record h3 { font-size: 1.29rem; }
-  .rs-record-action { display: none; }
   .rs-archives { margin-top: 30px; }
 }

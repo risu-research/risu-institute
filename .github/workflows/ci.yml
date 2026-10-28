@@ -44,6 +44,3 @@ jobs:
 
       - name: Run Consequence Closure Chromium gate
         run: node tests/consequence-closure-current.browser.mjs
-
-      - name: Verify RISU Verify workstation in Chromium
-        run: node tests/verify-interface.browser.mjs

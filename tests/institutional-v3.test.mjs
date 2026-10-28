@@ -11,14 +11,20 @@ test("homepage presents RISU as an institutional research program, not a SaaS la
   const h = await read("public/index.html");
   for (const x of [
     "Research for consequential machine action.",
-    "Research field",
-    "Three bounded questions, one consequence layer.",
     "Selected research",
     "Projection Assurance",
     "Consequence Closure",
     "RISU Verify",
-    "Public research record",
+    "Research software",
+    "Publications &amp; records",
+    "Yale Global Justice Conference 2026",
+    "International Conference on the Social Impact of AI 2026",
+    "Security Standardisation Research Conference 2026",
   ]) assert.ok(h.includes(x), x);
+  assert.ok(h.includes('src="/assets/media/washington-dc.webp"'));
+  for (const image of ["yale.webp", "siai.webp", "ssr.webp"]) assert.ok(h.includes(image), image);
+  assert.ok(!h.includes('class="architecture-band"'));
+  assert.ok(!h.includes('class="assurance-frame"'));
   assert.ok(!h.includes('class="button'));
   assert.doesNotMatch(h, /world[- ]class|leading global|industry[- ]leading/iu);
 });

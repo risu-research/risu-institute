@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css?v=20261026-research-news">
+<link rel="stylesheet" href="/assets/style.css?v=20261028-editorial-home">
 <title>RISU Institute</title>
 <meta name="description" content="RISU Institute develops formal and executable methods for consequential machine action: what must be known, preserved, and established before an action can safely take effect.">
 <link rel="canonical" href="https://risuinstitute.org/">
@@ -25,7 +25,7 @@
 <section class="home-hero" aria-labelledby="home-heading">
   <div class="wrap home-hero-opening">
     <div class="home-hero-title-panel">
-      <p class="eyebrow">Independent research · Washington, DC</p>
+      <p class="eyebrow">Washington, DC</p>
       <h1 id="home-heading">Research for consequential machine action.</h1>
     </div>
     <p class="lede">RISU studies what must remain true as machine-readable meaning crosses evidence, interfaces, and action boundaries. The work turns those distinctions into bounded definitions, executable checks, and inspectable public records.</p>
@@ -133,72 +133,93 @@
 </section>
 
 
-<section class="architecture-band" aria-label="RISU research architecture">
-  <div class="wrap architecture-wrap">
-    <div class="architecture-head"><p class="section-kicker">Research field</p><h2>Three bounded questions, one consequence layer.</h2></div>
-    <div class="architecture-grid">
-      <article class="architecture-cell"><span class="ledger-code">01 / MEANING</span><h3>What does the machine claim mean?</h3><p>Semantic identity and preservation make meaning explicit before another system relies on it.</p></article>
-      <article class="architecture-cell"><span class="ledger-code">02 / EVIDENCE</span><h3>What justifies reliance?</h3><p>Evidence qualification and transport separate an observation from the stronger premise a downstream action may consume.</p></article>
-      <article class="architecture-cell"><span class="ledger-code">03 / ACTION</span><h3>What is fixed at the action cut?</h3><p>Closure and operativity ask whether the distinctions that matter to the consequence have actually been established and still govern the effect.</p></article>
+<section class="rs-section rs-section--research" aria-labelledby="rs-research-title">
+  <div class="wrap">
+    <div class="rs-heading">
+      <h2 id="rs-research-title">Selected research</h2>
+      <a href="/work/">All research →</a>
     </div>
-    <div class="architecture-crosscut"><span>Cross-cutting assurance</span><strong>Projection Assurance tests whether consequence-relevant semantics survive translation into agent-facing interfaces. RISU Verify carries that result into reproducible software and browser-consumable records.</strong><a href="/work/projection-assurance/">Understand Projection Assurance →</a></div>
+    <div class="rs-work-grid">
+      <article class="rs-work">
+        <h3><a href="/work/projection-assurance/">Projection Assurance</a></h3>
+        <p>Tests whether agent-facing interfaces preserve the behavior and safeguards of source operations.</p>
+        <div class="rs-work-links"><a href="/work/projection-assurance/">Research</a><a href="/tools/#workbench">Workbench</a></div>
+      </article>
+      <article class="rs-work">
+        <h3><a href="/work/consequence-closure/">Consequence Closure</a></h3>
+        <p>Investigates which consequences are determined, and which remain unresolved, when a machine takes action.</p>
+        <div class="rs-work-links"><a href="/work/consequence-closure/">Research</a><a href="/tools/consequence-closure/">Inspector</a></div>
+      </article>
+      <article class="rs-work">
+        <h3><a href="/work/reliance-before-closure/">Reliance Before Closure</a></h3>
+        <p>Studies when a system can rely on verified evidence before a wider workflow has finished.</p>
+        <div class="rs-work-links"><a href="/work/reliance-before-closure/">Research</a><a href="/research/technical-notes/2026-02/">Technical note</a></div>
+      </article>
+    </div>
   </div>
 </section>
 
-<section class="section">
+<section class="rs-section rs-section--software" aria-labelledby="rs-software-title">
   <div class="wrap">
-    <div class="section-head"><p class="section-kicker">Selected research</p><div><h2 class="section-title">A research program built around failure at boundaries.</h2><p class="section-intro">Each project names a narrow failure mode, states a bounded claim, and keeps the formal, empirical, and operational layers separate.</p></div></div>
-    <div class="selected-work">
-      <article class="selected-row"><span class="work-no">01</span><div><p class="record-kicker">Projection assurance</p><h3>Projection Assurance</h3><p class="work-question">Did the consequence-defining behavior survive when a source operation became an agent-facing tool?</p></div><p class="work-summary">Correspondence, discrimination, operativity, exact realization, and coverage are evaluated separately so surface similarity cannot stand in for consequence preservation.</p><aside class="selected-meta"><span>Current implementation</span><strong>Consequence-Preserving Projections v0.7.0</strong></aside><div class="selected-links"><a href="/work/projection-assurance/">Understand Projection Assurance →</a><a href="/tools/#workbench">Workbench →</a></div></article>
-      <article class="selected-row"><span class="work-no">02</span><div><p class="record-kicker">Consequence assurance</p><h3>Consequence Closure</h3><p class="work-question">At the moment a machine acts, is the specified consequence already determined?</p></div><p class="work-summary">Relational counterexamples identify what remains material. Minimal semantic obligations remain distinct from the mechanisms that can establish them.</p><aside class="selected-meta"><span>External gate</span><strong>Cedar 4.12.0 · exact bounded P1</strong></aside><div class="selected-links"><a href="/work/consequence-closure/">Understand Consequence Closure →</a><a href="/tools/consequence-closure/">Inspector →</a></div></article>
-      <article class="selected-row"><span class="work-no">03</span><div><p class="record-kicker">Evidence-qualified reliance</p><h3>Reliance Before Closure</h3><p class="work-question">When can one machine rely on a claim before the broader workflow has finished?</p></div><p class="work-summary">Provider-specific qualification, a verified stability certificate, and a separately bounded proposed action feed a provider-blind relying function without pretending the broader workflow has already closed.</p><aside class="selected-meta"><span>Commissioning</span><strong>Kubernetes · trust-scoped</strong></aside><div class="selected-links"><a href="/work/#consequence-closure">Research thread →</a><a href="/research/technical-notes/2026-02/">Technical Note →</a></div></article>
+    <div class="rs-heading">
+      <h2 id="rs-software-title">Research software</h2>
+      <a href="/tools/">Explore the tools →</a>
     </div>
-  </div>
-</section>
-
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head"><p class="section-kicker">Flagship software</p><div><h2 class="section-title">RISU Verify</h2><p class="section-intro">A local-first assurance surface for consequence preservation across agent-facing projections.</p></div></div>
-    <div class="software-feature">
-      <div class="software-copy">
-        <p class="record-kicker">Consequence assurance · research software · August 2026</p>
-        <h3>Check consequences, not appearances.</h3>
-        <p class="question">An interface can keep the same name, inputs, and shape while losing a safeguard that changes what the action actually does.</p>
-        <p class="summary">RISU Verify evaluates the declared consequence, carries the producer-side result through exact handoff artifacts, and lets the browser independently verify what it can from the bytes it receives.</p>\n        <p class="summary"><strong>October research checkpoint.</strong> A deliberately bounded mediated-refinement candidate has now passed crossed adversarial, generated differential, orthogonal-reference, and certificate-qualification gates. Production authority remains intentionally unpromoted. <a href="/work/projection-assurance/#research-frontier">Read the checkpoint →</a></p>
-        <div class="software-links"><a class="arrow-link" href="/tools/">Understand RISU Verify <span aria-hidden="true">→</span></a><a class="arrow-link" href="/tools/#workbench">Open Assurance Workbench <span aria-hidden="true">↗</span></a><a class="arrow-link" href="https://doi.org/10.5281/zenodo.22152024">Software archive <span aria-hidden="true">→</span></a></div><p class="identifier" style="margin-top:18px;color:var(--muted)">CLI / CI → .risu record → browser consumer</p>
-      </div>
-      <div class="assurance-frame" aria-label="Illustrative RISU Verify assurance record">
-        <div class="assurance-top"><div class="assurance-brand"><span class="assurance-mark">R</span><div><b>RISU Verify</b><span>Assurance Workbench</span></div></div><span class="assurance-local">Local browser consumer</span></div>
-        <div class="assurance-body">
-          <div class="assurance-pills"><span class="assurance-pill">PRESERVED</span><span class="assurance-pill">BROWSER CONSISTENCY PASS</span></div>
-          <h4>Safeguard preserved</h4>
-          <p>The projected mechanism reproduces the declared source consequence in the admitted worlds.</p>
-          <div class="assurance-metrics"><div><span>Correspondence</span><b>C1</b></div><div><span>Discrimination</span><b>D1</b></div><div><span>Operativity</span><b>O1</b></div></div>
-          <div class="assurance-chain"><div class="assurance-chain-row"><span class="assurance-dot"></span><span>Handoff integrity</span><strong>Browser verified</strong></div><div class="assurance-chain-row"><span class="assurance-dot"></span><span>Certificate binding</span><strong>Browser verified</strong></div><div class="assurance-chain-row"><span class="assurance-dot"></span><span>Frozen core identity</span><strong>Browser matched</strong></div></div>
+    <div class="rs-software-layout">
+      <div class="rs-software-main">
+        <h3>RISU Verify</h3>
+        <p>Executable checks for consequence preservation across agent-facing tools, with inspectable evidence and browser-verifiable handoff records.</p>
+        <div class="rs-software-links">
+          <a href="/tools/#workbench">Open workbench →</a>
+          <a href="/work/projection-assurance/">Research background →</a>
+          <a href="https://doi.org/10.5281/zenodo.22152024">Software archive →</a>
         </div>
       </div>
+      <dl class="rs-software-spec" aria-label="RISU Verify research functions">
+        <div><dt>Evaluate</dt><dd>Declared source consequences and projected behavior</dd></div>
+        <div><dt>Record</dt><dd>Evidence and verification artifacts</dd></div>
+        <div><dt>Inspect</dt><dd>Browser-consumable assurance records</dd></div>
+      </dl>
     </div>
   </div>
 </section>
 
-
-<section class="section">
+<section class="rs-section rs-section--records" aria-labelledby="rs-records-title">
   <div class="wrap">
-    <div class="section-head"><p class="section-kicker">Public research record</p><div><h2 class="section-title">Citable work, linked to the evidence it rests on.</h2><p class="section-intro">RISU Technical Notes state the claim boundary, archival record, and supporting software or evidence where applicable.</p></div></div>
-    <div class="public-record">
-      <div class="public-record-year">2026</div>
-      <div class="public-record-list">
-        <article class="public-record-row"><time datetime="2026-08-28">28 AUG</time><div><h3>Projection Assurance: Consequence-Relevant Semantics Across Agent-Facing Interfaces</h3><p>RISU Technical Note 2026-04</p></div><a href="/research/technical-notes/2026-04/">Open record →</a></article>
-        <article class="public-record-row"><time datetime="2026-08-25">25 AUG</time><div><h3>Consequence Closure: Semantic Assurance at the Machine Action Boundary</h3><p>RISU Technical Note 2026-03 · <a href="https://doi.org/10.2139/ssrn.7349704">SSRN posting ↗</a></p></div><a href="/research/technical-notes/2026-03/">Open record →</a></article>
-        <article class="public-record-row"><time datetime="2026-08-21">21 AUG</time><div><h3>Reliance Before Closure: Evidence-Qualified Stability for Machine Decisions Under Unresolved Effects</h3><p>RISU Technical Note 2026-02</p></div><a href="/research/technical-notes/2026-02/">Open record →</a></article>
-        <article class="public-record-row"><time datetime="2026-08-18">18 AUG</time><div><h3>From Revocation to Closure: Verifying Attributable Consequences in AI Agent Decommissioning</h3><p>RISU Technical Note 2026-01</p></div><a href="/research/technical-notes/2026-01/">Open record →</a></article>
-      </div>
+    <div class="rs-heading">
+      <h2 id="rs-records-title">Publications &amp; records</h2>
+      <a href="/research/">All publications →</a>
     </div>
-    <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:8px 22px"><a class="arrow-link" href="https://doi.org/10.5281/zenodo.22149639">Projection Assurance persistent record <span aria-hidden="true">→</span></a><a class="arrow-link" href="https://doi.org/10.5281/zenodo.22149593">Current Projection Assurance software v0.7.0 <span aria-hidden="true">→</span></a><a class="arrow-link" href="https://doi.org/10.5281/zenodo.22149517">Evaluation Capsule <span aria-hidden="true">→</span></a></div>
+    <div class="rs-record-list">
+      <article class="rs-record">
+        <time datetime="2026-08-28">28 AUG 2026</time>
+        <div><h3><a href="/research/technical-notes/2026-04/">Projection Assurance: Consequence-Relevant Semantics Across Agent-Facing Interfaces</a></h3><span class="rs-record-note">RISU Technical Note 2026-04</span></div>
+        <a class="rs-record-action" href="/research/technical-notes/2026-04/">Read →</a>
+      </article>
+      <article class="rs-record">
+        <time datetime="2026-08-25">25 AUG 2026</time>
+        <div><h3><a href="/research/technical-notes/2026-03/">Consequence Closure: Semantic Assurance at the Machine Action Boundary</a></h3><span class="rs-record-note">RISU Technical Note 2026-03 · <a href="https://doi.org/10.2139/ssrn.7349704">SSRN</a></span></div>
+        <a class="rs-record-action" href="/research/technical-notes/2026-03/">Read →</a>
+      </article>
+      <article class="rs-record">
+        <time datetime="2026-08-21">21 AUG 2026</time>
+        <div><h3><a href="/research/technical-notes/2026-02/">Reliance Before Closure: Evidence-Qualified Stability for Machine Decisions Under Unresolved Effects</a></h3><span class="rs-record-note">RISU Technical Note 2026-02</span></div>
+        <a class="rs-record-action" href="/research/technical-notes/2026-02/">Read →</a>
+      </article>
+      <article class="rs-record">
+        <time datetime="2026-08-18">18 AUG 2026</time>
+        <div><h3><a href="/research/technical-notes/2026-01/">From Revocation to Closure: Verifying Attributable Consequences in AI Agent Decommissioning</a></h3><span class="rs-record-note">RISU Technical Note 2026-01</span></div>
+        <a class="rs-record-action" href="/research/technical-notes/2026-01/">Read →</a>
+      </article>
+    </div>
+    <nav class="rs-archives" aria-label="Additional research archives">
+      <a href="https://doi.org/10.5281/zenodo.22149639">Projection Assurance research record</a>
+      <a href="https://doi.org/10.5281/zenodo.22149593">Software v0.7.0</a>
+      <a href="https://doi.org/10.5281/zenodo.22149517">Evaluation capsule</a>
+    </nav>
   </div>
 </section>
 </main>
-<footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>Independent research initiative of RISU LLC · Washington, DC</div><div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
+<footer class="site-footer"><div class="wrap footer-inner"><div><span class="footer-brand">RISU Institute</span><br>RISU Institute · Washington, DC</div><div><a href="/research/">Publications</a> · <a href="https://github.com/risu-research">GitHub</a> · © 2026 RISU LLC</div></div></footer>
 </body>
 </html>

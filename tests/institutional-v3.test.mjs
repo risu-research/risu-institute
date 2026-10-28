@@ -59,7 +59,7 @@ test("publication surfaces are scholarly ledgers with explicit publication bound
 test("about page states actual organizational boundary and research discipline", async () => {
   const h = await read("public/about/index.html");
   for (const x of [
-    "independent research initiative",
+    "About RISU Institute",
     "research initiative of RISU LLC",
     "Bound the claim.",
     "Preserve the evidence.",

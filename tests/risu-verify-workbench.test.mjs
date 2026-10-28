@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 const root=dirname(dirname(fileURLToPath(import.meta.url))); const read=(p)=>readFile(join(root,p),"utf8"); const sha=(s)=>createHash("sha256").update(s).digest("base64");
 
-test("public surface explains the problem before the formal machinery",async()=>{const h=await read("public/tools/index.html");for(const x of ["Consequence assurance","Checking the actual consequence","One assurance record","Published system comparisons","Research foundations"])assert.ok(h.includes(x),x);assert.ok(h.indexOf("Checking the actual consequence")<h.indexOf("C / D / O"));assert.ok(h.includes("GitHub guarded merge"));assert.ok(h.includes("Azure Wiki edit"));assert.ok(h.includes("GitHub file update"));});
+test("public surface explains the problem before the formal machinery",async()=>{const h=await read("public/tools/index.html");for(const x of ["RISU Verify","Checking the actual consequence","One assurance record","Published system comparisons","Research foundations"])assert.ok(h.includes(x),x);assert.ok(h.indexOf("Checking the actual consequence")<h.indexOf("C / D / O"));assert.ok(h.includes("GitHub guarded merge"));assert.ok(h.includes("Azure Wiki edit"));assert.ok(h.includes("GitHub file update"));});
 
 test("Workbench is a three-mode assurance console",async()=>{const h=await read("public/tools/index.html");for(const x of ['data-pane="check"','data-pane="compare"','data-pane="examples"','Analyze an assurance record','Compare assurance records','Published examples'])assert.ok(h.includes(x),x);});
 

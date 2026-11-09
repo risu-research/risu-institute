@@ -26,7 +26,7 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   for (const phrase of [
     "19 / 195", "42 / 195", "25 low-income", "16 of 64 high-income",
     "812 public catalogue entries", "Table 1.", "29", "45",
-    "34 routes", "Locality Disclosure Matrix", "seven facts",
+    "34 routes", "Locality Disclosure Matrix", "seven pieces of information",
     "5 October supplier catalogue", "31 October follow-up",
     "Conference record"
   ]) assert.ok(page.includes(phrase), phrase);

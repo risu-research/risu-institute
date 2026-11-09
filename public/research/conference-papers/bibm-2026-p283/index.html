@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css?v=20261109-bibm-refined">
+<link rel="stylesheet" href="/assets/style.css?v=20261109-bibm-paper-v2">
 <title>When Trial Data Portals Move: Cross-Sponsor Policy Mismatches | RISU Institute</title>
 <meta name="description" content="Accepted IEEE BIBM 2026 poster paper P283 on cross-sponsor policy attribution in historical clinical-trial data portal pages, with independently runnable Common Crawl evidence.">
 <link rel="canonical" href="https://risuinstitute.org/research/conference-papers/bibm-2026-p283/">
@@ -49,27 +49,22 @@
   </section>
   <section aria-labelledby="evidence-heading" class="bibm-evidence-section">
     <h2 id="evidence-heading">Three historical policy-body mismatches</h2>
-    <p>Fifteen date-stamped Common Crawl WARC responses anchor the reproducible comparisons. Each record has a documented archive location and cryptographic hash, allowing the original page text to be checked again.</p>
-    <figure class="bibm-evidence-figure" aria-labelledby="bibm-figure-title">
-      <div class="bibm-figure-head">
-        <div>
-          
-          <h3 id="bibm-figure-title">Sponsor labels and matched policy text</h3>
-        </div>
-        
-      </div>
-      <div class="bibm-evidence-scroll" tabindex="0" role="region" aria-label="Cross-sponsor policy-body comparison table">
+    <p>The comparison uses 15 dated Common Crawl WARC responses. The repository lists the archive location and cryptographic hash for each source. Readers can retrieve the original pages and repeat the checks.</p>
+    <figure class="bibm-evidence-figure" aria-labelledby="bibm-table-title">
+      <div class="bibm-evidence-scroll" tabindex="0" role="region" aria-label="Archived sponsor policy comparison">
         <table class="bibm-evidence-table">
-          <thead><tr><th scope="col">Sponsor on page</th><th scope="col">Policy text matched</th><th scope="col" class="bibm-count">Paragraphs matching</th></tr></thead>
+          <caption id="bibm-table-title"><span class="bibm-table-label">Table 1.</span> Policy text on archived sponsor pages</caption>
+          <thead>
+            <tr><th scope="col">Page label</th><th scope="col">Policy text matched</th><th scope="col" class="bibm-count">Paragraph match</th></tr>
+          </thead>
           <tbody>
-            <tr><th scope="row">Lilly</th><td>Boehringer Ingelheim</td><td class="bibm-count"><strong>27 of 27</strong></td></tr>
-            <tr><th scope="row">Bayer</th><td>Sanofi</td><td class="bibm-count"><strong>25 of 25</strong></td></tr>
-            <tr><th scope="row">ONO</th><td>UCB</td><td class="bibm-count"><strong>21 of 21</strong></td></tr>
+            <tr><th scope="row">Lilly</th><td>Boehringer Ingelheim</td><td class="bibm-count">27/27</td></tr>
+            <tr><th scope="row">Bayer</th><td>Sanofi</td><td class="bibm-count">25/25</td></tr>
+            <tr><th scope="row">ONO</th><td>UCB</td><td class="bibm-count">21/21</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="bibm-control-note">None of the six selected other-sponsor controls produced a complete policy-body match.</p>
-      <figcaption>Exact paragraph matches use normalized extracted policy text. Historical capture times differ across records; the repository documents the dates, comparison rules, and evidence boundaries.</figcaption>
+      <figcaption><span class="bibm-table-label">Note.</span> Counts refer to exact paragraph matches after text normalization. None of the six selected other-sponsor controls had a complete match. The captures span different dates. The repository contains the individual dates and comparison rules.</figcaption>
     </figure>
   </section>
   <section aria-labelledby="meaning-heading">

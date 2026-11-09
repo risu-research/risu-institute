@@ -27,7 +27,7 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
     "19 / 195", "42 / 195", "25 low-income", "16 of 64 high-income",
     "812 public catalogue entries", "29 documented country", "45 pairs",
     "34 routes", "Locality Disclosure Matrix", "seven facts",
-    "The original 5 October country survey", "31 October procurement follow-up",
+    "The original 5 October country survey", "31 October procurement analysis",
     "conference paper or journal article is not asserted"
   ]) assert.ok(page.includes(phrase), phrase);
   assert.ok(page.includes("Official conference program"));

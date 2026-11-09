@@ -257,6 +257,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "assets/style.css",
     "index.html",
     "rels/appeal.html",
+    "research/conference-papers/bibm-2026-p283/index.html",
     "research/index.html",
     "research/technical-notes/2026-01/RISU_Technical_Note_2026-01_From_Revocation_to_Closure.pdf",
     "research/technical-notes/2026-01/index.html",

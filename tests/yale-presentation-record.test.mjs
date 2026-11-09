@@ -13,11 +13,11 @@ test("Yale 2026 presentation record is reachable from both title links and the p
   const index = await read("public/research/index.html");
   assert.ok(home.includes('<h3><a href="' + yale + '">Yale Global Justice Conference 2026</a></h3>'));
   assert.ok(home.includes('<p class="update-paper"><a href="' + yale + '">Global Access, Unequal Control: The Locality Tax in Managed AI</a></p>'));
-  assert.ok(home.includes("7 November · Online"));
+  assert.ok(home.includes("7 November 2026"));
   assert.ok(home.includes("Presented"));
   assert.ok(index.includes("Conference presentations"));
   assert.ok(index.includes('href="' + yale + '"'));
-  assert.ok(index.includes("Presented online"));
+  assert.ok(index.includes("Presented 7 November"));
 });
 
 test("Yale evidence retains dates and boundaries and keeps the proposed disclosure work separate", async () => {
@@ -25,18 +25,20 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   const css = await read("public/assets/style.css");
   for (const phrase of [
     "19 / 195", "42 / 195", "25 low-income", "16 of 64 high-income",
-    "812 public catalogue entries", "29 documented country", "45 pairs",
+    "812 public catalogue entries", "Table 1.", "29", "45",
     "34 routes", "Locality Disclosure Matrix", "seven facts",
-    "The original 5 October country survey", "31 October procurement analysis",
-    "conference paper or journal article is not asserted"
+    "5 October supplier catalogue", "31 October follow-up",
+    "Conference record"
   ]) assert.ok(page.includes(phrase), phrase);
   assert.ok(page.includes("Official conference program"));
   assert.ok(page.includes("Presentation"));
   assert.ok(page.includes("Presented · Conference talk"));
+  assert.ok(page.includes("/assets/research/yale-national-processing-map.svg"));
+  assert.ok(page.includes("Table 2.</strong> Proposed Locality Disclosure Matrix"));
   assert.ok(!page.includes(", allowing"));
   assert.ok(!page.includes("—"));
   assert.ok(!page.includes("peer-reviewed paper"));
   assert.ok(css.includes(".yale-record .publication-title"));
   assert.ok(css.includes("--canvas: #ffffff"));
-  assert.ok(page.includes("style.css?v=20261109-yale-record-v1"));
+  assert.ok(page.includes("style.css?v=20261109-yale-visual-v2"));
 });

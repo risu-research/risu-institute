@@ -1341,3 +1341,99 @@ code { font-family: var(--mono); }
   .bibm-record .bibm-evidence-table .bibm-count { width: 22%; }
   .bibm-record .bibm-evidence-figure figcaption { font-size: .75rem; }
 }
+
+/* Yale 2026 research record: a white-background trial for research detail pages. */
+.yale-record {
+  --canvas: #ffffff;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  background: #ffffff;
+}
+.yale-record .site-header { background: rgba(255,255,255,.97); }
+.yale-record .publication-hero {
+  padding: clamp(40px,5vw,66px) 0 37px;
+}
+.yale-record .publication-title {
+  max-width: 1060px;
+  font-size: clamp(1.92rem,2.9vw,2.75rem);
+  line-height: 1.17;
+  letter-spacing: -.021em;
+  text-wrap: pretty;
+}
+.yale-record .publication-affiliation { margin-top: 18px; font-size: .87rem; }
+.yale-record .publication-actions {
+  padding: 0;
+  border: 0;
+  margin-top: 26px;
+  gap: 12px 24px;
+}
+.yale-record .publication-meta { margin-top: 30px; gap: 18px 30px; }
+.yale-record .publication-reading {
+  padding-top: 32px;
+  padding-bottom: 74px;
+}
+.yale-record .prose h2 {
+  padding: 0;
+  border: 0;
+  margin: 44px 0 15px;
+  font-size: clamp(1.5rem,2.65vw,1.88rem);
+}
+.yale-record .publication-reading > section:first-child h2 { margin-top: 0; }
+.yale-record .publication-reading p { line-height: 1.71; }
+.yale-record .yale-table-figure {
+  margin: 24px 0 25px;
+  padding: 0;
+}
+.yale-record .yale-table-scroll { width: 100%; overflow-x: auto; }
+.yale-record .yale-paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #2d302c;
+  border-bottom: 1px solid #2d302c;
+  color: #222722;
+  text-align: left;
+  font: 400 .91rem/1.45 Georgia, "Times New Roman", serif;
+}
+.yale-record .yale-paper-table caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0 0 12px;
+  font: 400 .93rem/1.42 Georgia, "Times New Roman", serif;
+}
+.yale-record .yale-paper-table thead { border-bottom: 1px solid #757c75; }
+.yale-record .yale-paper-table th,
+.yale-record .yale-paper-table td {
+  padding: 11px 13px 11px 0;
+  vertical-align: top;
+}
+.yale-record .yale-paper-table thead th { font-weight: 600; }
+.yale-record .yale-paper-table tbody th { font-weight: 400; }
+.yale-record .yale-paper-table .yale-numeric {
+  width: 29%;
+  padding-right: 0;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.yale-record .yale-table-figure figcaption {
+  margin-top: 12px;
+  color: var(--muted);
+  font: 400 .79rem/1.56 Georgia, "Times New Roman", serif;
+}
+.yale-record .yale-record-note { margin-top: 45px; }
+.yale-record .yale-record-note h2 { font-size: 1.46rem; }
+.yale-record .yale-back-link { margin-top: 27px; font-size: .86rem !important; }
+@media (max-width: 640px) {
+  .yale-record .publication-hero { padding-top: 38px; padding-bottom: 34px; }
+  .yale-record .publication-title {
+    font-size: clamp(1.77rem,5.9vw,2.1rem);
+    line-height: 1.2;
+  }
+  .yale-record .publication-meta { grid-template-columns: 1fr; gap: 15px; }
+  .yale-record .publication-reading { padding-top: 26px; }
+  .yale-record .yale-paper-table { font-size: .81rem; }
+  .yale-record .yale-paper-table caption { font-size: .86rem; }
+  .yale-record .yale-paper-table th,
+  .yale-record .yale-paper-table td { padding: 9px 8px 9px 0; }
+  .yale-record .yale-table-figure figcaption { font-size: .75rem; }
+}

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css?v=20261109-bibm-editorial">
-<title>When Trial Data Portals Move: Cross-Sponsor Policy Mismatches — RISU Institute</title>
+<link rel="stylesheet" href="/assets/style.css?v=20261109-bibm-refined">
+<title>When Trial Data Portals Move: Cross-Sponsor Policy Mismatches | RISU Institute</title>
 <meta name="description" content="Accepted IEEE BIBM 2026 poster paper P283 on cross-sponsor policy attribution in historical clinical-trial data portal pages, with independently runnable Common Crawl evidence.">
 <link rel="canonical" href="https://risuinstitute.org/research/conference-papers/bibm-2026-p283/">
 <meta name="citation_title" content="When Trial Data Portals Move: Cross-Sponsor Policy Mismatches">
@@ -53,28 +53,28 @@
     <figure class="bibm-evidence-figure" aria-labelledby="bibm-figure-title">
       <div class="bibm-figure-head">
         <div>
-          <p class="bibm-figure-kicker">Historical evidence · CSDR sponsor pages</p>
-          <h3 id="bibm-figure-title">Displayed sponsor versus policy-body source</h3>
+          
+          <h3 id="bibm-figure-title">Sponsor labels and matched policy text</h3>
         </div>
-        <span class="bibm-figure-tag">3 matched pairs</span>
+        
       </div>
       <div class="bibm-evidence-scroll" tabindex="0" role="region" aria-label="Cross-sponsor policy-body comparison table">
         <table class="bibm-evidence-table">
-          <thead><tr><th scope="col">Page labeled</th><th scope="col">Policy body matched to</th><th scope="col" class="bibm-count">Matching paragraphs</th></tr></thead>
+          <thead><tr><th scope="col">Sponsor on page</th><th scope="col">Policy text matched</th><th scope="col" class="bibm-count">Paragraphs matching</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Lilly</th><td>Boehringer Ingelheim</td><td class="bibm-count"><strong>27 / 27</strong></td></tr>
-            <tr><th scope="row">Bayer</th><td>Sanofi</td><td class="bibm-count"><strong>25 / 25</strong></td></tr>
-            <tr><th scope="row">ONO</th><td>UCB</td><td class="bibm-count"><strong>21 / 21</strong></td></tr>
+            <tr><th scope="row">Lilly</th><td>Boehringer Ingelheim</td><td class="bibm-count"><strong>27 of 27</strong></td></tr>
+            <tr><th scope="row">Bayer</th><td>Sanofi</td><td class="bibm-count"><strong>25 of 25</strong></td></tr>
+            <tr><th scope="row">ONO</th><td>UCB</td><td class="bibm-count"><strong>21 of 21</strong></td></tr>
           </tbody>
         </table>
       </div>
-      <div class="bibm-figure-bottom"><span><strong>0 / 6</strong> selected other-sponsor controls showed a complete policy-body match</span><span>15 source WARC records</span></div>
+      <p class="bibm-control-note">None of the six selected other-sponsor controls produced a complete policy-body match.</p>
       <figcaption>Exact paragraph matches use normalized extracted policy text. Historical capture times differ across records; the repository documents the dates, comparison rules, and evidence boundaries.</figcaption>
     </figure>
   </section>
   <section aria-labelledby="meaning-heading">
     <h2 id="meaning-heading">Why attribution matters</h2>
-    <p>A transition notice may point to the right destination while a policy underneath it describes someone else's eligibility rules, release timing, or data scope. Those details matter to researchers planning a request. The cases make a practical case for checking the relationship between the named sponsor, the policy text, and the request route—not just whether a link opens.</p>
+    <p>A transition notice may point to the right destination while a policy underneath it describes someone else's eligibility rules, release timing, or data scope. Those details matter to researchers planning a request. The cases suggest checking whether the named sponsor, policy text, and request route agree, even when the link itself works.</p>
   </section>
   <section aria-labelledby="reproduce-heading">
     <h2 id="reproduce-heading">A record others can verify</h2>

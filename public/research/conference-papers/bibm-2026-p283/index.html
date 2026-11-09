@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f6f6f2">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css?v=20261028-editorial-tabs-2">
+<link rel="stylesheet" href="/assets/style.css?v=20261109-bibm-editorial">
 <title>When Trial Data Portals Move: Cross-Sponsor Policy Mismatches — RISU Institute</title>
 <meta name="description" content="Accepted IEEE BIBM 2026 poster paper P283 on cross-sponsor policy attribution in historical clinical-trial data portal pages, with independently runnable Common Crawl evidence.">
 <link rel="canonical" href="https://risuinstitute.org/research/conference-papers/bibm-2026-p283/">
@@ -20,7 +20,7 @@
 {"@context":"https://schema.org","@type":"CreativeWork","name":"When Trial Data Portals Move: Cross-Sponsor Policy Mismatches","author":{"@type":"Person","name":"Moon Hwan Lee","affiliation":{"@type":"Organization","name":"RISU Institute"}},"description":"Accepted poster paper P283, IEEE BIBM 2026; conference proceedings forthcoming.","url":"https://risuinstitute.org/research/conference-papers/bibm-2026-p283/"}
 </script>
 </head>
-<body>
+<body class="bibm-record">
 <header class="site-header"><div class="wrap header-inner">
   <a class="brand" href="/" aria-label="RISU Institute home"><span class="brand-risu">RISU</span><span class="brand-institute">Institute</span></a>
   <nav class="nav" aria-label="Primary"><a href="/work/">Research</a><a href="/research/" aria-current="page">Publications</a><a href="/tools/">Tools</a><a href="/about/">About</a></nav>
@@ -29,40 +29,62 @@
 <header class="publication-hero"><div class="wrap">
   <p class="eyebrow">External conference research · IEEE BIBM 2026 · Poster P283</p>
   <h1 class="publication-title">When Trial Data Portals Move: Cross-Sponsor Policy Mismatches</h1>
-  <p class="publication-author">Moon Hwan Lee</p>
-  <p class="publication-affiliation">RISU Institute</p>
+  <p class="publication-affiliation">RISU Institute · Research record</p>
   <nav class="publication-actions" aria-label="Research resources">
     <a class="publication-action publication-action-primary" href="https://github.com/risu-research/csdr-policy-attribution-repro">Reproduce the findings <span aria-hidden="true">→</span></a>
     <a class="publication-action" href="https://doi.org/10.5281/zenodo.24057242">Archived software v1.0.0 <span aria-hidden="true">→</span></a>
     <a class="publication-action" href="https://www3.cs.stonybrook.edu/~bibm2026/">Conference website <span aria-hidden="true">→</span></a>
   </nav>
   <dl class="publication-meta">
-    <div><dt>Paper</dt><dd>IEEE BIBM 2026 · Poster P283</dd></div>
-    <div><dt>Status</dt><dd>Accepted poster paper; proceedings publication forthcoming</dd></div>
-    <div><dt>Conference</dt><dd>1–4 December 2026 · Dallas, USA</dd></div>
-    <div><dt>Reproduction archive</dt><dd><a href="https://doi.org/10.5281/zenodo.24057242">10.5281/zenodo.24057242</a> (software DOI, not the paper DOI)</dd></div>
+    <div><dt>Contribution</dt><dd>Accepted poster paper · P283</dd></div>
+    <div><dt>Venue</dt><dd>IEEE BIBM 2026 · Dallas · 1–4 December</dd></div>
+    <div><dt>Archival status</dt><dd>Conference proceedings forthcoming</dd></div>
   </dl>
 </div></header>
 <article class="reading prose publication-reading">
   <section aria-labelledby="overview-heading">
-    <h2 id="overview-heading">Research overview</h2>
-    <p>Clinical-trial data-sharing portals may remain online after a sponsor moves its request process elsewhere. A working page and a plausible transition notice do not necessarily mean that the access policy underneath belongs to the named sponsor. This study traces historical ClinicalStudyDataRequest (CSDR) pages and identifies three cases in which the displayed sponsor and the body of the policy refer to different companies.</p>
-    <p>The project began with an exploratory inspection of 14 registered trials across five sponsors, examining whether older data listings and current request routes remained findable. The later, narrower policy-attribution analysis is the primary reproducible result. These distinct samples are not combined into a prevalence estimate.</p>
+    <h2 id="overview-heading">When the page still works, whose policy does it carry?</h2>
+    <p>When clinical-trial sponsors move data requests to a new portal, their older pages can remain in circulation. In three historical ClinicalStudyDataRequest (CSDR) pages, the transition notice identified the expected sponsor, but the policy body matched a different company. A reader could reach a working page and still encounter the wrong sponsor's access conditions.</p>
+    <p>The study grew out of a route audit following 14 trial records across five sponsors. Tracking where older listings and request instructions led brought a second question into view: whether the policy attached to a sponsor page came from that sponsor. Archived source comparisons became the central evidence for the paper.</p>
   </section>
-  <section aria-labelledby="evidence-heading">
-    <h2 id="evidence-heading">Historical evidence</h2>
-    <p>Fifteen exact Common Crawl WARC response records, with recorded archive coordinates and cryptographic hashes, support the principal historical comparisons. Extracted policy paragraphs match in full for Lilly versus Boehringer Ingelheim (27/27), Bayer versus Sanofi (25/25), and ONO versus UCB (21/21). Six selected other-sponsor comparison controls yield no complete policy-body match (0/6). Dates are pinned; the captures are not all contemporaneous.</p>
-    <p>The finding concerns attribution of policy text and possible differences in how data-access conditions are understood. It does not measure how often such errors occur across the industry, whether a particular research application was rejected, or what source-code defect caused the mismatch.</p>
+  <section aria-labelledby="evidence-heading" class="bibm-evidence-section">
+    <h2 id="evidence-heading">Three historical policy-body mismatches</h2>
+    <p>Fifteen date-stamped Common Crawl WARC responses anchor the reproducible comparisons. Each record has a documented archive location and cryptographic hash, allowing the original page text to be checked again.</p>
+    <figure class="bibm-evidence-figure" aria-labelledby="bibm-figure-title">
+      <div class="bibm-figure-head">
+        <div>
+          <p class="bibm-figure-kicker">Historical evidence · CSDR sponsor pages</p>
+          <h3 id="bibm-figure-title">Displayed sponsor versus policy-body source</h3>
+        </div>
+        <span class="bibm-figure-tag">3 matched pairs</span>
+      </div>
+      <div class="bibm-evidence-scroll" tabindex="0" role="region" aria-label="Cross-sponsor policy-body comparison table">
+        <table class="bibm-evidence-table">
+          <thead><tr><th scope="col">Page labeled</th><th scope="col">Policy body matched to</th><th scope="col" class="bibm-count">Matching paragraphs</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Lilly</th><td>Boehringer Ingelheim</td><td class="bibm-count"><strong>27 / 27</strong></td></tr>
+            <tr><th scope="row">Bayer</th><td>Sanofi</td><td class="bibm-count"><strong>25 / 25</strong></td></tr>
+            <tr><th scope="row">ONO</th><td>UCB</td><td class="bibm-count"><strong>21 / 21</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="bibm-figure-bottom"><span><strong>0 / 6</strong> selected other-sponsor controls showed a complete policy-body match</span><span>15 source WARC records</span></div>
+      <figcaption>Exact paragraph matches use normalized extracted policy text. Historical capture times differ across records; the repository documents the dates, comparison rules, and evidence boundaries.</figcaption>
+    </figure>
+  </section>
+  <section aria-labelledby="meaning-heading">
+    <h2 id="meaning-heading">Why attribution matters</h2>
+    <p>A transition notice may point to the right destination while a policy underneath it describes someone else's eligibility rules, release timing, or data scope. Those details matter to researchers planning a request. The cases make a practical case for checking the relationship between the named sponsor, the policy text, and the request route—not just whether a link opens.</p>
   </section>
   <section aria-labelledby="reproduce-heading">
-    <h2 id="reproduce-heading">Reproduction and source boundaries</h2>
-    <p>The <a href="https://github.com/risu-research/csdr-policy-attribution-repro">public GitHub package</a> provides the WARC coordinates, hashes, comparison scripts, tests, and expected results. The frozen <a href="https://doi.org/10.5281/zenodo.24057242">Zenodo v1.0.0 software archive</a> supplies a citable version. Original third-party page texts and WARC payloads are retrieved from their public archive rather than redistributed by RISU.</p>
-    <p>The original HTTP responses for the October 2026 14-trial route observations, and the complete original response set for 19 exploratory sponsor-page comparisons, were not retained for identical independent replay. Their recorded observations are distinguished from the independently re-executable WARC evidence in the repository's claim–evidence map.</p>
+    <h2 id="reproduce-heading">A record others can verify</h2>
+    <p>The <a href="https://github.com/risu-research/csdr-policy-attribution-repro">reproduction package</a> contains the public WARC coordinates, hashes, comparison scripts, tests, and expected outputs. Its frozen <a href="https://doi.org/10.5281/zenodo.24057242">Zenodo v1.0.0 archive</a> supplies a version-specific citation. Original third-party web pages are retrieved from Common Crawl when the checks run.</p>
+    <p>The earlier trial-route ledger and exploratory page comparisons remain available as context. The 15 preserved WARC coordinates support the exact historical replays. The work documents policy attribution on selected pages, rather than a platform-wide failure rate or the outcome of any individual data request.</p>
   </section>
-  <section aria-labelledby="publication-heading">
-    <h2 id="publication-heading">Publication status</h2>
-    <p>The paper has been accepted to the IEEE BIBM 2026 poster program under ID P283. As of 9 November 2026, this is an accepted conference contribution, with IEEE proceedings publication still forthcoming. The DOI linked above identifies the supporting <em>software package</em>, not the conference paper; the IEEE publication link will be added once available.</p>
-    <p><a href="/research/">← Back to publications</a></p>
+  <section aria-labelledby="publication-heading" class="bibm-publication-note">
+    <h2 id="publication-heading">Publication record</h2>
+    <p>Accepted poster paper P283, <a href="https://www3.cs.stonybrook.edu/~bibm2026/">IEEE BIBM 2026</a>. The conference proceedings record is forthcoming. The Zenodo DOI above identifies the reproducibility software; the IEEE paper link will be added when published.</p>
+    <p class="bibm-back-link"><a href="/research/">← Back to publications</a></p>
   </section>
 </article>
 </main>

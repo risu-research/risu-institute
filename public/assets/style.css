@@ -1437,3 +1437,28 @@ code { font-family: var(--mono); }
   .yale-record .yale-paper-table td { padding: 9px 8px 9px 0; }
   .yale-record .yale-table-figure figcaption { font-size: .75rem; }
 }
+
+/* Slide-derived map with journal-style labels */
+.yale-record .yale-map-figure {
+  width: 100%;
+  margin: 24px 0 24px;
+}
+.yale-record .yale-map-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+}
+.yale-record .yale-map-figure figcaption {
+  margin-top: 12px;
+  color: var(--muted);
+  font: 400 .8rem/1.55 Georgia, "Times New Roman", serif;
+}
+.yale-record .yale-matrix-figure .yale-paper-table .yale-numeric { width: auto; }
+.yale-record .yale-matrix-figure .yale-paper-table th:first-child { width: 36%; }
+.yale-record .yale-matrix-figure .yale-paper-table td { color: var(--text); }
+.yale-record .yale-table-figure .yale-paper-table thead th { vertical-align: bottom; }
+@media (max-width:640px) {
+  .yale-record .yale-map-figure figcaption { font-size: .75rem; }
+  .yale-record .yale-table-figure .yale-paper-table .yale-numeric { white-space: normal; }
+}

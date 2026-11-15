@@ -250,6 +250,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "_redirects",
     "about/index.html",
     "assets/favicon.svg",
+    "assets/media/siai-medicaid-signposts.webp",
     "assets/media/siai.webp",
     "assets/media/ssr.webp",
     "assets/media/washington-dc.webp",

@@ -1368,8 +1368,11 @@ code { font-family: var(--mono); }
   margin: 44px 0 15px;
   font-size: clamp(1.5rem,2.65vw,1.88rem);
 }
-.siai-record .publication-reading > section:first-child h2 { margin-top: 0; }
+.siai-record .publication-reading > section:first-of-type h2 { margin-top: 0; }
 .siai-record .publication-reading p { line-height: 1.71; }
+.siai-record .siai-editorial-figure { margin: 0 0 32px; }
+.siai-record .siai-editorial-figure img { display: block; width: 100%; height: auto; }
+.siai-record .siai-editorial-figure figcaption { margin-top: 9px; color: var(--muted); font: 400 .76rem/1.45 var(--sans); }
 .siai-record .siai-table-figure { margin: 24px 0 25px; padding: 0; }
 .siai-record .siai-table-scroll { width: 100%; overflow-x: auto; }
 .siai-record .siai-paper-table {

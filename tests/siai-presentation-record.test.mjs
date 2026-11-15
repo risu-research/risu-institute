@@ -32,7 +32,7 @@ test("SIAI paper has a research page linked from the home and publications index
 test("SIAI writing focuses on the legal-source trail and gives the later archive its own scope", async () => {
   const page = await read("public/research/conference-papers/siai-2026-110/index.html");
   for (const term of [
-    "Which notice starts the clock?",
+    "The 2024 audit and its governing contract",
     "120 calendar days after the plan's appeal-resolution notice",
     "Table 1.",
     "Oral appeals",
@@ -41,16 +41,19 @@ test("SIAI writing focuses on the legal-source trail and gives the later archive
     "8 of 8",
     "7 of 8",
     "3 of 7",
-    "When a search finds the neighboring rule",
-    "Following the record beyond the presentation",
+    "Retrieval results across two Nevada audits",
+    "Additional contract and handbook evidence",
     "Amendments 1–13",
-    "“in writing.”",
+    "“After we receive your appeal in writing.”",
     "Springer Nature proceedings",
     "Research archive",
   ]) assert.ok(page.includes(term),term);
   assert.ok(page.includes("2026-11-14"));
   assert.ok(page.includes("siai2026-medicaid-source-routing"));
   assert.ok(page.includes("POST_AUDIT_HANDBOOK_REVIEW.md"));
+  assert.ok(page.includes('href="https://www.siai.co/program"'));
+  assert.doesNotMatch(page, /\\bonline\\b/iu);
+  assert.doesNotMatch(page, /<strong>(?:8 of 8|7 of 8|3 of 7)<\\/strong>/iu);
   assert.ok(page.includes("2024_AUTHORITY_CROSSWALK.md"));
   assert.doesNotMatch(page, /(?:Moon Hwan Lee|Moon Lee|examine|reinforce|taken together|\bdoes not\b|\bis not\b)/iu);
   assert.ok(!page.includes("—"));

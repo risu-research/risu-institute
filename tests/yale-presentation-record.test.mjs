@@ -34,6 +34,13 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.ok(page.includes("Presentation"));
   assert.ok(page.includes("Presented · Conference talk"));
   assert.ok(page.includes("/assets/research/yale-national-processing-map.svg"));
+  assert.ok(page.includes('width="900" height="460"'));
+  assert.ok(page.includes("Slate blue identifies countries"));
+  const map = await read("public/assets/research/yale-national-processing-map.svg");
+  assert.ok(map.includes('viewBox="0 0 900 460"'));
+  assert.ok(map.includes('transform="translate(29 36) scale(0.935)"'));
+  assert.ok(map.includes('fill="#526484"'));
+  assert.ok(!map.includes("#0b7b8a"));
   assert.ok(page.includes("Table 2.</strong> Proposed Locality Disclosure Matrix"));
   assert.ok(!page.includes(", allowing"));
   assert.ok(!page.includes("—"));

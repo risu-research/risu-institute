@@ -35,7 +35,7 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.ok(page.includes("Presented · Conference talk"));
   assert.ok(page.includes("/assets/research/yale-national-processing-map.svg"));
   assert.ok(page.includes('width="900" height="560"'));
-  assert.ok(page.includes("roomier-map"));
+  assert.ok(page.includes("complete-north"));
   assert.ok(page.includes("Slate blue identifies countries"));
   const map = await read("public/assets/research/yale-national-processing-map.svg");
   assert.ok(map.includes('viewBox="0 0 900 560"'));

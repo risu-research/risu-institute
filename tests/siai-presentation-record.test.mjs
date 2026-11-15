@@ -33,7 +33,7 @@ test("SIAI writing focuses on the legal-source trail and gives the later archive
   const page = await read("public/research/conference-papers/siai-2026-110/index.html");
   for (const term of [
     "The 2024 audit and its governing contract",
-    "120 calendar days after the plan's appeal-resolution notice",
+    "120 calendar days after receipt of the plan's appeal-resolution notice",
     "Table 1.",
     "Oral appeals",
     "State fair hearing",

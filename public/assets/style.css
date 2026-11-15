@@ -1342,6 +1342,76 @@ code { font-family: var(--mono); }
   .bibm-record .bibm-evidence-figure figcaption { font-size: .75rem; }
 }
 
+/* SIAI 2026: paper-style research record */
+.siai-record {
+  --canvas: #ffffff;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  background: #ffffff;
+}
+.siai-record .site-header { background: rgba(255,255,255,.97); }
+.siai-record .publication-hero { padding: clamp(40px,5vw,66px) 0 37px; }
+.siai-record .publication-title {
+  max-width: 1060px;
+  font-size: clamp(1.92rem,2.9vw,2.75rem);
+  line-height: 1.17;
+  letter-spacing: -.021em;
+  text-wrap: pretty;
+}
+.siai-record .publication-affiliation { margin-top: 18px; font-size: .87rem; }
+.siai-record .publication-actions { padding: 0; border: 0; margin-top: 26px; gap: 12px 24px; }
+.siai-record .publication-meta { margin-top: 30px; gap: 18px 30px; }
+.siai-record .publication-reading { padding-top: 32px; padding-bottom: 74px; }
+.siai-record .prose h2 {
+  padding: 0;
+  border: 0;
+  margin: 44px 0 15px;
+  font-size: clamp(1.5rem,2.65vw,1.88rem);
+}
+.siai-record .publication-reading > section:first-child h2 { margin-top: 0; }
+.siai-record .publication-reading p { line-height: 1.71; }
+.siai-record .siai-table-figure { margin: 24px 0 25px; padding: 0; }
+.siai-record .siai-table-scroll { width: 100%; overflow-x: auto; }
+.siai-record .siai-paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #2d302c;
+  border-bottom: 1px solid #2d302c;
+  color: #222722;
+  text-align: left;
+  font: 400 .91rem/1.45 Georgia, "Times New Roman", serif;
+}
+.siai-record .siai-paper-table caption {
+  caption-side: top;
+  padding: 0 0 12px;
+  text-align: left;
+  font: 400 .93rem/1.42 Georgia, "Times New Roman", serif;
+}
+.siai-record .siai-paper-table thead { border-bottom: 1px solid #757c75; }
+.siai-record .siai-paper-table th,
+.siai-record .siai-paper-table td { padding: 11px 13px 11px 0; vertical-align: top; }
+.siai-record .siai-paper-table thead th { font-weight: 600; }
+.siai-record .siai-paper-table tbody th { font-weight: 400; }
+.siai-record .siai-table-figure figcaption {
+  margin-top: 12px;
+  color: var(--muted);
+  font: 400 .79rem/1.56 Georgia, "Times New Roman", serif;
+}
+.siai-record .siai-record-note { margin-top: 45px; }
+.siai-record .siai-record-note h2 { font-size: 1.46rem; }
+.siai-record .siai-back-link { margin-top: 27px; font-size: .86rem !important; }
+@media (max-width: 640px) {
+  .siai-record .publication-hero { padding-top: 38px; padding-bottom: 34px; }
+  .siai-record .publication-title { font-size: clamp(1.77rem,5.9vw,2.1rem); line-height: 1.2; }
+  .siai-record .publication-meta { grid-template-columns: 1fr; gap: 15px; }
+  .siai-record .publication-reading { padding-top: 26px; }
+  .siai-record .siai-paper-table { font-size: .81rem; }
+  .siai-record .siai-paper-table caption { font-size: .86rem; }
+  .siai-record .siai-paper-table th,
+  .siai-record .siai-paper-table td { padding: 9px 8px 9px 0; }
+  .siai-record .siai-table-figure figcaption { font-size: .75rem; }
+}
+
 /* Yale 2026 research record: a white-background trial for research detail pages. */
 .yale-record {
   --canvas: #ffffff;

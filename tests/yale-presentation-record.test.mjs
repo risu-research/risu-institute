@@ -31,6 +31,16 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
     "Conference record"
   ]) assert.ok(page.includes(phrase), phrase);
   assert.ok(page.includes("Official conference program"));
+  // Editorial links lead to the precise public records behind the prose.
+  for (const source of [
+    "https://www.mddi.gov.sg/newsroom/09012024b/",
+    "https://developers.openai.com/api/docs/guides/data-residency",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html",
+    "https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/deployment-types",
+    "https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/locations",
+  ]) assert.ok(page.includes('href="' + source + '"'), source);
+  assert.ok(page.includes("10% uplift"));
+  assert.ok(page.includes("5 March 2026"));
   assert.ok(page.includes("Presentation"));
   assert.ok(page.includes("Presented · Conference talk"));
   assert.ok(page.includes("/assets/research/yale-national-processing-map.svg"));

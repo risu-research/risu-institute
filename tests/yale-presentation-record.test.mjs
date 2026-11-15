@@ -44,7 +44,10 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.equal((map.match(/<path d=/g) || []).length, 4);
   assert.ok(map.includes("M355,-7"), "complete northern Greenland shoreline");
   assert.ok(map.includes("M232,-7"), "recovered Canadian Arctic islands");
-  assert.ok(page.includes("yale-national-processing-map.svg?v=20261115-complete-north"));
+  for (const flatCap of ["L380 0L266 0", "L250 0L188 0", "L244 0L214 0"]) {
+    assert.ok(!map.includes(flatCap), "flattened northern coastline remains");
+  }
+  assert.ok(page.includes("yale-national-processing-map.svg?v=20261115-arctic-coastline"));
   assert.ok(!map.includes("#0b7b8a"));
   assert.ok(page.includes("Table 2.</strong> Proposed Locality Disclosure Matrix"));
   assert.ok(!page.includes(", allowing"));

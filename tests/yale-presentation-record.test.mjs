@@ -41,6 +41,10 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.ok(map.includes('viewBox="0 0 900 560"'));
   assert.ok(map.includes('transform="translate(54 99) scale(0.88)"'));
   assert.ok(map.includes('fill="#526484"'));
+  assert.equal((map.match(/<path d=/g) || []).length, 4);
+  assert.ok(map.includes("M355,-7"), "complete northern Greenland shoreline");
+  assert.ok(map.includes("M232,-7"), "recovered Canadian Arctic islands");
+  assert.ok(page.includes("yale-national-processing-map.svg?v=20261115-complete-north"));
   assert.ok(!map.includes("#0b7b8a"));
   assert.ok(page.includes("Table 2.</strong> Proposed Locality Disclosure Matrix"));
   assert.ok(!page.includes(", allowing"));

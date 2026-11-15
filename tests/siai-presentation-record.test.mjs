@@ -52,8 +52,8 @@ test("SIAI writing focuses on the legal-source trail and gives the later archive
   assert.ok(page.includes("siai2026-medicaid-source-routing"));
   assert.ok(page.includes("POST_AUDIT_HANDBOOK_REVIEW.md"));
   assert.ok(page.includes('href="https://www.siai.co/program"'));
-  assert.doesNotMatch(page, /\\bonline\\b/iu);
-  assert.doesNotMatch(page, /<strong>(?:8 of 8|7 of 8|3 of 7)<\\/strong>/iu);
+  assert.doesNotMatch(page, /\bonline\b/iu);
+  assert.doesNotMatch(page, /<strong>(?:8 of 8|7 of 8|3 of 7)<\/strong>/iu);
   assert.ok(page.includes("2024_AUTHORITY_CROSSWALK.md"));
   assert.doesNotMatch(page, /(?:Moon Hwan Lee|Moon Lee|examine|reinforce|taken together|\bdoes not\b|\bis not\b)/iu);
   assert.ok(!page.includes("—"));

@@ -56,11 +56,11 @@ test("publication surfaces are scholarly ledgers with explicit publication bound
   }
 });
 
-test("about page states actual organizational boundary and research discipline", async () => {
+test("about page presents the independent research initiative and its research methods", async () => {
   const h = await read("public/about/index.html");
   for (const x of [
     "About RISU Institute",
-    "research initiative of RISU LLC",
+    "An independent research initiative based in Washington, DC.",
     "Research methods",
     "Counterexamples and independent comparisons",
     "supporting sources, code and evaluation results",

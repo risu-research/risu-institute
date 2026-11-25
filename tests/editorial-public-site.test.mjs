@@ -24,7 +24,8 @@ test("institutional public pages use white canvas, visible publication groups an
  assert.equal((pubs.match(/<h2 class="publication-group-title"/g)||[]).length,4);
  assert.equal((pubs.match(/<article class="publication-row">/g)||[]).length,8);
  assert.equal((work.match(/class="research-entry"/g)||[]).length,10);
- assert.match(about,/research initiative of RISU LLC/);
+ assert.match(about,/An independent research initiative based in Washington, DC\./);
+ assert.doesNotMatch(about,/RISU LLC/i);
  assert.match(tools,/id="workbench"/);
  assert.match(data,/14474243">Download PDF/);
  assert.match(data,/14474231">Download the seven original CSV tables/);

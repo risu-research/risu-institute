@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f6f6f2">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/style.css?v=20261125-data-access">
+<link rel="stylesheet" href="/assets/style.css?v=20261125-institutional-white">
 <title>Research Data | RISU Institute</title>
 <meta name="description" content="RISUAP research datasets on public administrative records. Explore the Colorado Administrative Event Series, its source coverage, data guide, and persistent DOI.">
 <link rel="canonical" href="https://risuinstitute.org/data/">
@@ -21,7 +21,7 @@
   <nav class="nav" aria-label="Primary"><a href="/work/">Research</a><a href="/research/">Publications</a><a href="/tools/">Tools</a><a href="/data/" aria-current="page">Data</a><a href="/about/">About</a></nav>
 </div></header>
 <main>
-<section class="page-hero data-masthead"><div class="wrap"><p class="eyebrow">RISUAP · Open research data</p><h1>Research data.</h1><p class="page-lede">Administrative records for empirical research in public administration, law and information systems.</p></div></section>
+<section class="page-hero data-masthead"><div class="wrap"><p class="eyebrow">RISUAP</p><h1>Research data</h1><p class="page-lede">Administrative records for empirical research in public administration, law and information systems.</p></div></section>
 <section class="data-section wrap" id="colorado" aria-labelledby="colorado-title">
   <div class="data-record-heading">
     <div><p class="eyebrow">Colorado · United States</p><h2 id="colorado-title">RISUAP Colorado Administrative Event Series, 2018–2026</h2><p class="data-byline">RISU Institute · <time datetime="2026-11-25">25 November 2026</time></p></div>
@@ -32,17 +32,17 @@
   </div>
   <section class="data-guide" aria-labelledby="guide-title">
     <div class="data-guide-type"><span class="section-kicker">RISUAP Data Guide</span><span>23 November 2026 · 4 pages</span></div>
-    <div><h3 id="guide-title">Counting Colorado Business Registry Transactions</h3><p class="data-guide-subtitle">A guide to the RISUAP Colorado Administrative Event Series, 2018–2026</p><p>The guide introduces the dataset through observed differences in administrative counting units, explains how to select and combine the tables, and walks through reproducible analyses.</p><div class="data-resource-links"><a class="text-link" href="https://dataverse.harvard.edu/api/access/datafile/14474243">Download PDF <span aria-hidden="true">↓</span></a><a href="https://dataverse.harvard.edu/api/access/datafile/14474239">Markdown <span aria-hidden="true">↓</span></a></div><p class="data-filename">RISUAP_COLORADO_DATA_GUIDE.pdf · 104 KB · Harvard Dataverse</p></div>
+    <div><h3 id="guide-title">Counting Colorado Business Registry Transactions</h3><p class="data-guide-subtitle">A guide to the RISUAP Colorado Administrative Event Series, 2018–2026</p><p>The guide introduces the dataset through observed differences in administrative counting units, explains how to select and combine the tables, and walks through reproducible analyses.</p><div class="data-resource-links"><a class="text-link" href="https://dataverse.harvard.edu/api/access/datafile/14474243">Download PDF <span aria-hidden="true">↓</span></a><a href="https://dataverse.harvard.edu/api/access/datafile/14474239">Markdown <span aria-hidden="true">↓</span></a></div><p class="data-filename" title="RISUAP_COLORADO_DATA_GUIDE.pdf">104 KB · Harvard Dataverse</p></div>
   </section>
   <section class="data-findings" aria-labelledby="findings-title">
     <h3 id="findings-title">Findings from the series</h3>
     <article class="data-finding">
-      <div><p class="section-kicker">01 · Counting units</p><h4>15,660 business entity IDs, one transaction ID</h4><p>On 9 October 2024, Colorado's <em>Business Entity Transaction History</em> records 15,660 entries under the description <em>Court Order</em>. Every entry refers to a different business entity ID; all carry the same native transaction ID.</p></div>
+      <div><p class="section-kicker">Counting units</p><h4>15,660 business entity IDs, one transaction ID</h4><p>On 9 October 2024, Colorado's <em>Business Entity Transaction History</em> records 15,660 entries under the description <em>Court Order</em>. Every entry refers to a different business entity ID; all carry the same native transaction ID.</p></div>
       <figure class="data-case-table"><table class="data-table"><caption>Recorded entries, 9 October 2024</caption><tbody><tr><th scope="row">Source rows</th><td>15,660</td></tr><tr><th scope="row">Distinct business IDs</th><td>15,660</td></tr><tr><th scope="row">Distinct transaction IDs</th><td>1</td></tr></tbody></table><figcaption>Source: Table 03, high-volume daily source units.</figcaption></figure>
       <p class="data-finding-detail">The distinction extends beyond a single date. Among 1,991 received-date and description groups with at least 1,000 source rows, 101 groups exhibit a row-count and transaction-ID-count difference. These groups contain 562,750 rows and 339,312 distinct transaction IDs summed within groups. Twenty-two registered-agent-change groups and one <em>Court Order</em> group account for 99.9% of the resulting 223,438-count gap.</p>
     </article>
     <article class="data-finding">
-      <div><p class="section-kicker">02 · Registry joins</p><h4>The registry edition changes the population retained by a join</h4><p>The transaction history contains 2,635,090 distinct business entity IDs. An inner join to the registry edition captured on 17 November 2026 would retain 2,141,239 of them. Comparing the two source editions makes the effect of registry selection visible.</p></div>
+      <div><p class="section-kicker">Registry joins</p><h4>The registry edition changes the population retained by a join</h4><p>The transaction history contains 2,635,090 distinct business entity IDs. An inner join to the registry edition captured on 17 November 2026 would retain 2,141,239 of them. Comparing the two source editions makes the effect of registry selection visible.</p></div>
       <figure class="data-case-table"><table class="data-table"><caption>Transaction-associated IDs without a master match</caption><thead><tr><th scope="col">Master edition</th><th scope="col">Unmatched IDs</th></tr></thead><tbody><tr><th scope="row">17 Nov 2026</th><td>493,851</td></tr><tr><th scope="row">22 Nov 2026</th><td>494,342</td></tr></tbody></table><figcaption>Source: Table 06, master–transaction join coverage.</figcaption></figure>
     </article>
   </section>

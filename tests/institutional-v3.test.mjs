@@ -10,7 +10,7 @@ const read = (p) => readFile(join(root, p), "utf8");
 test("homepage presents RISU as an institutional research program, not a SaaS landing page", async () => {
   const h = await read("public/index.html");
   for (const x of [
-    "Research for consequential machine action.",
+    "Software, evidence and public institutions",
     "Selected research",
     "Projection Assurance",
     "Consequence Closure",
@@ -61,11 +61,11 @@ test("about page states actual organizational boundary and research discipline",
   for (const x of [
     "About RISU Institute",
     "research initiative of RISU LLC",
-    "Bound the claim.",
-    "Preserve the evidence.",
-    "Attack the mechanism.",
-    "Keep the layer neutral.",
-    "Publication discipline",
+    "Research methods",
+    "Counterexamples and independent comparisons",
+    "supporting sources, code and evaluation results",
+    "Research data",
+    "Publications and evidence",
   ]) assert.ok(h.toLowerCase().includes(x.toLowerCase()), x);
 });
 

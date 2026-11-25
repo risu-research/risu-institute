@@ -14,6 +14,11 @@ test("institutional public pages use white canvas, visible publication groups an
  assert.match(home,/Changlc \/ Wikimedia Commons/);
  assert.match(home,/yale-national-processing-map\.svg/);
  assert.match(home,/Where can countries choose to process AI data locally/);
+ const articles=[...home.matchAll(/<article class="update-entry[^"]*">([\s\S]*?)<\/article>/g)].map(m=>m[1]);
+ assert.equal(articles.length,7);
+ for(const a of articles){assert.equal((a.match(/<h3>/g)||[]).length,1);assert.equal((a.match(/<\/h3>/g)||[]).length,1);assert.equal((a.match(/<p\b/g)||[]).length,(a.match(/<\/p>/g)||[]).length);}
+ assert.match(articles[0],/<h3><a href="\/data\/#colorado">RISUAP Colorado Administrative Event Series/);
+ assert.match(articles[1],/<h3><a href="\/research\/conference-papers\/siai-2026-110\/">Corrective Action in Medicaid Appeals/);
  assert.equal((pubs.match(/<h2 class="publication-group-title"/g)||[]).length,4);
  assert.equal((pubs.match(/<article class="publication-row">/g)||[]).length,8);
  assert.equal((work.match(/class="research-entry"/g)||[]).length,10);

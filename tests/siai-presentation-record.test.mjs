@@ -19,8 +19,8 @@ test("SIAI paper has a research page linked from the home and publications index
     assert.ok(t.includes(title));
     assert.ok(t.includes(doi));
   }
-  assert.ok(home.includes('<h3><a href="' + pagePath + '">International Conference on the Social Impact of AI 2026</a></h3>'));
-  assert.ok(home.includes('<p class="update-paper"><a href="' + pagePath + '">' + title + '</a></p>'));
+  assert.ok(home.includes('<p class="update-paper"><a href="' + pagePath + '">International Conference on the Social Impact of AI 2026</a></p>'));
+  assert.ok(home.includes('<h3><a href="' + pagePath + '">' + title + '</a></h3>'));
   assert.ok(home.includes("Presented · Full paper"));
   assert.ok(index.includes("Conference papers"));
   assert.ok(index.includes('href="' + pagePath + '"'));
@@ -80,7 +80,7 @@ test("SIAI record uses the Yale restrained paper layout and keeps mobile tables 
   assert.ok(html.includes('alt="Illustration of road signs'));
   assert.ok(html.includes('Medicaid programs in Nevada, Colorado and Louisiana'));
   assert.ok(css.includes(".siai-record .siai-editorial-figure img"));
-  assert.ok(html.includes("style.css?v=20261125-institutional-white"));
+  assert.ok(html.includes("style.css?v=20261125-editorial-navy"));
   assert.ok(css.includes(".siai-record .publication-title"));
   assert.ok(css.includes(".siai-record .siai-paper-table"));
   assert.ok(css.includes(".siai-record .siai-table-scroll { width: 100%; overflow-x: auto; }"));

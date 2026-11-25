@@ -12,8 +12,8 @@ test("BIBM venue and paper titles link from the homepage without decorative unde
   const html = await read("public/index.html");
   const css = await read("public/assets/style.css");
   assert.ok(html.includes("update-entry--secondary update-entry--bibm"));
-  assert.ok(html.includes('<h3><a href="' + detailPath + '">IEEE International Conference on Bioinformatics and Biomedicine 2026</a></h3>'));
-  assert.ok(html.includes('<p class="update-paper"><a href="' + detailPath + '">When Trial Data Portals Move: Cross-Sponsor Policy Mismatches</a></p>'));
+  assert.ok(html.includes('<p class="update-paper"><a href="' + detailPath + '">IEEE International Conference on Bioinformatics and Biomedicine 2026</a></p>'));
+  assert.ok(html.includes('<h3><a href="' + detailPath + '">When Trial Data Portals Move: Cross-Sponsor Policy Mismatches</a></h3>'));
   assert.ok(css.includes(".update-entry .update-main h3 a:hover"));
   assert.ok(css.includes("color: var(--accent); text-decoration: none;"));
 });
@@ -31,6 +31,6 @@ test("BIBM record retains evidence but uses a modest title and paper-style table
   assert.ok(css.includes("border-collapse: collapse"));
   assert.ok(css.includes("font: 400 .92rem/1.43 Georgia"));
   assert.ok(!css.includes(".bibm-record .bibm-figure-tag"));
-  assert.ok(html.includes("style.css?v=20261125-institutional-white"));
+  assert.ok(html.includes("style.css?v=20261125-editorial-navy"));
   assert.ok((await read("public/index.html")).includes('href="/assets/style.css?v='));
 });

@@ -11,8 +11,8 @@ const yale = "/research/presentations/yale-global-justice-2026/";
 test("Yale 2026 presentation record is reachable from both title links and the publications index", async () => {
   const home = await read("public/index.html");
   const index = await read("public/research/index.html");
-  assert.ok(home.includes('<h3><a href="' + yale + '">Yale Global Justice Conference 2026</a></h3>'));
-  assert.ok(home.includes('<p class="update-paper"><a href="' + yale + '">Global Access, Unequal Control: The Locality Tax in Managed AI</a></p>'));
+  assert.ok(home.includes('<p class="update-paper"><a href="' + yale + '">Yale Global Justice Conference 2026</a></p>'));
+  assert.ok(home.includes('<h3><a href="' + yale + '">Global Access, Unequal Control: The Locality Tax in Managed AI</a></h3>'));
   assert.ok(home.includes("7 November 2026"));
   assert.ok(home.includes("Presented"));
   assert.ok(index.includes("Conference presentations"));
@@ -65,5 +65,5 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.ok(!page.includes("peer-reviewed paper"));
   assert.ok(css.includes(".yale-record .publication-title"));
   assert.ok(css.includes("--canvas: #ffffff"));
-  assert.ok(page.includes("style.css?v=20261125-institutional-white"));
+  assert.ok(page.includes("style.css?v=20261125-editorial-navy"));
 });

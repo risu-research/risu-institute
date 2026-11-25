@@ -5,8 +5,15 @@ const read=p=>readFile(new URL("../public/"+p,import.meta.url),"utf8");
 test("institutional public pages use white canvas, visible publication groups and plain-language introductions",async()=>{
  const [css,home,work,pubs,about,tools,data]=await Promise.all(["assets/style.css","index.html","work/index.html","research/index.html","about/index.html","tools/index.html","data/index.html"].map(read));
  assert.match(css,/--canvas: #ffffff;/);
- for(const page of [home,work,pubs,about,tools,data]) assert.match(page,/style\.css\?v=20261125-institutional-white/);
+ for(const page of [home,work,pubs,about,tools,data]) assert.match(page,/style\.css\?v=20261125-editorial-navy/);
  assert.match(home,/Software, evidence and public institutions/);
+ assert.match(css,/--accent: #173d69;/);
+ assert.match(home,/<figure class="home-hero-visual">/);
+ assert.match(home,/Colo_state_capitol\.jpg/);
+ assert.match(data,/Colo_state_capitol\.jpg/);
+ assert.match(home,/Changlc \/ Wikimedia Commons/);
+ assert.match(home,/yale-national-processing-map\.svg/);
+ assert.match(home,/Where can countries choose to process AI data locally/);
  assert.equal((pubs.match(/<h2 class="publication-group-title"/g)||[]).length,4);
  assert.equal((pubs.match(/<article class="publication-row">/g)||[]).length,8);
  assert.equal((work.match(/class="research-entry"/g)||[]).length,10);

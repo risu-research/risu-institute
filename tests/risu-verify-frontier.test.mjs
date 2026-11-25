@@ -4,6 +4,6 @@ import { readFile } from "node:fs/promises";
 const read = p => readFile(new URL(`../${p}`, import.meta.url), "utf8");
 test("RISU Verify public frontier is scoped and review-safe", async () => {
   const joined = `${await read("public/work/projection-assurance/index.html")}\n${await read("public/tools/index.html")}\n${await read("public/work/index.html")}`;
-  for (const phrase of ["Research frontier · October 2026","62 frozen oracles","4,288 counted generated scenarios","73,728 expected executions","Production authority remains intentionally unpromoted","general native-software preservation remains out of scope"]) assert.ok(joined.includes(phrase), phrase);
+  for (const phrase of ["Research frontier · October 2026","62 frozen oracles","4,288 counted generated scenarios","73,728 expected executions","Production authority remains intentionally unpromoted","unrestricted native software, containers, concurrency, network effects, and arbitrary agent stacks remain outside the positive-refinement claim"]) assert.ok(joined.includes(phrase), phrase);
   for (const identifying of ["IEEE PerCom","DVCon","IAPP Global Summit","NeurIPS","k1-binding-b1","k1-closure-c2"]) assert.ok(!joined.includes(identifying), identifying);
 });

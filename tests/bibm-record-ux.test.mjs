@@ -31,6 +31,6 @@ test("BIBM record retains evidence but uses a modest title and paper-style table
   assert.ok(css.includes("border-collapse: collapse"));
   assert.ok(css.includes("font: 400 .92rem/1.43 Georgia"));
   assert.ok(!css.includes(".bibm-record .bibm-figure-tag"));
-  assert.ok(html.includes("style.css?v=20261109-bibm-paper-v2"));
+  assert.ok(html.includes("style.css?v=20261125-institutional-white"));
   assert.ok((await read("public/index.html")).includes('href="/assets/style.css?v='));
 });

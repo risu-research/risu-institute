@@ -80,7 +80,7 @@ test("SIAI record uses the Yale restrained paper layout and keeps mobile tables 
   assert.ok(html.includes('alt="Illustration of road signs'));
   assert.ok(html.includes('Medicaid programs in Nevada, Colorado and Louisiana'));
   assert.ok(css.includes(".siai-record .siai-editorial-figure img"));
-  assert.ok(html.includes("style.css?v=20261115-siai-editorial"));
+  assert.ok(html.includes("style.css?v=20261125-institutional-white"));
   assert.ok(css.includes(".siai-record .publication-title"));
   assert.ok(css.includes(".siai-record .siai-paper-table"));
   assert.ok(css.includes(".siai-record .siai-table-scroll { width: 100%; overflow-x: auto; }"));

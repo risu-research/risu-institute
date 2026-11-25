@@ -65,5 +65,5 @@ test("Yale evidence retains dates and boundaries and keeps the proposed disclosu
   assert.ok(!page.includes("peer-reviewed paper"));
   assert.ok(css.includes(".yale-record .publication-title"));
   assert.ok(css.includes("--canvas: #ffffff"));
-  assert.ok(page.includes("style.css?v=20261109-yale-visual-v2"));
+  assert.ok(page.includes("style.css?v=20261125-institutional-white"));
 });

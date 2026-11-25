@@ -1749,3 +1749,31 @@ code { font-family: var(--mono); }
   .home-hero .lede { font-size:1rem; }
   .update-main h3,.update-entry--secondary .update-main h3 { font-size:1.26rem; }
 }
+
+
+/* Explicit grid positions prevent legacy breakpoints from creating phantom columns. */
+@media (min-width:901px) {
+  .update-entry time { grid-column:1; grid-row:1; }
+  .update-entry .update-thumb { grid-column:2; grid-row:1; }
+  .update-entry .update-main { grid-column:3; grid-row:1; }
+  .update-entry .update-side { grid-column:4; grid-row:1; border-top:0; padding:0; }
+  .update-entry--data .update-main { grid-column:2/4; }
+}
+@media (min-width:761px) and (max-width:900px) {
+  .update-entry time { grid-column:1; grid-row:1; }
+  .update-entry .update-thumb { grid-column:2; grid-row:1; }
+  .update-entry .update-main { grid-column:3; grid-row:1; }
+  .update-entry .update-side { grid-column:3; grid-row:2; padding-top:6px; border-top:0; }
+  .update-entry--data .update-main,.update-entry--data .update-side { grid-column:2/4; }
+}
+@media (max-width:760px) {
+  .site-header .header-inner { flex-wrap:wrap; min-height:0; padding:13px 0; gap:12px; }
+  .site-header .brand-institute { display:inline; }
+  .site-header .nav { width:100%; justify-content:space-between; overflow:visible; gap:8px; font-size:.82rem; }
+  .risu-editorial-tab .publication-row .pub-actions { grid-column:1; }
+  .update-entry .update-main { grid-row:2; }
+  .update-entry .update-side { grid-row:3; border-top:0; padding:0; }
+}
+@media (max-width:360px) {
+  .site-header .nav { flex-wrap:wrap; justify-content:flex-start; gap:8px 13px; }
+}

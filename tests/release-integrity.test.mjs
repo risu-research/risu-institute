@@ -61,6 +61,7 @@ const technicalNotePdf =
 const technicalNotePdfUrl = `https://risuinstitute.org/${technicalNotePdf}`;
 
 const productionPages = [
+  "data/index.html",
   "index.html",
   "work/index.html",
   "work/consequence-closure/index.html",
@@ -258,6 +259,7 @@ test("the public directory is an explicit, reviewable allowlist", async () => {
     "assets/research-ledger.css",
     "assets/research/yale-national-processing-map.svg",
     "assets/style.css",
+    "data/index.html",
     "index.html",
     "rels/appeal.html",
     "research/conference-papers/bibm-2026-p283/index.html",

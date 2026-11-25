@@ -1945,3 +1945,46 @@ a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
   .research-updates .update-entry--data { row-gap:10px; }
   .research-updates .update-entry--data .update-copy { align-self:stretch; }
 }
+
+
+/* RISUAP article layout: independent reading and metadata columns. */
+.risu-data-page .data-section { max-width:var(--max); padding-top:18px; }
+.risu-data-page .data-overview { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,.33fr); gap:clamp(28px,5vw,62px); align-items:start; }
+.risu-data-page .data-overview-main,.risu-data-page .data-overview-meta { min-width:0; }
+.risu-data-page .data-record-heading { display:block; }
+.risu-data-page .data-record-heading h2 { max-width:none; margin:8px 0 12px; text-wrap:pretty; }
+.risu-data-page .data-summary { display:block; margin:22px 0 0; }
+.risu-data-page .data-summary>p { max-width:none; margin:0; }
+.risu-data-page .data-editorial-photo { max-width:none; margin:22px 0 0; }
+.risu-data-page .data-editorial-photo img { aspect-ratio:2.2/1; height:auto; }
+.risu-data-page .data-overview-meta { display:flex; flex-direction:column; gap:25px; }
+.risu-data-page .data-repository { gap:6px; }
+.risu-data-page .data-repository .data-repository-name { font-size:clamp(1.22rem,1.8vw,1.45rem); overflow-wrap:anywhere; }
+.risu-data-page .data-spec { display:grid; gap:12px; }
+.risu-data-page .data-spec div { padding:0; }
+.risu-data-page .data-spec dd { line-height:1.45; }
+.risu-data-page .data-guide { grid-template-columns:minmax(130px,180px) minmax(0,1fr); gap:20px; margin:28px 0 34px; padding:20px 0 0; }
+.risu-data-page .data-guide>div { min-width:0; }
+.risu-data-page .data-finding { grid-template-columns:minmax(0,1fr) minmax(250px,.66fr); gap:18px clamp(24px,3.3vw,42px); align-items:start; padding:12px 0 20px; }
+.risu-data-page .data-finding-copy { min-width:0; }
+.risu-data-page .data-finding-copy p { max-width:none; }
+.risu-data-page .data-finding-copy .data-finding-detail { margin:14px 0 0; }
+.risu-data-page .data-finding-copy p:last-child { margin-bottom:0; }
+.risu-data-page .data-case-table { min-width:0; }
+.risu-data-page .data-case-table figcaption { line-height:1.45; }
+.risu-data-page .data-tables,.risu-data-page .data-methods,.risu-data-page .data-cite { margin-top:34px; }
+.risu-data-page .data-table-wrap { max-width:100%; }
+@media(max-width:760px) {
+  .risu-data-page .data-overview { grid-template-columns:minmax(0,1fr); gap:20px; }
+  .risu-data-page .data-overview-main,.risu-data-page .data-overview-meta { display:contents; }
+  .risu-data-page .data-record-heading { grid-row:1; }
+  .risu-data-page .data-repository { grid-row:2; }
+  .risu-data-page .data-summary { grid-row:3; margin:0; }
+  .risu-data-page .data-editorial-photo { grid-row:4; margin:0; }
+  .risu-data-page .data-editorial-photo img { aspect-ratio:16/9; }
+  .risu-data-page .data-spec { grid-row:5; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; }
+  .risu-data-page .data-guide,.risu-data-page .data-finding { grid-template-columns:minmax(0,1fr); gap:13px; }
+  .risu-data-page .data-guide { margin-top:22px; padding-top:10px; }
+  .risu-data-page .data-finding { padding-bottom:22px; }
+  .risu-data-page .data-download-line .text-link { display:inline; overflow-wrap:anywhere; }
+}

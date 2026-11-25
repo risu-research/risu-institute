@@ -1905,3 +1905,43 @@ a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
 .update-paper a { color:inherit; }
 .update-main h3 a,.editorial-focus h2 a { color:var(--ink); }
 .update-main h3 a:hover,.editorial-focus h2 a:hover { color:var(--accent); }
+
+
+/* Research news: each article owns a single continuous text column.
+   The outer grid aligns stories at the top, without distributing spare
+   height into the date, headline or metadata rows of shorter stories. */
+.research-updates .updates-list { align-items:start; }
+.research-updates .update-entry {
+  grid-template-rows:auto;
+  align-self:start;
+  align-content:start;
+  align-items:start;
+  column-gap:16px;
+  row-gap:0;
+}
+.research-updates .update-entry .update-thumb,
+.research-updates .update-entry .feature-photo { grid-column:1; grid-row:1; align-self:start; }
+.research-updates .update-copy {
+  grid-column:2;
+  grid-row:1;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:6px;
+  min-width:0;
+  align-self:start;
+}
+.research-updates .update-copy time { display:block; margin:0; line-height:1.4; }
+.research-updates .update-copy .update-main { min-width:0; }
+.research-updates .update-copy .update-side { margin:2px 0 0; align-self:stretch; }
+.research-updates .update-entry--data { column-gap:37px; }
+.research-updates .update-entry--data .update-copy { align-self:center; gap:9px; }
+.research-updates .update-entry--data .update-copy .update-side { margin-top:6px; }
+@media (max-width:950px) {
+  .research-updates .update-entry { column-gap:12px; }
+  .research-updates .update-entry--data { column-gap:23px; }
+}
+@media (max-width:760px) {
+  .research-updates .update-entry--data { row-gap:10px; }
+  .research-updates .update-entry--data .update-copy { align-self:stretch; }
+}
